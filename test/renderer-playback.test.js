@@ -17,6 +17,7 @@ const { haveFfmpeg, makeLibrary, gen, probe, writeDsf } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { FakeRenderer, idFor } = require("./fake-renderer");
 const { signIn } = require("./auth-helper");
+const { firstScan } = require("./helpers");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port();
@@ -71,7 +72,9 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   const WIIM = idFor(wiim.udn), POLY = idFor(poly.udn), DAC = idFor(dac.udn);
 
   try {
-    await until(async () => (await api("status")).index_count === 5);
+    // The first scan ended and read (helpers.js: it can take most of a minute on a busy machine, item 475). It was given
+    // 10 s here: with the machine loaded the test ended there, six runs in six, before any of what it is for.
+    await firstScan(B, token, 5);
     // A renderer found on the network is off until switched on: two rooms only…
     await until(async () => { const z = await api("zones"); return z.zones.length === 2; }, 20000);
     await until(async () => { const l = (await api("audio-devices")).devices; return l.some(d => d.id === WIIM) && l.some(d => d.id === POLY); }, 20000);
@@ -526,11 +529,13 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
       await until(() => ctx.logs.slice(before).some(l => /track\(s\) no longer made: another play/.test(l)), 15000);
       // Skipped from while it waits to be made (item 264): what was being made for Song 1 (stopped part made above)
       // stops, and Song 2, waiting its turn behind it, is made in its place.
-      // (The device's clock held meanwhile: its tracks are seconds long, and it would play past Song 2 as it is made.)
+      // (The device's clock held meanwhile: its tracks are seconds long, and it would play past Song 2 as it is made. Held
+      // before the play, so that it is at Song 1 when Next is pressed: held after it, a busy machine let it play on into
+      // Song 2 first, and Next went to Song 3.)
       const skip = ctx.logs.length;
-      await api("play", { offset: cd.offset, zone_or_output_id: DAC, kind: "play_now" });
       dac.hold();
       try {
+        await api("play", { offset: cd.offset, zone_or_output_id: DAC, kind: "play_now" });
         await api("control", { zone_or_output_id: DAC, command: "next" });
         await until(() => ctx.logs.slice(skip).some(l => /1 track\(s\) no longer made: skipped from/.test(l)), 15000);
         // Said as stopped on purpose, never as a failure (item 332): the stream's own line names why.
