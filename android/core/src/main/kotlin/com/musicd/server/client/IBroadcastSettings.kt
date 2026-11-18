@@ -37,6 +37,8 @@ data class IBroadcastAccount(
     val scannerHours: String = "",
     /** What the upload is from and how hard it pushes (item 451): the choices as kept, and the drives offered. */
     val choices: IBroadcastUploadChoices = IBroadcastUploadChoices(null, "", 3, false, 3, false, 1, emptyList()),
+    /** Upload bandwidth (item 479): the home's upload speed and the share of it the upload may use. */
+    val bandwidth: IBroadcastBandwidth = IBroadcastBandwidth(null, 100, null, null),
 ) {
     /** The address of a sign-in under way, without its scheme. */
     val linkText: String get() = pendingUrl?.replace(Regex("^https?://"), "") ?: ""
@@ -44,10 +46,26 @@ data class IBroadcastAccount(
     val again: Boolean get() = (pendingUrl != null && !pendingError) || reading || (connected && upload.running)
 }
 
-/** Upload from ([from]: "all", a drive's folder, or none chosen; [fromNote] said where none is), how many at once, and while music plays at home or away (item 451). */
+/**
+ * Upload from ([from]: "all", one drive's folder, "drives" for several, or none chosen; [fromNote] said where none is),
+ * how many at once, and while music plays at home or away (items 451, 472).
+ */
 data class IBroadcastUploadChoices(val from: String?, val fromNote: String, val atOnce: Int, val home: Boolean, val homeAtOnce: Int, val away: Boolean, val awayAtOnce: Int,
-    /** What may be chosen: All music, then each drive offered, as (value, name). */
-    val sources: List<Pair<String, String>>)
+    /** What may be chosen: All drives, then each drive offered, as (value, name). */
+    val sources: List<Pair<String, String>>,
+    /** The values lit: All drives and every drive where All drives is chosen, else the drives chosen, any number. */
+    val on: Set<String> = emptySet()) {
+    /**
+     * Upload from's [value] tapped (ibroadcastFromTap): the change to keep. All drives on or off; a drive on or off among
+     * the rest (with All drives on, the others but that one).
+     */
+    fun tap(value: String): org.json.JSONObject {
+        if (value == "all") return org.json.JSONObject().put("from", if (from == "all") org.json.JSONObject.NULL else "all")
+        val next = on - "all"
+        val drives = if (value in next) next - value else next + value
+        return org.json.JSONObject().put("drives", org.json.JSONArray(drives.toList()))
+    }
+}
 
 /** The upload as the page says it (ibroadcastUploadWords): under way or not, the line under Upload, the progress, and the files left out or not sent, a line each. */
 data class IBroadcastUploadWords(val running: Boolean, val status: String, val progress: String, val problems: String)
@@ -78,7 +96,8 @@ object IBroadcastSettings {
         return IBroadcastAccount(on, status, premium, formats, pending?.optString("url")?.takeIf { it.isNotEmpty() }, pending?.optString("code").orEmpty(),
             pending?.optString("error").orEmpty().isNotEmpty(), import, reading, if (on) libraryWords(l, at) else "", uploadWords(if (on) j.optJSONObject("upload") else null, at),
             on && j.optJSONObject("schedule")?.optBoolean("on") == true, j.optJSONObject("schedule")?.optString("start").orEmpty(),
-            j.optJSONObject("schedule")?.optString("end").orEmpty(), if (on) scannerHours(j.optJSONObject("scanner_hours")) else "", choices(j))
+            j.optJSONObject("schedule")?.optString("end").orEmpty(), if (on) scannerHours(j.optJSONObject("scanner_hours")) else "", choices(j),
+            IBroadcastBandwidthWords.parse(j))
     }
 
     /** The upload's choices and the drives offered ([j]: the state), as the page has them. */
@@ -86,12 +105,16 @@ object IBroadcastSettings {
         val c = j.optJSONObject("upload_settings") ?: JSONObject()
         val from = c.optString("from").takeIf { it.isNotEmpty() && !c.isNull("from") }
         val list = j.optJSONArray("upload_sources")
-        val sources = listOf("all" to "All music") + (0 until (list?.length() ?: 0)).mapNotNull { list!!.optJSONObject(it) }.map { it.optString("path") to it.optString("name") }
-        return IBroadcastUploadChoices(from, fromNote(from), c.optInt("at_once", 3), c.optBoolean("home"), c.optInt("home_at_once", 3), c.optBoolean("away"), c.optInt("away_at_once", 1), sources)
+        val sources = listOf("all" to "All drives") + (0 until (list?.length() ?: 0)).mapNotNull { list!!.optJSONObject(it) }.map { it.optString("path") to it.optString("name") }
+        // Lit (ibroadcastFromOn, item 472): All drives and every drive where All drives is chosen, else the drives chosen.
+        val drives = c.optJSONArray("drives")?.let { a -> (0 until a.length()).map { a.optString(it) } }
+            ?: listOfNotNull(from?.takeIf { it != "all" && it != "drives" })
+        val on = if (from == "all") sources.map { it.first }.toSet() else drives.toSet()
+        return IBroadcastUploadChoices(from, fromNote(from), c.optInt("at_once", 3), c.optBoolean("home"), c.optInt("home_at_once", 3), c.optBoolean("away"), c.optInt("away_at_once", 1), sources, on)
     }
 
     /** What is said under Upload from (ibroadcastFromNote): to choose, where nothing is. */
-    fun fromNote(from: String?): String = if (from == null) "Choose All music or a drive to upload from." else ""
+    fun fromNote(from: String?): String = if (from == null) "Choose All drives, or the drives to upload from." else ""
 
     /** What the upload schedule's switch says (item 447; ibroadcastScheduleNote). */
     fun scheduleNote(on: Boolean): String = if (on) "Uploads each day between these times, stopping at the end" else "Off: uploads only when you tap Upload now"
@@ -127,7 +150,8 @@ object IBroadcastSettings {
         if (u.optBoolean("running")) {
             if (n("files_total") == 0L && n("files_done") == 0L) return IBroadcastUploadWords(true, "Looking at what iBroadcast has…", "", problems)
             val parts = mutableListOf("${n("files_done")} of ${n("files_total")} files", size(u.optDouble("bytes_done", 0.0)) + " of " + size(u.optDouble("bytes_total", 0.0)))
-            if (u.optDouble("speed", 0.0) > 0) parts += size(u.optDouble("speed")) + "/s"
+            // In Mbps, as internet providers and routers say speeds (item 479).
+            if (u.optDouble("speed", 0.0) > 0) parts += IBroadcastBandwidthWords.ofBytes(u.optDouble("speed"))
             if (u.has("eta") && !u.isNull("eta")) parts += left(u.optLong("eta"))
             val status = if (u.optBoolean("held")) (if (u.optString("held_where") == "away") "Paused while music plays away from home" else "Paused while music plays") else "Uploading " + (u.optString("album").takeIf { it.isNotEmpty() && !u.isNull("album") } ?: "…")
             return IBroadcastUploadWords(true, status, parts.joinToString(" · "), problems)

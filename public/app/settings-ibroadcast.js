@@ -5,9 +5,10 @@
  * is going (asked every two seconds while it goes), or what the last one did, Upload now and Stop upload, and the files
  * left out or not sent, with why; and the upload on a schedule (item 447): its switch and hours, which can't overlap the
  * Library Scanner's (those said under them; a window that would is refused, in the server's words); and what it is
- * from and how hard it pushes (item 451): Upload from (All music or a drive; none at first), files at once, and whether
- * it goes on while music plays at home, or away from home, each with its own number at once. The app's page is its own (SettingsIBroadcast.kt), worded the same (core's
- * IBroadcastSettings.kt). */
+ * from and how hard it pushes (item 451): Upload from (All drives, or any of the drives: item 472; none at first), files at once, and whether
+ * it goes on while music plays at home, or away from home, each with its own number at once; and Upload bandwidth (item
+ * 479), a row saying the limit that opens its own page (settings-ibroadcast-bandwidth.js). The app's page is its own
+ * (SettingsIBroadcast.kt), worded the same (core's IBroadcastSettings.kt). */
 
 /** What the page says of the account ([j]: GET /api/settings/ibroadcast). @param {any} j */
 function ibroadcastWords(j) {
@@ -55,7 +56,8 @@ function ibroadcastUploadWords(u, at) {
   if (u.running) {
     if (!u.files_total && !u.files_done) return { running: true, status: "Looking at what iBroadcast has…", progress: "", problems };
     const parts = [u.files_done + " of " + u.files_total + " files", ibroadcastSize(u.bytes_done) + " of " + ibroadcastSize(u.bytes_total)];
-    if (u.speed > 0) parts.push(ibroadcastSize(u.speed) + "/s");
+    // In Mbps, as internet providers and routers say speeds (item 479).
+    if (u.speed > 0) parts.push(ibroadcastMbps(u.speed));
     if (typeof u.eta === "number") parts.push(ibroadcastLeft(u.eta));
     const status = u.held ? (u.held_where === "away" ? "Paused while music plays away from home" : "Paused while music plays") : "Uploading " + (u.album || "…");
     return { running: true, status, progress: parts.join(" · "), problems };
@@ -82,7 +84,30 @@ function ibroadcastScannerHours(h) {
 
 /** What the page says under Upload from ([c]: the state's upload_settings): to choose, where nothing is. @param {any} c */
 function ibroadcastFromNote(c) {
-  return c && c.from ? "" : "Choose All music or a drive to upload from.";
+  return c && c.from ? "" : "Choose All drives, or the drives to upload from.";
+}
+
+/**
+ * Upload from's buttons that are on (item 472), [c] the state's upload_settings and [sources] its upload_sources:
+ * All drives and every drive where All drives is chosen, else the drives chosen, any number.
+ * @param {any} c @param {any[]} sources @returns {Set<string>}
+ */
+function ibroadcastFromOn(c, sources) {
+  if (c && c.from === "all") return new Set(["all"].concat((sources || []).map(x => x.path)));
+  return new Set((c && c.drives) || []);
+}
+
+/**
+ * Upload from's button [value] tapped: the change to keep. All drives on or off; a drive on or off among the rest (with
+ * All drives on, the others but that one).
+ * @param {any} c @param {any[]} sources @param {string} value @returns {object}
+ */
+function ibroadcastFromTap(c, sources, value) {
+  if (value === "all") return { from: c && c.from === "all" ? null : "all" };
+  const on = ibroadcastFromOn(c, sources);
+  on.delete("all");
+  if (on.has(value)) on.delete(value); else on.add(value);
+  return { drives: [...on] };
 }
 
 (function initIBroadcast() {
@@ -98,11 +123,12 @@ function ibroadcastFromNote(c) {
   const startBox = /** @type {HTMLInputElement|null} */ ($("ib-start")), endBox = /** @type {HTMLInputElement|null} */ ($("ib-end")), scannerHours = $("ib-scanner-hours");
   const fromBox = $("ib-from"), fromNote = $("ib-from-note"), homeBox = /** @type {HTMLInputElement|null} */ ($("ib-home")), awayBox = /** @type {HTMLInputElement|null} */ ($("ib-away"));
   const homeRow = $("ib-home-row"), awayRow = $("ib-away-row");
-  /* A row of choices ([box]: buttons it is redrawn with, each [value, label]; [on] the one in force). */
-  const choices = (/** @type {HTMLElement|null} */ box, /** @type {[string, string][]} */ list, /** @type {string} */ on, /** @type {string} */ key) => {
+  /* A row of choices ([box]: buttons it is redrawn with, each [value, label]; [on] the one in force, or those on). */
+  const choices = (/** @type {HTMLElement|null} */ box, /** @type {[string, string][]} */ list, /** @type {string|Set<string>} */ on, /** @type {string} */ key) => {
     if (!box) return;
     const esc = (/** @type {string} */ x) => x.replace(/[&<>"']/g, ch => "&#" + ch.charCodeAt(0) + ";");
-    const html = list.map(([v, label]) => '<button type="button" class="seg-btn' + (v === on ? " is-on" : "") + '" data-parity="' + key + '" data-value="' + esc(v) + '">' + esc(label) + "</button>").join("");
+    const isOn = (/** @type {string} */ v) => typeof on === "string" ? v === on : on.has(v);
+    const html = list.map(([v, label]) => '<button type="button" class="seg-btn' + (isOn(v) ? " is-on" : "") + '" data-parity="' + key + '" data-value="' + esc(v) + '">' + esc(label) + "</button>").join("");
     if (box.innerHTML !== html) box.innerHTML = html;
   };
   const counts = /** @type {[string, string][]} */ ([["1", "1"], ["2", "2"], ["3", "3"]]);
@@ -111,8 +137,12 @@ function ibroadcastFromNote(c) {
   /** @type {ReturnType<typeof setTimeout>|undefined} */
   let again;
 
+  /** The state last painted, for what a tap on Upload from changes. @type {any} */
+  let painted = null;
+
   /** @param {any} j */
   function paint(j) {
+    painted = j;
     const w = ibroadcastWords(j);
     if (form) form.hidden = w.on;
     signin.hidden = !!w.pending;
@@ -142,7 +172,8 @@ function ibroadcastFromNote(c) {
     if (scannerHours) scannerHours.textContent = w.on ? ibroadcastScannerHours(j.scanner_hours) : "";
     const c = (w.on && j.upload_settings) || {};
     // Each written out, as npm run parity reads the keys here.
-    choices(fromBox, /** @type {[string, string][]} */ ([["all", "All music"]]).concat((j.upload_sources || []).map((/** @type {any} */ x) => [x.path, x.name])), c.from || "", "settings-ibroadcast.from");
+    choices(fromBox, /** @type {[string, string][]} */ ([["all", "All drives"]]).concat((j.upload_sources || []).map((/** @type {any} */ x) => [x.path, x.name])),
+      ibroadcastFromOn(c, j.upload_sources), "settings-ibroadcast.from");
     if (fromNote) fromNote.textContent = w.on ? ibroadcastFromNote(c) : "";
     choices($("ib-at-once"), counts, String(c.at_once || 3), "settings-ibroadcast.at-once");
     choices($("ib-home-at-once"), counts, String(c.home_at_once || 3), "settings-ibroadcast.home-at-once");
@@ -151,14 +182,23 @@ function ibroadcastFromNote(c) {
     if (awayBox) awayBox.checked = !!c.away;
     if (homeRow) homeRow.hidden = !c.home;
     if (awayRow) awayRow.hidden = !c.away;
+    const bandwidth = $("ib-bandwidth-said");
+    if (bandwidth) bandwidth.textContent = w.on ? ibroadcastBandwidthSaid(j.upload_speed) : "";
     clearTimeout(again);
     if ((w.pending && !w.pending.error) || w.reading || (w.on && up.running)) again = setTimeout(look, 2000);
   }
+  // A reading painted only where nothing was changed while it was asked (item 483): answered after a change's answer,
+  // it said what was so before the change and was painted over it (a switch just put on shown off again).
+  let changes = 0;
   async function look() {
-    try { paint(await (await fetch("/api/settings/ibroadcast", { cache: "no-store" })).json()); } catch (e) { /* the page shows the last state */ }
+    const before = changes;
+    try {
+      const j = await (await fetch("/api/settings/ibroadcast", { cache: "no-store" })).json();
+      if (changes === before) paint(j);
+    } catch (e) { /* the page shows the last state */ }
   }
   /** @param {string} path @param {object} [body] */
-  const post = (path, body = {}) => fetch("/api/settings/ibroadcast" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const post = (path, body = {}) => { changes++; return fetch("/api/settings/ibroadcast" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); };
 
   signin.addEventListener("click", async () => {
     signin.setAttribute("disabled", "");
@@ -173,7 +213,7 @@ function ibroadcastFromNote(c) {
   });
   if (importBox) importBox.addEventListener("change", async () => {
     try {
-      const r = await fetch("/api/settings/ibroadcast", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ import: importBox.checked }) });
+      const r = await post("", { import: importBox.checked });
       paint(await r.json());
       // The walls and Home drawn again: the albums are in or out at once.
       if (typeof window.__libraryChanged === "function") window.__libraryChanged();
@@ -223,7 +263,7 @@ function ibroadcastFromNote(c) {
   }
   if (fromBox) fromBox.addEventListener("click", e => {
     const b = /** @type {HTMLElement|null} */ (/** @type {HTMLElement} */ (e.target).closest("[data-value]"));
-    if (b) setChoice({ from: b.dataset.value });
+    if (b && painted) setChoice(ibroadcastFromTap(painted.upload_settings || {}, painted.upload_sources || [], String(b.dataset.value)));
   });
   for (const id of ["ib-at-once", "ib-home-at-once", "ib-away-at-once"]) {
     const box = $(id);

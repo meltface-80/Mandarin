@@ -1,6 +1,6 @@
-// IBroadcastUploadLocal.cs — the files an upload to iBroadcast sends (items 446, 455): All music, the library's (every
-// file of it, album by album); a drive, every audio file on it, whether or not the library has it (item 455: a drive
-// taken out of the music folders, still connected, still to be sent). What the library knows of a file (its album, its
+// IBroadcastUploadLocal.cs — the files an upload to iBroadcast sends (items 446, 455, 472): every audio file on each
+// drive chosen, drive by drive, whether or not the library has it (item 455: a drive taken out of the music folders,
+// still connected, still to be sent), a file once however many of them hold it. What the library knows of a file (its album, its
 // rate and depth, lossless or not) is taken where it has it; a file it doesn't know is named by its folders and known
 // lossless or not by its kind. Hidden files and folders, lost+found, and what isn't audio (covers, cue sheets, logs)
 // are left out. Only read: nothing on a drive is changed.
@@ -18,11 +18,21 @@ internal static class IBroadcastUploadLocal
         "ape", "wv", "wma", "alac", "mpc"];
     private static readonly HashSet<string> LosslessKinds = ["flac", "fla", "wav", "wave", "aif", "aiff", "aifc", "dsf", "dff", "ape", "wv", "alac"];
 
-    /// <summary>The files [from] sends: All music's (the library's), or a drive's, album by album.</summary>
-    public static List<LocalFile> Of(string? from)
+    /// <summary>The files [drives] send (their folders), drive by drive, each once.</summary>
+    public static List<LocalFile> Of(IEnumerable<string> drives)
     {
-        var known = Library(from == IBroadcastUploadChoices.All ? null : from);
-        if (from == IBroadcastUploadChoices.All || from == null) return known;
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var list = new List<LocalFile>();
+        foreach (var d in drives)
+            foreach (var f in Of(d))
+                if (seen.Add(f.Path)) list.Add(f);
+        return list;
+    }
+
+    /* The files on drive [from], album by album: what the library knows of each where it has it. */
+    private static List<LocalFile> Of(string from)
+    {
+        var known = Library(from);
         var byPath = known.ToDictionary(f => f.Path, StringComparer.Ordinal);
         var list = new List<LocalFile>();
         foreach (var path in Walk(from).Order(StringComparer.Ordinal))
@@ -62,7 +72,7 @@ internal static class IBroadcastUploadLocal
         }
     }
 
-    /* The library's files, or those under [under], album by album (a file once, though a cue sheet makes it many tracks). */
+    /* The library's files under [under], album by album (a file once, though a cue sheet makes it many tracks). */
     private static List<LocalFile> Library(string? under)
     {
         using var c = Db.Open();

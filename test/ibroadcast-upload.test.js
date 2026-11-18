@@ -58,6 +58,8 @@ test("item 446: Upload now sends the library to iBroadcast, as it is but for DSD
   gen(path.join(m, "Lossy", "Long", "01 Long.mp3"), { seconds: 60, fmt: null, codecArgs: ["-b:a", "320k"], tags: { title: "Long", artist: "Lossy", album: "Long", track: 1 } });
   gen(path.join(m, "Aiff", "A", "01 A.aif"), { tags: { title: "A", artist: "Aiff", album: "A", track: 1 } });
   const at = (...p) => path.join(m, ...p);
+  // What a file here is sent to iBroadcast as (item 480): its path from its drive, the music folder's top folder here.
+  const sentAs = f => path.relative(m, f).split(path.sep).slice(1).join("/");
   for (const [f, over] of [[at("Wav", "Big", "01 Tone.wav"), true], [at("Wav", "Big", "02 Noise.wav"), true], [at("Lossy", "Long", "01 Long.mp3"), true],
     [at("Artist B", "Hi Res", "01 Hi 1.flac"), false], [at("Artist A", "Album One", "02 Song 2.flac"), false]]) assert.equal(fs.statSync(f).size > LIMIT, over, f);
 
@@ -93,7 +95,7 @@ test("item 446: Upload now sends the library to iBroadcast, as it is but for DSD
     // Nothing chosen to upload from (item 451): refused until one is.
     const none = await post("/upload");
     assert.equal(none.status, 409);
-    assert.equal(none.error, "Choose what to upload from first: All music or a drive");
+    assert.equal(none.error, "Choose what to upload from first: All drives or the drives to send");
     assert.equal((await post("/upload/settings", { from: "all" })).status, 200);
     const r = await post("/upload");
     assert.equal(r.status, 200);
@@ -108,17 +110,17 @@ test("item 446: Upload now sends the library to iBroadcast, as it is but for DSD
     assert.ok(ib.uploads.every(x => x.method === "mandarin" && x.name === path.basename(x.file_path)), "each sent as iBroadcast's uploader sends one");
     for (const f of [at("Artist A", "Album One", "02 Song 2.flac"), at("Artist A", "Album One", "03 Song 3.flac"), at("Artist B", "Hi Res", "01 Hi 1.flac"),
       at("Artist B", "Hi Res", "02 Hi 2.flac"), at("Comp", "CD1", "01.mp3"), at("Comp", "CD2", "01.mp3")]) {
-      assert.ok(by[f], "sent: " + f);
-      assert.equal(by[f].md5, md5(fs.readFileSync(f)), "as it is: " + f);
+      assert.ok(by[sentAs(f)], "sent: " + f);
+      assert.equal(by[sentAs(f)].md5, md5(fs.readFileSync(f)), "as it is: " + f);
     }
-    assert.ok(!by[at("Artist A", "Album One", "01 Song 1.flac")], "one iBroadcast has, not sent again");
-    const dsd = by[at("DSD", "Dsd Album", "01 Dsd.flac")];
+    assert.ok(!by[sentAs(at("Artist A", "Album One", "01 Song 1.flac"))], "one iBroadcast has, not sent again");
+    const dsd = by[sentAs(at("DSD", "Dsd Album", "01 Dsd.flac"))];
     assert.ok(dsd, "the DSF sent as FLAC");
     assert.deepEqual(probe(dsd.data), { rate: 176400, channels: 2, bits: 24 });
-    const tone = by[at("Wav", "Big", "01 Tone.flac")];
+    const tone = by[sentAs(at("Wav", "Big", "01 Tone.flac"))];
     assert.deepEqual(probe(tone.data), { rate: 44100, channels: 2, bits: 16 });
     assert.ok(tone.size <= LIMIT && /title=Tone/i.test(tone.data.toString("latin1")), "made FLAC under the limit, its tags kept");
-    const noise = by[at("Wav", "Big", "02 Noise.flac")];
+    const noise = by[sentAs(at("Wav", "Big", "02 Noise.flac"))];
     assert.deepEqual(probe(noise.data), { rate: 22050, channels: 2, bits: 16 }, "noise over the limit as FLAC: at half its rate");
     assert.ok(noise.size <= LIMIT);
     const why = Object.fromEntries(u.problems.map(p => [path.basename(p.file), p.why]));
@@ -178,7 +180,7 @@ test("item 446: Upload now sends the library to iBroadcast, as it is but for DSD
       await call("POST", "phone/state", { index: 0, position: 6, duration: 60, state: "paused", volume: 40 });
       const u = await finished(last);
       assert.equal(u.uploaded, 1, JSON.stringify(u));
-      assert.equal(ib.uploads.at(-1).file_path, at("New", "One", "01 New.flac"));
+      assert.equal(ib.uploads.at(-1).file_path, sentAs(at("New", "One", "01 New.flac")));
     } finally {
       playing = false;
       await report;

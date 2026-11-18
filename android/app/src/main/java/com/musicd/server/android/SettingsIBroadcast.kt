@@ -55,12 +55,13 @@ import org.json.JSONObject
  * then Upload (item 446): how the one under way is going (asked again every two seconds while it goes), or what the last
  * one did, Upload now or Stop upload, and the files left out or not sent; and on a schedule (item 447), its switch and
  * hours beside the Library Scanner's, which they can't overlap (a window that would refused, in the server's words);
- * and (item 451) Upload from, files at once, and uploading while music plays at home or away, each with its number.
+ * and (item 451) Upload from, files at once, and uploading while music plays at home or away, each with its number;
+ * and (item 479) Upload bandwidth, a row saying the limit that opens its own page (SettingsIBroadcastBandwidth.kt).
  */
 
-/** Settings' iBroadcast page ([client]: the server's, [onBack]: back to Services). */
+/** Settings' iBroadcast page ([client]: the server's, [onBack]: back to Services, [onOpen]: a page of its own, Upload bandwidth's). */
 @Composable
-internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit) {
+internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit, onOpen: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var info by remember { mutableStateOf<String?>(null) }
@@ -72,12 +73,16 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit)
     var updating by remember { mutableStateOf(false) }
     var asking by remember { mutableStateOf(false) }
     fun show(j: JSONObject) { account = IBroadcastSettings.parse(j, at) }
-    suspend fun load() { readSetting(client, "ibroadcast")?.let(::show) }
+    // A reading shown only where nothing was changed while it was asked (item 483): answered after a change, it says
+    // what was so before it (a switch just put on shown off again, until the next reading).
+    var changes by remember { mutableStateOf(0) }
+    suspend fun load() { val before = changes; readSetting(client, "ibroadcast")?.let { if (changes == before) show(it) } }
     // Asked again every 2 s while something goes on, else every 30 s; a change that starts something (Upload now) is
     // followed within 2 s, not at the end of the 30 (item 451: the page sat on "Looking at what iBroadcast has…").
     LaunchedEffect(Unit) { while (true) { untilOnScreen(); load(); var waited = 0L; do { delay(2_000L); waited += 2_000L } while (account?.again != true && waited < 30_000L) } }
     fun change(path: String, body: JSONObject = JSONObject(), timeout: Int = 20_000, done: (JSONObject) -> Unit = ::show) {
         val c = client() ?: return
+        changes++
         val call = { c.post("/api/settings/ibroadcast$path", body, timeout).also { j -> j.optString("error").takeIf { it.isNotEmpty() }?.let { throw IllegalStateException(it) } } }
         // Update library now reads the whole library: beside the lane, so a change asked meanwhile isn't held (item 390).
         val made = if (timeout > ServerWrites.LANE_MOST) ServerWrites.aside(call) else ServerWrites.write(call)
@@ -149,6 +154,7 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit)
             account?.takeIf { it.connected }?.let { a ->
                 UploadBlock(a.upload, asking, { info = IBroadcastSettings.UPLOAD_INFO }, {
                     ChoiceRows(a.choices, asking) { patch -> asking = true; change("/upload/settings", patch) { j -> asking = false; show(j) } }
+                    OpenRow("Upload bandwidth", a.bandwidth.said, Modifier.parity("settings-ibroadcast.bandwidth", Contract.label("settings-ibroadcast.bandwidth")).clickable { onOpen("ibroadcast-bandwidth") })
                 }) { path -> asking = true; change(path) { j -> asking = false; show(j) } }
                 ScheduleRows(a, asking) { patch -> asking = true; change("/schedule", patch) { j -> asking = false; show(j) } }
             }
@@ -183,9 +189,9 @@ private fun ChoiceRows(c: com.musicd.server.client.IBroadcastUploadChoices, aski
         val box = RoundedCornerShape(10.dp)
         Column(Modifier.fillMaxWidth().clip(box).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(Palette.BORDER), box)) {
             for ((i, src) in c.sources.withIndex()) {
-                val on = src.first == c.from
+                val on = src.first in c.on
                 Text(src.second, Modifier.parity("settings-ibroadcast.from", Contract.label("settings-ibroadcast.from", i, src.second)).fillMaxWidth()
-                    .background(if (on) paletteColor(Palette.ACCENT) else androidx.compose.ui.graphics.Color.Transparent).clickable(enabled = !asking) { save(JSONObject().put("from", src.first)) }
+                    .background(if (on) paletteColor(Palette.ACCENT) else androidx.compose.ui.graphics.Color.Transparent).clickable(enabled = !asking) { save(c.tap(src.first)) }
                     .padding(horizontal = 12.dp, vertical = 9.dp), color = paletteColor(if (on) Palette.TEXT else Palette.TEXT_DIM), fontSize = 13.5.sp, lineHeight = 18.sp,
                     fontWeight = if (on) FontWeight.W600 else FontWeight.W400)
             }
@@ -207,6 +213,16 @@ private fun CountRow(name: String, counts: List<SegChoice>, now: Int, keyed: (In
         Box(Modifier.widthIn(max = 150.dp)) {
             Seg(counts, "$now", key = keyed)
         }
+    }
+}
+
+/** A row that opens a page of its own (item 479): its [name], what it is set to ([said]) and ›; [modifier] its parity and tap. */
+@Composable
+private fun OpenRow(name: String, said: String, modifier: Modifier) {
+    Row(modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(10.dp)).background(paletteColor(Palette.BG_ELEV_2)).padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(name, Modifier.weight(1f), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
+        Text("$said ›", color = paletteColor(Palette.TEXT_DIM), fontSize = 13.sp, lineHeight = 18.sp)
     }
 }
 

@@ -3,8 +3,9 @@
  * iBroadcast albums matched by sound when the owner chooses them (item 459): never by the Album Scanner in the
  * background (it identifies them by their details only, nothing fetched); an album its details leave unsure is matched
  * by sound when it is chosen to play, its tracks' starts read from iBroadcast's stream, whatever the hour and the music
- * playing (its own); once; and Match by sound in Edit album reads them the same way. Against fakes of iBroadcast (its
- * tracks' files real, chords a fingerprint each), MusicBrainz and AcoustID.
+ * playing (its own); once; and Match by sound in Edit album reads them the same way. Chosen while MusicBrainz turns
+ * lookups away, it is said and tried again when next chosen (item 478: the error went unhandled, a "[crash]" line).
+ * Against fakes of iBroadcast (its tracks' files real, chords a fingerprint each), MusicBrainz and AcoustID.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -70,7 +71,7 @@ test("item 459: iBroadcast albums matched by sound when chosen to play, and by h
   t.after(() => ib.stop());
   const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
-    identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, itunesBaseUrl: itunes.baseUrl, acoustidBaseUrl: aid.baseUrl,
+    identify: true, identifyTickMs: 100, mbBaseUrl: mb.baseUrl, mbRestMs: 300, itunesBaseUrl: itunes.baseUrl, acoustidBaseUrl: aid.baseUrl,
     ibroadcastBaseUrl: ib.base, ibroadcastWatchMs: 100000000 });
   const ctx = await srv.start();
   t.after(() => srv.stop());
@@ -96,6 +97,18 @@ test("item 459: iBroadcast albums matched by sound when chosen to play, and by h
     assert.equal(fetched(), 0, "nothing fetched from iBroadcast");
     const ours = new Set([...fpPlayed, ...fpHand, ...fpLost]);
     assert.equal(aid.lookups().filter(x => ours.has(x.fingerprint)).length, 0, "AcoustID never asked of theirs (the library's own files are)");
+  });
+
+  await t.test("chosen while MusicBrainz turns lookups away: said, left as it was, to be tried when next chosen", async () => {
+    mb.busy = true;
+    try {
+      const h = await call("POST", "phone/hello", { name: "Pixel 8" });
+      assert.equal((await call("POST", "play", { offset: offsetOf("ibroadcast:951"), zone_or_output_id: h.zone_id, kind: "play_now" })).http, 200);
+      await until(() => ctx.logs.some(l => /Unknown Disc: not matched by sound now \(.*503.*\); tried again when next chosen/.test(l)), 60000, "said");
+    } finally { mb.busy = false; }
+    assert.ok(!ctx.logs.some(l => /\[crash\]/.test(l)), "no task left failing unwatched");
+    assert.equal((row("ibroadcast:951") || {}).status, "unidentified");
+    await sleep(1000);   // MusicBrainz's rest (300 ms here) over
   });
 
   await t.test("chosen to play: matched by sound from iBroadcast's stream, applied", async () => {

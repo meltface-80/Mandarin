@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.3.5
+
+Uploads to iBroadcast are easier to live with: a limit on how much of your internet upload they use, any number of drives at once, and files with long or accented names kept.
+
+- New - Upload bandwidth, in Settings → Services → iBroadcast: enter your upload speed and choose how much of it uploads may use (25, 50, 75 or 100 %), leaving the rest for everything else
+- Changed - iBroadcast's Upload from: "All music" is now All drives, and any number of drives can be chosen at once
+- Changed - An upload's speed is shown in Mbps
+- Fixed - iBroadcast now keeps files with long or accented names, such as an opera box set's tracks
+- Fixed - A file iBroadcast takes but doesn't keep is no longer sent again on every upload: it is left, and listed with iBroadcast's reason
+- Fixed - Upload from "All music" sent nothing where your drives aren't music folders
+- Fixed - An iBroadcast album chosen to play while MusicBrainz is busy is matched by sound the next time you choose it
+
 ## v1.3.4
 
 Mandarin now works with iBroadcast: sign in, and your iBroadcast library is in Mandarin's, plays everywhere Mandarin plays, can be kept on the phone, and is where your own library is uploaded to.

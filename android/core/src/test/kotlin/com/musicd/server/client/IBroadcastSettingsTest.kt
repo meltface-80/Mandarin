@@ -47,7 +47,7 @@ class IBroadcastSettingsTest {
         val going = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":true,"held":false,"files_total":120,"files_done":3,
             "bytes_total":2500000000,"bytes_done":45200000,"speed":1250000,"eta":7505,"album":"Artist A – Album One",
             "problems":[{"file":"/music/X/01.aif","why":"iBroadcast doesn't take .aif files"}]}}"""), at).upload
-        assertEquals(IBroadcastUploadWords(true, "Uploading Artist A – Album One", "3 of 120 files · 45.2 MB of 2.5 GB · 1.3 MB/s · about 2 h 5 min left",
+        assertEquals(IBroadcastUploadWords(true, "Uploading Artist A – Album One", "3 of 120 files · 45.2 MB of 2.5 GB · 10 Mbps · about 2 h 5 min left",
             "01.aif: iBroadcast doesn't take .aif files"), going)
         val held = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":true,"held":true,"files_total":2,"files_done":1,
             "bytes_total":900,"bytes_done":400,"speed":0,"eta":null,"album":"A – B"}}"""), at).upload
@@ -78,11 +78,31 @@ class IBroadcastSettingsTest {
         assertNull(Scanner.uploadNote(null))
     }
 
+    /** Upload from: All drives, or several drives at once (item 472), lit and tapped as the page does them (ibroadcastFromOn, ibroadcastFromTap). */
+    @Test fun severalDrives() {
+        fun parse(settings: String) = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload_settings":$settings,
+            "upload_sources":[{"path":"/u/A","name":"A","files":null},{"path":"/u/B","name":"B","files":null},{"path":"/u/C","name":"C","files":null}]}""")).choices
+        val none = parse("""{"from":null,"drives":[]}""")
+        assertEquals(emptySet<String>(), none.on)
+        assertEquals("""{"drives":["/u/B"]}""", none.tap("/u/B").toString())
+        assertEquals("""{"from":"all"}""", none.tap("all").toString())
+        val two = parse("""{"from":"drives","drives":["/u/A","/u/C"]}""")
+        assertEquals(setOf("/u/A", "/u/C"), two.on)
+        assertEquals("""{"drives":["/u/A","/u/C","/u/B"]}""", two.tap("/u/B").toString())
+        assertEquals("""{"drives":["/u/C"]}""", two.tap("/u/A").toString())
+        val all = parse("""{"from":"all","drives":[]}""")
+        assertEquals(setOf("all", "/u/A", "/u/B", "/u/C"), all.on)
+        assertEquals("a drive off: the rest left on", """{"drives":["/u/A","/u/C"]}""", all.tap("/u/B").toString())
+        assertEquals("""{"from":null}""", all.tap("all").toString())
+        // A server before item 472: one drive's folder in "from", no "drives".
+        assertEquals(setOf("/u/B"), parse("""{"from":"/u/B"}""").on)
+    }
+
     /** What the upload is from and how hard it pushes (item 451), as the page has them; held away from home said so. */
     @Test fun theChoices() {
         val none = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload_settings":{"from":null,"at_once":3,"home":false,"home_at_once":3,"away":false,"away_at_once":1},
             "upload_sources":[{"path":"/m/A","name":"A","files":3},{"path":"/m/B","name":"B","files":2}]}""")).choices
-        assertEquals(IBroadcastUploadChoices(null, "Choose All music or a drive to upload from.", 3, false, 3, false, 1, listOf("all" to "All music", "/m/A" to "A", "/m/B" to "B")), none)
+        assertEquals(IBroadcastUploadChoices(null, "Choose All drives, or the drives to upload from.", 3, false, 3, false, 1, listOf("all" to "All drives", "/m/A" to "A", "/m/B" to "B")), none)
         val set = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload_settings":{"from":"/m/B","at_once":2,"home":true,"home_at_once":1,"away":true,"away_at_once":2},"upload_sources":[]}""")).choices
         assertEquals(listOf("/m/B", "", "2", "true", "1", "true", "2"), listOf(set.from, set.fromNote, "${set.atOnce}", "${set.home}", "${set.homeAtOnce}", "${set.away}", "${set.awayAtOnce}"))
         val away = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":true,"held":true,"held_where":"away","files_total":4,"files_done":1,"bytes_total":4000,"bytes_done":1000,"speed":0,"eta":null}}""")).upload

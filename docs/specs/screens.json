@@ -875,7 +875,7 @@
       }
     },
     "settings-ibroadcast": {
-      "page": "Settings' iBroadcast (item 443), one of Services' pages: Back to Services, its title; the account under its title and ⓘ: signed out, Sign in on iBroadcast (then the link to open, the code to approve Mandarin with there and Cancel, and how the sign-in is going); signed in, who, whether the account is Premium, the formats iBroadcast takes, its albums in the library on or off, Update library now, what the library holds of it (item 444), and Sign out; then Upload (item 446), under its title and ⓘ: how the upload under way is going or what the last one did, Upload now or Stop upload, the files left out or not sent, Upload on a schedule (item 447) with its hours and the Library Scanner's beside them, and (item 451) Upload from (All music or a drive), files at once, and uploading while music plays at home or away from home, each with its own number at once",
+      "page": "Settings' iBroadcast (item 443), one of Services' pages: Back to Services, its title; the account under its title and ⓘ: signed out, Sign in on iBroadcast (then the link to open, the code to approve Mandarin with there and Cancel, and how the sign-in is going); signed in, who, whether the account is Premium, the formats iBroadcast takes, its albums in the library on or off, Update library now, what the library holds of it (item 444), and Sign out; then Upload (item 446), under its title and ⓘ: how the upload under way is going or what the last one did, Upload now or Stop upload, the files left out or not sent, Upload on a schedule (item 447) with its hours and the Library Scanner's beside them, and (item 451) Upload from (All drives, or any of the drives, several at once: item 472), files at once, and uploading while music plays at home or away from home, each with its own number at once; and (item 479) Upload bandwidth, a row saying the limit that opens its own page",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsIBroadcast.kt"],
       "preview": false,
       "items": {
@@ -913,7 +913,25 @@
         "home": { "kind": "action", "label": "Upload while music plays at home", "when": "signed in" },
         "home-at-once": { "kind": "action", "label": ["1", "2", "3"], "each": true, "when": "signed in, uploading while music plays at home" },
         "away": { "kind": "action", "label": "Upload while music plays away from home", "when": "signed in" },
-        "away-at-once": { "kind": "action", "label": ["1", "2", "3"], "each": true, "when": "signed in, uploading while music plays away from home" }
+        "away-at-once": { "kind": "action", "label": ["1", "2", "3"], "each": true, "when": "signed in, uploading while music plays away from home" },
+        "bandwidth": { "kind": "action", "label": "Upload bandwidth", "when": "signed in" }
+      }
+    },
+    "settings-ibroadcast-bandwidth": {
+      "page": "Settings' Upload bandwidth (item 479), one of iBroadcast's pages: Back to iBroadcast, its title; under its title and ⓘ, the home's upload speed as its internet provider gives it (Mbps, typed), what is said under it (and the fastest an upload has sent from here), the share of it the upload may use (25, 50, 75 or 100 %), what that lets it use and leaves, and No limit where a speed is given",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsIBroadcastBandwidth.kt"],
+      "preview": false,
+      "items": {
+        "back": { "kind": "action", "label": "Back to iBroadcast" },
+        "heading": { "kind": "shows" },
+        "title": { "kind": "shows" },
+        "info": { "kind": "action", "label": "About {setting}" },
+        "name": { "kind": "shows", "each": true },
+        "speed": { "kind": "action", "label": "Your upload speed" },
+        "speed-note": { "kind": "shows" },
+        "share": { "kind": "action", "label": ["25%", "50%", "75%", "100%"], "each": true },
+        "limit": { "kind": "shows" },
+        "clear": { "kind": "action", "label": "No limit", "when": "an upload speed given" }
       }
     },
     "settings-folders": {
