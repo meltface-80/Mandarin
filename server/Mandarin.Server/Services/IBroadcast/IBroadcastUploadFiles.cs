@@ -2,11 +2,13 @@
 // (github.com/iBroadcastMediaServices/ibroadcast-uploaders, python):
 //   - what is there already: an empty POST to upload.ibroadcast.com, Bearer <access token>, answers { md5: [...] }, the
 //     MD5 of every file in the library; a file whose MD5 is among them isn't sent again;
-//   - a file: a multipart POST there, the file as "file", its path here as "file_path" and the client as "method";
+//   - a file: a multipart POST there, the file as "file" (its name in UTF-8 as it is, item 480), the path it is sent as
+//     as "file_path" (IBroadcastUploadNames.cs: from its drive, shortened) and the client as "method";
 //     "result": false is a failure, in iBroadcast's words. Its login refused (a 401, or an answer saying it couldn't
 //     confirm the login: item 454, two files of a real upload so) is signed in again (the token refreshed, or the one
 //     another call has just refreshed taken) and sent once more; refused again, the upload ends, the sign-in bad; busy
 //     (429, 5xx, no answer), waited for and sent again, three times at most.
+// Sent no faster than the Upload bandwidth page lets it (item 479, IBroadcastUploadSpeed.cs).
 // A file iBroadcast can't keep as it is is made FLAC first, in the data folder, tags and cover with it: DSD (which
 // iBroadcast can't play) at 24-bit/176.4 kHz, the most of DSD64 PCM keeps, or 88.2 kHz where that is over the limit;
 // a lossless file over iBroadcast's 1.5 GB at FLAC's most compression, or at half its rate where that is still over.
@@ -36,8 +38,11 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
         return [.. list.Select(m => IBroadcastApi.Str(m)?.ToLowerInvariant()).OfType<string>()];
     }
 
-    /// <summary>[file] sent, as [path] (the file's here, its extension the one sent); [sent] told the bytes as they go.</summary>
-    public async Task Send(string file, string path, Action<long> sent, CancellationToken stop)
+    /// <summary>
+    /// [file] sent, as [path] (the file's here, its extension the one sent); [sent] told the bytes as they go. What
+    /// iBroadcast said as it took it (its message, or its answer where it has none; kept, item 477).
+    /// </summary>
+    public async Task<string> Send(string file, string path, Action<long> sent, CancellationToken stop)
     {
         for (var tried = 0; ; tried++)
         {
@@ -47,10 +52,13 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
             {
                 (status, text) = await Post(() =>
                 {
-                    var form = new MultipartFormDataContent();
+                    // Its parts' headers in UTF-8: the file's name as it is, as browsers and iBroadcast's own uploader
+                    // send it (item 480), not as .NET writes a name that isn't ASCII (=?utf-8?B?…?=, its extension hidden).
+                    var form = new MultipartFormDataContent { HeaderEncodingSelector = (_, _) => System.Text.Encoding.UTF8 };
                     var body = new StreamContent(new Counted(File.OpenRead(file), sent), 1 << 16);
                     body.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-                    form.Add(body, "file", Path.GetFileName(path));
+                    body.Headers.TryAddWithoutValidation("Content-Disposition", "form-data; name=\"file\"; filename=\"" + Quoted(Path.GetFileName(path)) + "\"");
+                    form.Add(body);
                     form.Add(new StringContent(path), "file_path");
                     form.Add(new StringContent("mandarin"), "method");
                     return form;
@@ -61,9 +69,13 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
             var j = Parse(text);
             if (status >= 400) throw new NotSent(Said(j, $"iBroadcast answered {status}"));
             if (j?["result"] is JsonValue r && r.TryGetValue<bool>(out var ok) && !ok) throw new NotSent(Said(j, "iBroadcast refused it"));
-            return;
+            var said = Said(j, text.Trim());
+            return said.Length > 200 ? said[..200] : said;
         }
     }
+
+    /// <summary>[name] in a header's quotes, as browsers write it: a quote as %22, a line break as %0D%0A.</summary>
+    internal static string Quoted(string name) => name.Replace("\"", "%22").Replace("\r", "%0D").Replace("\n", "%0A");
 
     private async Task Wait(int tried, string why, CancellationToken stop)
     {
@@ -201,8 +213,21 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
         public override bool CanWrite => false;
         public override long Length => inner.Length;
         public override long Position { get => inner.Position; set => inner.Position = value; }
-        public override int Read(byte[] buffer, int offset, int count) { var n = inner.Read(buffer, offset, count); sent(n); return n; }
-        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken token = default) { var n = await inner.ReadAsync(buffer, token); sent(n); return n; }
+        // Each read taken from the upload's allowance (item 479: as much of the home's upload as it may use) before it goes.
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var n = inner.Read(buffer, offset, count);
+            IBroadcastUploadSpeed.Take(n, CancellationToken.None).GetAwaiter().GetResult();
+            sent(n);
+            return n;
+        }
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken token = default)
+        {
+            var n = await inner.ReadAsync(buffer, token);
+            await IBroadcastUploadSpeed.Take(n, token);
+            sent(n);
+            return n;
+        }
         public override void Flush() { }
         public override long Seek(long offset, SeekOrigin origin) => inner.Seek(offset, origin);
         public override void SetLength(long value) => throw new NotSupportedException();

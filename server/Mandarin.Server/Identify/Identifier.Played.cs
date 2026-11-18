@@ -4,7 +4,8 @@
 // when the owner chooses it to play: each track's first two minutes read from iBroadcast's stream (Fingerprints.Make
 // reads no more), fingerprinted and asked of AcoustID as a file's are (Identifier.Sound.cs), whatever the scanner's
 // hours, the music playing being the album's own. Once an album, a run of the server; one at a time; never an album
-// matched, edited or turned down by hand; never without an AcoustID key. Match by sound in Edit album
+// matched, edited or turned down by hand; never without an AcoustID key. A lookup that fails (MusicBrainz turning
+// lookups away) leaves it to be tried when next chosen (item 478). Match by sound in Edit album
 // (Identifier.SoundByHand.cs) reads iBroadcast's tracks the same way.
 //
 // The stream's address carries the sign-in's token: never logged, never kept; a track that can't be read is said so
@@ -44,6 +45,13 @@ internal sealed partial class Identifier
                 played.Value = true;
                 log($"[identify] {al.Artist} — {al.Title}: chosen to play, matched by sound from iBroadcast");
                 await Identify(al);
+            }
+            catch (LookupError e)
+            {
+                // MusicBrainz turning lookups away (or another service not answering): nothing learnt, so not once
+                // already (item 478: this went unhandled, logged as a "[crash]").
+                lock (playedTried) playedTried.Remove(al.Key);
+                log($"[identify] {al.Artist} — {al.Title}: not matched by sound now ({e.Message}); tried again when next chosen");
             }
             catch (Exception e) when (e is Services.ServiceError or Tags.JsError or HttpRequestException or IOException or InvalidOperationException)
             {
