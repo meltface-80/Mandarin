@@ -183,9 +183,9 @@ private fun ChoiceRows(c: com.musicd.server.client.IBroadcastUploadChoices, aski
         val box = RoundedCornerShape(10.dp)
         Column(Modifier.fillMaxWidth().clip(box).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(Palette.BORDER), box)) {
             for ((i, src) in c.sources.withIndex()) {
-                val on = src.first == c.from
+                val on = src.first in c.on
                 Text(src.second, Modifier.parity("settings-ibroadcast.from", Contract.label("settings-ibroadcast.from", i, src.second)).fillMaxWidth()
-                    .background(if (on) paletteColor(Palette.ACCENT) else androidx.compose.ui.graphics.Color.Transparent).clickable(enabled = !asking) { save(JSONObject().put("from", src.first)) }
+                    .background(if (on) paletteColor(Palette.ACCENT) else androidx.compose.ui.graphics.Color.Transparent).clickable(enabled = !asking) { save(c.tap(src.first)) }
                     .padding(horizontal = 12.dp, vertical = 9.dp), color = paletteColor(if (on) Palette.TEXT else Palette.TEXT_DIM), fontSize = 13.5.sp, lineHeight = 18.sp,
                     fontWeight = if (on) FontWeight.W600 else FontWeight.W400)
             }

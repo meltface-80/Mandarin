@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed - iBroadcast's Upload from: "All music" sent nothing where your drives aren't music folders, as it meant only the library's own files (item 472). It is now **All drives**, every drive offered, read from the drives themselves. And any number of the drives can be chosen at once, 2 of 3 say, each file sent once; a chosen drive that isn't connected is left out and the log says so, the upload going on with the rest
+
 ## v1.3.4
 
 Mandarin now works with iBroadcast: sign in, and your iBroadcast library is in Mandarin's, plays everywhere Mandarin plays, can be kept on the phone, and is where your own library is uploaded to.
