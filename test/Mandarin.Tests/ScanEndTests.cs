@@ -14,9 +14,17 @@ public sealed class ScanEndTests
         Needs.Server(); Needs.Ffmpeg();
         var lib = Fixtures.MakeLibrary();
         foreach (var f in Directory.GetFiles(lib.Music, "*", SearchOption.AllDirectories)) File.Delete(f);
-        await using var s = await LibraryServer.Start(lib);
+        // The scans here are the ones asked for below, and no others (item 482): the watcher, which hears each file
+        // written, kept quiet for the test's length, and the first scan (half a second after the start) ended before
+        // any file is written. On a busy machine the watcher's own scan ("the music folders changed during the scan:
+        // reading them again") ran as the third file was being written and rightly ended with two albums; the test
+        // saw that one end, and wanted three.
+        await using var s = await LibraryServer.Start(lib, env: new Dictionary<string, string> { ["MANDARIN_WATCH_QUIET_MS"] = "600000", ["MANDARIN_WATCH_MAX_MS"] = "600000" });
         var h = new Dictionary<string, string> { ["Authorization"] = "Bearer " + s.Token };
+        async Task<bool> Idle() => (await Http.Get(s.B + "/api/status", h)).Json?["scan"] is { } sc && sc.Bool("running") == false && sc["last"] != null;
+        await Session.Until(Idle, 60000, "the first scan");
         var wrong = new List<string>();
+        var looked = 0;
         for (int n = 1; n <= 6; n++)
         {
             Fixtures.Gen(Path.Combine(lib.Music, $"Artist {n}", $"Album {n}", "01.flac"), seconds: 1,
@@ -35,6 +43,7 @@ public sealed class ScanEndTests
                         var a = await Http.Get(s.B + "/api/library/albums?count=200", h);
                         var count = a.Status == 200 ? a.J["albums"].Items().Count() : -1;
                         if (count != n) wrong.Add($"scan {n}: ended, then the albums answered {a.Status} with {count}");
+                        Interlocked.Increment(ref looked);
                         return;
                     }
                     if (done.IsCancellationRequested) return;
@@ -42,11 +51,17 @@ public sealed class ScanEndTests
             });
             var (status, j) = await s.PostJ("/api/library/rescan", new { force = true });
             Assert.True(status == 200, "rescan " + status + " " + j?.ToJsonString());
+            // A rescan answers after 8 s at most, the scan still going on a busy machine: its end waited for, so the
+            // next file isn't written (and the next scan looked for) while this one is under way.
+            await Session.Until(Idle, 60000, $"scan {n} ended");
             await Task.Delay(500);
             done.Cancel();
             await watching;
         }
         Assert.True(wrong.Count == 0, string.Join("; ", wrong));
+        // Each of the six seen under way and looked at as it ended: where a rescan was answered "busy" and the watch let
+        // go half a second later, the test passed having looked at none (17 s with each scan's end held 5.5 s, item 482).
+        Assert.True(looked == 6, $"{looked} of 6 scans were seen ending and their albums asked for");
     }
 
     [Test]
