@@ -65,6 +65,8 @@ test("item 455: Upload from any connected drive, read from the drive, whether or
   // A drive connected after, never read by the library; and the box's own disk.
   const spare = path.join(storage, "USB", "Spare SSD");
   const at = (...p) => path.join(spare, ...p);
+  // What a file of the drive is sent to iBroadcast as (item 480): its path from the drive.
+  const sentAs = f => path.relative(spare, f).split(path.sep).join("/");
   gen(at("Band", "Record", "01 First.flac"), { rate: 96000, fmt: "s32", codecArgs: ["-bits_per_raw_sample", "24"], tags: { title: "First" } });
   gen(at("Band", "Record", "02 Second.mp3"), { fmt: null, codecArgs: ["-b:a", "192k"], tags: { title: "Second" } });
   gen(at("Band", "Big", "01 Noise.wav"), { rate: 96000, seconds: 20, expr: "random(0)*2-1|random(1)*2-1" });
@@ -91,9 +93,9 @@ test("item 455: Upload from any connected drive, read from the drive, whether or
     const u = await until(async () => { const x = (await state()).upload; return x && !x.running && x.finished && x; }, 120000, "the upload done");
     assert.deepEqual([u.from, u.uploaded, u.converted, u.failed, u.skipped], ["Spare SSD", 3, 1, 0, 0], JSON.stringify(u));
     const by = Object.fromEntries(ib.uploads.map(x => [x.file_path, x]));
-    assert.deepEqual(Object.keys(by).sort(), [at("Band", "Big", "01 Noise.flac"), at("Band", "Record", "01 First.flac"), at("Band", "Record", "02 Second.mp3")].sort());
-    for (const f of [at("Band", "Record", "01 First.flac"), at("Band", "Record", "02 Second.mp3")]) assert.equal(by[f].md5, md5(fs.readFileSync(f)), "as it is: " + f);
-    const big = by[at("Band", "Big", "01 Noise.flac")];
+    assert.deepEqual(Object.keys(by).sort(), [at("Band", "Big", "01 Noise.flac"), at("Band", "Record", "01 First.flac"), at("Band", "Record", "02 Second.mp3")].map(sentAs).sort());
+    for (const f of [at("Band", "Record", "01 First.flac"), at("Band", "Record", "02 Second.mp3")]) assert.equal(by[sentAs(f)].md5, md5(fs.readFileSync(f)), "as it is: " + f);
+    const big = by[sentAs(at("Band", "Big", "01 Noise.flac"))];
     assert.deepEqual(probe(big.data), { rate: 48000, channels: 2, bits: 24 }, "half its own rate, 24 bits");
     assert.ok(big.size <= LIMIT);
   });

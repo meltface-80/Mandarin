@@ -2,7 +2,8 @@
 // (github.com/iBroadcastMediaServices/ibroadcast-uploaders, python):
 //   - what is there already: an empty POST to upload.ibroadcast.com, Bearer <access token>, answers { md5: [...] }, the
 //     MD5 of every file in the library; a file whose MD5 is among them isn't sent again;
-//   - a file: a multipart POST there, the file as "file", its path here as "file_path" and the client as "method";
+//   - a file: a multipart POST there, the file as "file" (its name in UTF-8 as it is, item 480), the path it is sent as
+//     as "file_path" (IBroadcastUploadNames.cs: from its drive, shortened) and the client as "method";
 //     "result": false is a failure, in iBroadcast's words. Its login refused (a 401, or an answer saying it couldn't
 //     confirm the login: item 454, two files of a real upload so) is signed in again (the token refreshed, or the one
 //     another call has just refreshed taken) and sent once more; refused again, the upload ends, the sign-in bad; busy
@@ -51,10 +52,13 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
             {
                 (status, text) = await Post(() =>
                 {
-                    var form = new MultipartFormDataContent();
+                    // Its parts' headers in UTF-8: the file's name as it is, as browsers and iBroadcast's own uploader
+                    // send it (item 480), not as .NET writes a name that isn't ASCII (=?utf-8?B?…?=, its extension hidden).
+                    var form = new MultipartFormDataContent { HeaderEncodingSelector = (_, _) => System.Text.Encoding.UTF8 };
                     var body = new StreamContent(new Counted(File.OpenRead(file), sent), 1 << 16);
                     body.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
-                    form.Add(body, "file", Path.GetFileName(path));
+                    body.Headers.TryAddWithoutValidation("Content-Disposition", "form-data; name=\"file\"; filename=\"" + Quoted(Path.GetFileName(path)) + "\"");
+                    form.Add(body);
                     form.Add(new StringContent(path), "file_path");
                     form.Add(new StringContent("mandarin"), "method");
                     return form;
@@ -69,6 +73,9 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
             return said.Length > 200 ? said[..200] : said;
         }
     }
+
+    /// <summary>[name] in a header's quotes, as browsers write it: a quote as %22, a line break as %0D%0A.</summary>
+    internal static string Quoted(string name) => name.Replace("\"", "%22").Replace("\r", "%0D").Replace("\n", "%0A");
 
     private async Task Wait(int tried, string why, CancellationToken stop)
     {

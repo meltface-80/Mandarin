@@ -156,7 +156,8 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             {
                 if (!sent.TryGetValue(f.Path, out var r) || !IBroadcastUploadSent.Same(r, f)) todo.Add(f);
                 else if (have.Contains(r.Md5)) run.Already++;
-                else if (r.Taken >= IBroadcastUploadSent.TakenMost) notKept.Add((f, r));
+                // Left where it would go as it went (item 480: under a shorter name now, it is tried again).
+                else if (r.Taken >= IBroadcastUploadSent.TakenMost && r.SentAs == SentAs(f, run, Dsd.Contains(Ext(f)) || f.Size > LimitBytes)) notKept.Add((f, r));
                 else todo.Add(f);
             }
             foreach (var (f, w) in notKept) Problem(run, f, IBroadcastUploadSent.Why(w), failed: false, log: false);
@@ -230,6 +231,11 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
         }
     }
 
+    /* The name [f] is sent to iBroadcast as (item 480): from its drive, shortened; as FLAC where it is [made] so. */
+    private static string SentAs(LocalFile f, Run run, bool made) => IBroadcastUploadNames.SentAs(f.Path, run.Drives, made ? ".flac" : null);
+
+    private static string Ext(LocalFile f) => Path.GetExtension(f.Path).TrimStart('.').ToLowerInvariant();
+
     /* One file ([was]: as sent before, if it was): left, already there, or sent (as it is, or made FLAC first). */
     private async Task One(LocalFile f, HashSet<string> have, IBroadcastUploadSent.Was? was, Run run, CancellationToken token)
     {
@@ -268,17 +274,19 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             bool there;
             lock (have) there = have.Contains(md5);
             if (there) { IBroadcastUploadSent.Note(f, md5, made != null, 0, null); lock (run) run.Already++; return; }
-            // Sent before as it is, and iBroadcast hasn't it: taken and not kept (item 477), said with what iBroadcast said then.
-            var taken = was != null && was.Md5 == md5 ? was.Taken : 0;
+            // Sent before as it is, under the name it goes as now, and iBroadcast hasn't it: taken and not kept (item 477),
+            // said with what iBroadcast said then. Under another name (item 480), counted afresh.
+            var sentAs = SentAs(f, run, made != null);
+            var taken = was != null && was.Md5 == md5 && was.SentAs == sentAs ? was.Taken : 0;
             if (taken > 0) Server.Log($"[ibroadcast] upload: {Path.GetFileName(f.Path)} was taken before but iBroadcast hasn't it"
                 + (string.IsNullOrWhiteSpace(was!.Said) ? "" : $" (it said: \"{was.Said}\")") + "; sent again");
             // The speed is the bytes sent over the time any were being sent, however many at once.
             lock (run) if (run.Sending++ == 0) run.SendingSince = IBroadcastApi.Now();
             string said;
-            try { said = await Files.Send(send, made != null ? Path.ChangeExtension(f.Path, ".flac") : f.Path, n => Interlocked.Add(ref run.Sent, n), token); }
+            try { said = await Files.Send(send, sentAs, n => Interlocked.Add(ref run.Sent, n), token); }
             finally { lock (run) if (--run.Sending == 0) run.SendingMs += IBroadcastApi.Now() - run.SendingSince; }
             lock (have) have.Add(md5);
-            IBroadcastUploadSent.Note(f, md5, made != null, taken + 1, said);
+            IBroadcastUploadSent.Note(f, md5, made != null, taken + 1, said, sentAs);
             lock (run) { run.Uploaded++; if (made != null) run.Converted++; }
         }
         finally { if (made != null) try { File.Delete(made); } catch (IOException) { /* the next upload's to clear */ } }
