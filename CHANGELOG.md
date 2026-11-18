@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New - iBroadcast → Upload bandwidth (item 479): enter your home's upload speed and choose how much of it uploads may use (25, 50, 75 or 100 %), leaving the rest for everything else on your connection. The limit covers every file sent at once, and holds at once, an upload under way included. The upload's speed is now said in Mbps, as internet providers say it
 - Fixed - iBroadcast's Upload from: "All music" sent nothing where your drives aren't music folders, as it meant only the library's own files (item 472). It is now **All drives**, every drive offered, read from the drives themselves. And any number of the drives can be chosen at once, 2 of 3 say, each file sent once; a chosen drive that isn't connected is left out and the log says so, the upload going on with the rest
 - Fixed - iBroadcast's Upload now no longer sends the same files on every upload when iBroadcast takes them but doesn't keep them (item 477). What iBroadcast says as it takes a file is kept; a file it has taken twice and still doesn't have is left, listed on the page with iBroadcast's own words, and not sent again unless the file changes
 - Fixed - An iBroadcast album chosen to play while MusicBrainz was busy left a "[crash]" warning in the log and wasn't matched by sound again that run (item 478). It is now said plainly, and tried again the next time you choose it

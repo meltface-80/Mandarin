@@ -181,6 +181,8 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             else Server.Log("[ibroadcast] upload: the server is stopping; it goes on when the server starts again");
             Server.Log($"[ibroadcast] upload: {(run.Stopped ? "stopped" : run.Error != null ? "ended: " + run.Error : "done")}; {run.Uploaded} uploaded, {run.Already} there already, "
                 + $"{run.Converted} made FLAC, {run.Skipped} left, {run.Failed} failed");
+            // The fastest it has sent, kept to help say the home's upload speed (item 479).
+            if (Said(run, false)["speed"] is JsonValue sp && sp.TryGetValue<double>(out var bps) && bps > 0) IBroadcastUploadSpeed.Seen(bps);
             if (run.Uploaded > 0 && Jobs.IBroadcastLibrary is { } lib) _ = Task.Run(async () =>
             {
                 try { await lib.Read(true); } catch (ServiceError e) { Server.Log("[ibroadcast] the library couldn't be read: " + e.Message); }
