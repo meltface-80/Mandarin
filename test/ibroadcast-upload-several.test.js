@@ -37,6 +37,8 @@ test("item 472: Upload from All drives, or several drives at once, read from the
   t.after(() => { fs.rmSync(storage, { recursive: true, force: true }); fs.rmSync(empty, { recursive: true, force: true }); });
   const drive = n => path.join(storage, "USB", "Drive " + n);
   const file = (n, ...p) => path.join(drive(n), ...p);
+  // What a drive's file is sent to iBroadcast as (item 480): its path from its drive.
+  const sentAs = (n, ...p) => p.join("/");
   // Each file its own sound, so none is iBroadcast's already by its MD5.
   const hz = (n, k) => 200 + 37 * "ABC".indexOf(n) + 11 * k;
   for (const n of ["A", "B", "C"]) {
@@ -84,7 +86,7 @@ test("item 472: Upload from All drives, or several drives at once, read from the
     assert.deepEqual([kept.upload_settings.from, kept.upload_settings.from_name], ["all", "All drives"]);
     const u = await upload();
     assert.deepEqual([u.from, u.uploaded, u.failed], ["All drives", 6, 0], JSON.stringify(u));
-    assert.deepEqual(sent().sort(), ["A", "B", "C"].flatMap(n => [file(n, "Band " + n, "Record", "01 One.flac"), file(n, "Band " + n, "Record", "02 Two.flac")]).sort());
+    assert.deepEqual(sent().sort(), ["A", "B", "C"].flatMap(n => [sentAs(n, "Band " + n, "Record", "01 One.flac"), sentAs(n, "Band " + n, "Record", "02 Two.flac")]).sort());
   });
 
   await t.test("two of three drives: theirs alone, each file once", async () => {
@@ -95,7 +97,7 @@ test("item 472: Upload from All drives, or several drives at once, read from the
     const before = ib.uploads.length;
     const u = await upload();
     assert.deepEqual([u.from, u.uploaded], ["Drive A, Drive C", 2], JSON.stringify(u));
-    assert.deepEqual(sent().slice(before).sort(), [file("A", "Band A", "Later", "01 Later.flac"), file("C", "Band C", "Later", "01 Later.flac")].sort());
+    assert.deepEqual(sent().slice(before).sort(), [sentAs("A", "Band A", "Later", "01 Later.flac"), sentAs("C", "Band C", "Later", "01 Later.flac")].sort());
     assert.equal(new Set(sent()).size, sent().length, "nothing sent twice");
   });
 
@@ -107,7 +109,7 @@ test("item 472: Upload from All drives, or several drives at once, read from the
     const before = ib.uploads.length;
     const u = await upload();
     assert.deepEqual([u.uploaded, u.failed], [1, 0], JSON.stringify(u));
-    assert.deepEqual(sent().slice(before), [file("B", "Band B", "Later", "01 Later.flac")]);
+    assert.deepEqual(sent().slice(before), [sentAs("B", "Band B", "Later", "01 Later.flac")]);
     assert.ok(ctx.logs.some(l => /\[ibroadcast\] upload: Drive C not connected: left out/.test(l)), "said");
     assert.equal((await choose({ drives: [drive("C")] })).status, 200);
     const none = await upload();
