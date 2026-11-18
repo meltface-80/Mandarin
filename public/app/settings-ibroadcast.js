@@ -6,8 +6,9 @@
  * left out or not sent, with why; and the upload on a schedule (item 447): its switch and hours, which can't overlap the
  * Library Scanner's (those said under them; a window that would is refused, in the server's words); and what it is
  * from and how hard it pushes (item 451): Upload from (All drives, or any of the drives: item 472; none at first), files at once, and whether
- * it goes on while music plays at home, or away from home, each with its own number at once. The app's page is its own (SettingsIBroadcast.kt), worded the same (core's
- * IBroadcastSettings.kt). */
+ * it goes on while music plays at home, or away from home, each with its own number at once; and Upload bandwidth (item
+ * 479), a row saying the limit that opens its own page (settings-ibroadcast-bandwidth.js). The app's page is its own
+ * (SettingsIBroadcast.kt), worded the same (core's IBroadcastSettings.kt). */
 
 /** What the page says of the account ([j]: GET /api/settings/ibroadcast). @param {any} j */
 function ibroadcastWords(j) {
@@ -55,7 +56,8 @@ function ibroadcastUploadWords(u, at) {
   if (u.running) {
     if (!u.files_total && !u.files_done) return { running: true, status: "Looking at what iBroadcast has…", progress: "", problems };
     const parts = [u.files_done + " of " + u.files_total + " files", ibroadcastSize(u.bytes_done) + " of " + ibroadcastSize(u.bytes_total)];
-    if (u.speed > 0) parts.push(ibroadcastSize(u.speed) + "/s");
+    // In Mbps, as internet providers and routers say speeds (item 479).
+    if (u.speed > 0) parts.push(ibroadcastMbps(u.speed));
     if (typeof u.eta === "number") parts.push(ibroadcastLeft(u.eta));
     const status = u.held ? (u.held_where === "away" ? "Paused while music plays away from home" : "Paused while music plays") : "Uploading " + (u.album || "…");
     return { running: true, status, progress: parts.join(" · "), problems };
@@ -180,6 +182,8 @@ function ibroadcastFromTap(c, sources, value) {
     if (awayBox) awayBox.checked = !!c.away;
     if (homeRow) homeRow.hidden = !c.home;
     if (awayRow) awayRow.hidden = !c.away;
+    const bandwidth = $("ib-bandwidth-said");
+    if (bandwidth) bandwidth.textContent = w.on ? ibroadcastBandwidthSaid(j.upload_speed) : "";
     clearTimeout(again);
     if ((w.pending && !w.pending.error) || w.reading || (w.on && up.running)) again = setTimeout(look, 2000);
   }

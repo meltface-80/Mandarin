@@ -8,6 +8,7 @@
 //     confirm the login: item 454, two files of a real upload so) is signed in again (the token refreshed, or the one
 //     another call has just refreshed taken) and sent once more; refused again, the upload ends, the sign-in bad; busy
 //     (429, 5xx, no answer), waited for and sent again, three times at most.
+// Sent no faster than the Upload bandwidth page lets it (item 479, IBroadcastUploadSpeed.cs).
 // A file iBroadcast can't keep as it is is made FLAC first, in the data folder, tags and cover with it: DSD (which
 // iBroadcast can't play) at 24-bit/176.4 kHz, the most of DSD64 PCM keeps, or 88.2 kHz where that is over the limit;
 // a lossless file over iBroadcast's 1.5 GB at FLAC's most compression, or at half its rate where that is still over.
@@ -212,8 +213,21 @@ internal sealed class IBroadcastUploadFiles(IBroadcastApi api, string dataDir)
         public override bool CanWrite => false;
         public override long Length => inner.Length;
         public override long Position { get => inner.Position; set => inner.Position = value; }
-        public override int Read(byte[] buffer, int offset, int count) { var n = inner.Read(buffer, offset, count); sent(n); return n; }
-        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken token = default) { var n = await inner.ReadAsync(buffer, token); sent(n); return n; }
+        // Each read taken from the upload's allowance (item 479: as much of the home's upload as it may use) before it goes.
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var n = inner.Read(buffer, offset, count);
+            IBroadcastUploadSpeed.Take(n, CancellationToken.None).GetAwaiter().GetResult();
+            sent(n);
+            return n;
+        }
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken token = default)
+        {
+            var n = await inner.ReadAsync(buffer, token);
+            await IBroadcastUploadSpeed.Take(n, token);
+            sent(n);
+            return n;
+        }
         public override void Flush() { }
         public override long Seek(long offset, SeekOrigin origin) => inner.Seek(offset, origin);
         public override void SetLength(long value) => throw new NotSupportedException();
