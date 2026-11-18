@@ -5,8 +5,9 @@
 // deleted; only read.
 //   - Already there, not sent again: iBroadcast's MD5s of its files are asked first, and each file's checked against
 //     them. What was sent is kept (the cache's "ibroadcast-upload": a file here, its size and time, the MD5 sent and
-//     whether it was made FLAC), so a file unchanged and still there isn't read again, nor a FLAC made of it again; an
-//     upload stopped or cut off goes on where it was.
+//     whether it was made FLAC: IBroadcastUploadSent.cs), so a file unchanged and still there isn't read again, nor a FLAC
+//     made of it again; an upload stopped or cut off goes on where it was. One iBroadcast took twice and didn't keep
+//     is left, with iBroadcast's words (item 477).
 //   - While music of Mandarin's plays it waits, unless let go on at home or away from home, then with as many at once
 //     as chosen for each (IBroadcastUploadChoices.Allowed); a file under way is finished.
 //   - A format iBroadcast doesn't take (the account's formats, as it says them) is left, and said; so is one that
@@ -24,8 +25,6 @@ namespace Mandarin.Server.Services.IBroadcast;
 
 internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
 {
-    /// <summary>What was sent: a file here → { size, mtime, md5, flac }.</summary>
-    public const string RecordNs = "ibroadcast-upload";
     /// <summary>The last upload's summary, as Status says it.</summary>
     public const string StateKey = "ibroadcastUpload";
     /// <summary>Set while an Upload now is under way; left set when the server stops it, so it is begun again.</summary>
@@ -150,14 +149,23 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
         {
             var have = await Files.Md5s(token);
             var files = IBroadcastUploadLocal.Of(run.Drives);
-            var sent = Records();
-            var todo = files.Where(f => !(sent.TryGetValue(f.Path, out var r) && r.Size == f.Size && r.Mtime == f.Mtime && have.Contains(r.Md5))).ToList();
-            run.Already = files.Count - todo.Count;
+            var sent = IBroadcastUploadSent.All();
+            var todo = new List<LocalFile>();
+            var notKept = new List<(LocalFile F, IBroadcastUploadSent.Was W)>();
+            foreach (var f in files)
+            {
+                if (!sent.TryGetValue(f.Path, out var r) || !IBroadcastUploadSent.Same(r, f)) todo.Add(f);
+                else if (have.Contains(r.Md5)) run.Already++;
+                else if (r.Taken >= IBroadcastUploadSent.TakenMost) notKept.Add((f, r));
+                else todo.Add(f);
+            }
+            foreach (var (f, w) in notKept) Problem(run, f, IBroadcastUploadSent.Why(w), failed: false, log: false);
             run.FilesTotal = todo.Count;
             run.BytesTotal = todo.Sum(f => f.Size);
-            Server.Log($"[ibroadcast] upload: {todo.Count} of {files.Count} files to look at, {run.Already} there already as sent before");
+            Server.Log($"[ibroadcast] upload: {todo.Count} of {files.Count} files to look at, {run.Already} there already as sent before"
+                + (notKept.Count > 0 ? $", {notKept.Count} left as iBroadcast took them {IBroadcastUploadSent.TakenMost} times but didn't keep them (from {Path.GetFileName(Path.GetDirectoryName(notKept[0].F.Path))})" : ""));
             var queue = new System.Collections.Concurrent.ConcurrentQueue<LocalFile>(todo);
-            await Task.WhenAll(Enumerable.Range(0, IBroadcastUploadChoices.Most).Select(slot => Worker(slot, queue, have, run, all)));
+            await Task.WhenAll(Enumerable.Range(0, IBroadcastUploadChoices.Most).Select(slot => Worker(slot, queue, have, sent, run, all)));
             run.Stopped = run.Error == null && token.IsCancellationRequested;
         }
         catch (OperationCanceledException) { run.Stopped = true; }
@@ -181,7 +189,8 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
     }
 
     /* One of the senders: the next file, while its place ([slot]) is let go on; the sign-in refused or a file not read, all of them ended. */
-    private async Task Worker(int slot, System.Collections.Concurrent.ConcurrentQueue<LocalFile> queue, HashSet<string> have, Run run, CancellationTokenSource all)
+    private async Task Worker(int slot, System.Collections.Concurrent.ConcurrentQueue<LocalFile> queue, HashSet<string> have,
+        Dictionary<string, IBroadcastUploadSent.Was> sent, Run run, CancellationTokenSource all)
     {
         try
         {
@@ -189,7 +198,7 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             {
                 if (!await Turn(slot, run, queue, all.Token) || !queue.TryDequeue(out var f)) return;
                 lock (run) { run.Album = f.Album; run.File = Path.GetFileName(f.Path); }
-                try { await One(f, have, run, all.Token); }
+                try { await One(f, have, sent.GetValueOrDefault(f.Path), run, all.Token); }
                 catch (IBroadcastUploadFiles.NotSent e) { Problem(run, f, e.Message, failed: true); }
                 lock (run) { run.FilesDone++; run.BytesDone += f.Size; }
             }
@@ -219,8 +228,8 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
         }
     }
 
-    /* One file: left, already there, or sent (as it is, or made FLAC first). */
-    private async Task One(LocalFile f, HashSet<string> have, Run run, CancellationToken token)
+    /* One file ([was]: as sent before, if it was): left, already there, or sent (as it is, or made FLAC first). */
+    private async Task One(LocalFile f, HashSet<string> have, IBroadcastUploadSent.Was? was, Run run, CancellationToken token)
     {
         if (!File.Exists(f.Path)) throw new IBroadcastUploadFiles.NotSent("The file isn't there");
         var ext = Path.GetExtension(f.Path).TrimStart('.').ToLowerInvariant();
@@ -256,24 +265,29 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             var md5 = await IBroadcastUploadFiles.Md5(send, token);
             bool there;
             lock (have) there = have.Contains(md5);
-            if (there) { Record(f, md5, made != null); lock (run) run.Already++; return; }
+            if (there) { IBroadcastUploadSent.Note(f, md5, made != null, 0, null); lock (run) run.Already++; return; }
+            // Sent before as it is, and iBroadcast hasn't it: taken and not kept (item 477), said with what iBroadcast said then.
+            var taken = was != null && was.Md5 == md5 ? was.Taken : 0;
+            if (taken > 0) Server.Log($"[ibroadcast] upload: {Path.GetFileName(f.Path)} was taken before but iBroadcast hasn't it"
+                + (string.IsNullOrWhiteSpace(was!.Said) ? "" : $" (it said: \"{was.Said}\")") + "; sent again");
             // The speed is the bytes sent over the time any were being sent, however many at once.
             lock (run) if (run.Sending++ == 0) run.SendingSince = IBroadcastApi.Now();
-            try { await Files.Send(send, made != null ? Path.ChangeExtension(f.Path, ".flac") : f.Path, n => Interlocked.Add(ref run.Sent, n), token); }
+            string said;
+            try { said = await Files.Send(send, made != null ? Path.ChangeExtension(f.Path, ".flac") : f.Path, n => Interlocked.Add(ref run.Sent, n), token); }
             finally { lock (run) if (--run.Sending == 0) run.SendingMs += IBroadcastApi.Now() - run.SendingSince; }
             lock (have) have.Add(md5);
-            Record(f, md5, made != null);
+            IBroadcastUploadSent.Note(f, md5, made != null, taken + 1, said);
             lock (run) { run.Uploaded++; if (made != null) run.Converted++; }
         }
         finally { if (made != null) try { File.Delete(made); } catch (IOException) { /* the next upload's to clear */ } }
     }
 
-    private static void Problem(Run run, LocalFile f, string why, bool failed)
+    private static void Problem(Run run, LocalFile f, string why, bool failed, bool log = true)
     {
         lock (run) { if (failed) run.Failed++; else run.Skipped++; }
         // Read by the page's asks as it is added to: one at a time.
         lock (run.Problems) if (run.Problems.Count < ListMost) run.Problems.Add((f.Path, why));
-        Server.Log($"[ibroadcast] upload: {Path.GetFileName(f.Path)} {(failed ? "failed" : "left")}: {why}");
+        if (log) Server.Log($"[ibroadcast] upload: {Path.GetFileName(f.Path)} {(failed ? "failed" : "left")}: {why}");
     }
 
     // iBroadcast's limit in words: "1.5 GB" (the tests' "2 MB").
@@ -305,35 +319,7 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
         lock (run.Problems) return new JsonArray([.. run.Problems.Select(p => (JsonNode)new JsonObject { ["file"] = p.File, ["why"] = p.Why })]);
     }
 
-    // ---------------------------------------------------------------- the library here, and what was sent of it
-
-    private sealed record Was(long Size, long Mtime, string Md5);
-
-    private static Dictionary<string, Was> Records()
-    {
-        using var c = Db.Open();
-        using var cmd = c.CreateCommand();
-        cmd.CommandText = "SELECT key, value FROM cache WHERE ns = $ns";
-        cmd.Parameters.AddWithValue("$ns", RecordNs);
-        using var r = cmd.ExecuteReader();
-        var d = new Dictionary<string, Was>(StringComparer.Ordinal);
-        while (r.Read())
-            if (JsonNode.Parse(r.GetString(1)) is JsonObject o && IBroadcastApi.Str(o["md5"]) is { } md5)
-                d[r.GetString(0)] = new((long?)o["size"] ?? -1, (long?)o["mtime"] ?? -1, md5);
-        return d;
-    }
-
-    private static void Record(LocalFile f, string md5, bool flac)
-    {
-        using var c = Db.Open();
-        using var cmd = c.CreateCommand();
-        cmd.CommandText = "INSERT INTO cache(ns, key, value, ts) VALUES($ns, $k, $v, $ts) ON CONFLICT(ns, key) DO UPDATE SET value = excluded.value, ts = excluded.ts";
-        cmd.Parameters.AddWithValue("$ns", RecordNs);
-        cmd.Parameters.AddWithValue("$k", f.Path);
-        cmd.Parameters.AddWithValue("$v", new JsonObject { ["size"] = f.Size, ["mtime"] = f.Mtime, ["md5"] = md5, ["flac"] = flac }.ToJsonString());
-        cmd.Parameters.AddWithValue("$ts", (long)IBroadcastApi.Now());
-        cmd.ExecuteNonQuery();
-    }
+    // ---------------------------------------------------------------- what the last one did
 
     private static void Save(JsonObject summary)
     {
