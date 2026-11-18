@@ -54,6 +54,27 @@ function apiOf(base, token) {
 }
 
 /**
+ * A server's first scan (begun half a second after it starts) ended and the
+ * library read: `n` albums in it, or any where `n` is left out. Waited for
+ * 30 s, not the 15 s other waits keep: a scan runs at the lowest priority on
+ * the cores every server here shares (Cpu.Place.cs: nice 19), one shorter than
+ * 5 s tells the library nothing before its end, and with those cores busy its
+ * end comes late. Item 475: in one full run four servers' scans, each done
+ * reading, ended 11 to 17 s later, together; busy loops on those cores alone
+ * hold a scan's end back as long as they run.
+ * @param {string} base  "http://127.0.0.1:<port>"
+ * @param {string} token
+ * @param {number} [n]
+ */
+async function firstScan(base, token, n) {
+  const api = apiOf(base, token);
+  await until(async () => {
+    const s = (await api("status")).json;
+    return s && (n === undefined ? s.index_count > 0 : s.index_count === n) && !(s.scan && s.scan.running);
+  }, 30000, "the first scan");
+}
+
+/**
  * A server on a fresh copy of the fixture library, signed in, its first scan
  * done, stopped when the test ends. No speakers, no discovery, no
  * identification unless `config` says otherwise (test/server.js's keys).
@@ -68,10 +89,10 @@ async function started(t, config = {}) {
   t.after(() => srv.stop());
   const token = await signIn(base);
   const api = apiOf(base, token);
-  await until(async () => { const s = (await api("status")).json; return s && s.index_count > 0 && !(s.scan && s.scan.running); }, 30000, "the first scan");
+  await firstScan(base, token);
   /** The library's album of this title (from the album list). @param {string} title */
   const album = async (title) => ((await api("library/albums?sort=album")).json.albums || []).find(a => a.title === title);
   return { lib, base, port, srv, ctx, token, api, album, H: { Authorization: "Bearer " + token } };
 }
 
-module.exports = { until, apiOf, started };
+module.exports = { until, apiOf, firstScan, started };

@@ -18,6 +18,8 @@ const { FakeMusicBrainz } = require("./fake-musicbrainz");
 const { FakeITunes } = require("./fake-itunes");
 const { createServer, built } = require("./server");
 const { score, scoreAsync } = require("./score");
+// The waits the tests share (helpers.js): until's 15 s, and the first scan's own 30 (item 475).
+const { until, firstScan } = require("./helpers");
 
 const rules = built();
 const skip = rules || (!haveFfmpeg() && "ffmpeg is not installed");
@@ -29,16 +31,6 @@ function ask(calls) {
   const names = Object.keys(calls);
   const { results } = score({ fn: "scorecall", calls: names.map(k => calls[k]) });
   return Object.fromEntries(names.map((k, i) => [k, results[i]]));
-}
-
-async function until(fn, ms = 15000) {
-  const t0 = Date.now();
-  for (;;) {
-    const v = await Promise.resolve().then(fn).catch(() => null);
-    if (v) return v;
-    if (Date.now() - t0 > ms) throw new Error("timed out waiting");
-    await new Promise(r => setTimeout(r, 50));
-  }
 }
 
 const album = (over = {}) => Object.assign({
@@ -248,7 +240,7 @@ test("the scan end to end", { skip, timeout: 90000 }, async () => {
     return { status: r.status, ...(await r.json().catch(() => ({}))) };
   };
   try {
-    await until(async () => (await api("status")).index_count === 5);
+    await firstScan(B, token, 5);
     // The scan and its page are the C# server's (v0.8.19).
     const h = await fetch(B + "/api/identify?lists=0", { headers: { Authorization: "Bearer " + token } });
     assert.equal(h.headers.get("x-mandarin-answered"), "C#", "the identification scan's page is the C# server's");
@@ -457,7 +449,7 @@ test("iTunes for what MusicBrainz can't place: exact and near applied (85 %, v0.
     return { status: r.status, ...(await r.json().catch(() => ({}))) };
   };
   try {
-    await until(async () => (await api("status")).index_count === 3);
+    await firstScan(base, token, 3);
     let r = await api("identify/settings", { schedule: false });
     assert.equal(r.settings.itunes, true);
     // iTunes refusing: every album unidentified, and iTunes resting.
@@ -549,7 +541,7 @@ test("what the files carry decides first: MusicBrainz id, barcode, catalogue num
     return { status: r.status, ...(await r.json().catch(() => ({}))) };
   };
   try {
-    await until(async () => (await api("status")).index_count === 5);
+    await firstScan(base, token, 5);
     // Every tag the files carry is kept, by name.
     const raw = ctx.db.raw;
     const t = raw.prepare("SELECT t.barcode, t.catno, tt.tags FROM tracks t JOIN track_tags tt ON tt.track_id = t.id WHERE t.catno IS NOT NULL").get();
@@ -617,7 +609,7 @@ test("proposals already waiting at 85 % or more are applied once, whatever else;
   const keys = {};
   try {
     const token = await signIn(B);
-    await until(async () => (await (await fetch(B + "/api/status", { headers: { Authorization: "Bearer " + token } })).json()).index_count === 3);
+    await firstScan(B, token, 3);
     for (const title of ["Album One", "Best Of", "Hi Res"]) keys[title] = ctx.db.raw.prepare("SELECT key FROM albums WHERE title = ?").get(title).key;
     keys.gone = "an album no longer in the library";
     const put = (key, distance, extra = {}) => ctx.db.raw.prepare("INSERT INTO album_matches(key, mbid, distance, status, candidate, before, checked_at, applied_at) VALUES(?, ?, ?, 'proposed', ?, NULL, ?, NULL)")
@@ -777,7 +769,7 @@ test("applied unasked, a copy missing a track: each track named from the one it 
   };
   const titles = async offset => (await api("album?offset=" + offset)).tracks.map(t => t.title);
   try {
-    await until(async () => (await api("status")).index_count === 1);
+    await firstScan(base, token, 1);
     await api("identify/settings", { schedule: false });
     const r = await until(async () => { const j = await api("identify"); return j.progress.checked === 1 && j; });
     assert.equal(r.progress.applied, 1, JSON.stringify(r.progress));
