@@ -780,7 +780,9 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
       assert.equal(await off.eval(`(async () => { ${HELPERS} ${ready} await sleep(300); return shown("#to-wall"); })()`), false, "the wall display is off");
       await wall(true);
       const on = await open("/shelf?zone=Kitchen");
-      assert.equal(await on.eval(`(async () => { ${HELPERS} ${ready} await until(() => shown("#to-wall")); $("#to-wall").click(); return true; })()`), true);
+      // Clicked once this has answered: the click sends the page to the wall display, and clicked first, the page could be
+      // gone before the answer was (item 484: "Inspected target navigated or closed (Runtime.evaluate)", once in a full run).
+      assert.equal(await on.eval(`(async () => { ${HELPERS} ${ready} await until(() => shown("#to-wall")); setTimeout(() => $("#to-wall").click(), 0); return true; })()`), true);
       const at = async (where) => { for (let i = 0; i < 80; i++) { await sleep(100); try { if (await on.eval("location.pathname + ':' + document.readyState") === where + ":complete") return; } catch (e) { /* navigating */ } } };
       await at("/display");
       assert.equal(await on.eval("location.pathname + location.search"), "/display?zone=Kitchen", "the zone goes along");
