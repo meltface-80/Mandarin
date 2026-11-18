@@ -62,9 +62,11 @@ class Browser {
         const msg = JSON.parse(buf.slice(0, i));
         buf = buf.slice(i + 1);
         if (msg.id && this.waiting.has(msg.id)) {
-          const { resolve, reject } = this.waiting.get(msg.id);
+          const { resolve, reject, method } = this.waiting.get(msg.id);
           this.waiting.delete(msg.id);
-          if (msg.error) reject(new Error(msg.error.message)); else resolve(msg.result);
+          // The command the browser refused, named (item 476: "Inspected target navigated or closed" alone didn't say
+          // whether a page's own evaluation was lost to a navigation, or one of a new tab's first commands).
+          if (msg.error) reject(new Error(msg.error.message + " (" + method + ")")); else resolve(msg.result);
         } else if (msg.method) {
           for (const fn of this.listeners) fn(msg);
         }
@@ -116,7 +118,7 @@ class Browser {
         reject(new Error(`the browser didn't answer ${method} within ${CALL_MS / 1000} s`));
       }, CALL_MS);
       const done = (fn) => (v) => { clearTimeout(timer); fn(v); };
-      this.waiting.set(id, { resolve: done(resolve), reject: done(reject) });
+      this.waiting.set(id, { resolve: done(resolve), reject: done(reject), method });
       this.proc.stdio[3].write(JSON.stringify(msg) + "\0");
     });
   }
