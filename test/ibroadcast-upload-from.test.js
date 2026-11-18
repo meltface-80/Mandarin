@@ -64,10 +64,10 @@ test("item 451: Upload from a drive, files at once, and music playing at home or
 
   await t.test("Upload from: the drives offered; none chosen at first; only the chosen drive's files sent", async () => {
     const s = await state();
-    assert.deepEqual(s.upload_settings, { from: null, from_name: null, at_once: 3, home: false, home_at_once: 3, away: false, away_at_once: 1 });
+    assert.deepEqual(s.upload_settings, { from: null, drives: [], from_name: null, at_once: 3, home: false, home_at_once: 3, away: false, away_at_once: 1 });
     assert.deepEqual(s.upload_sources.map(x => [x.name, x.files]), [["Artist A", 9], ["Artist B", 2], ["Comp", 2]]);
     const none = await upload();
-    assert.deepEqual([none.status, none.error], [409, "Choose what to upload from first: All music or a drive"], "nothing chosen: refused");
+    assert.deepEqual([none.status, none.error], [409, "Choose what to upload from first: All drives or the drives to send"], "nothing chosen: refused");
     assert.equal((await choose({ from: "/somewhere/else" })).status, 400, "a drive not offered");
     assert.equal((await choose({ at_once: 4 })).status, 400, "four at once");
     const b = s.upload_sources.find(x => x.name === "Artist B");
@@ -173,7 +173,19 @@ test("item 451: Upload from a drive, files at once, and music playing at home or
         return [from.map(x => x.textContent + (x.classList.contains("is-on") ? "*" : "")).join(), on("#ib-at-once"), document.getElementById("ib-home").checked, on("#ib-home-at-once"),
           document.getElementById("ib-away").checked, on("#ib-away-at-once")];
       })()`), 15000, "the choices on the page");
-      assert.deepEqual(seen, ["All music,Artist A,Artist B,Comp*", "3", true, "3", true, "1"]);
+      assert.deepEqual(seen, ["All drives,Artist A,Artist B,Comp*", "3", true, "3", true, "1"]);
+      // Several at once (item 472): a tap puts a drive on or off beside the others; All drives lights them all; a drive
+      // tapped then leaves the rest.
+      const row = () => page.eval(`[...document.querySelectorAll('#ib-from .seg-btn')].map(x => x.textContent + (x.classList.contains("is-on") ? "*" : "")).join()`);
+      const tapped = async label => {
+        const before = await row();
+        await page.eval(`[...document.querySelectorAll('#ib-from .seg-btn')].find(x => x.textContent === ${JSON.stringify(label)}).click()`);
+        return until(async () => { const now = await row(); return now !== before && now; }, 10000, "the tap on " + label);
+      };
+      assert.equal(await tapped("Artist A"), "All drives,Artist A*,Artist B,Comp*", "two drives at once");
+      assert.deepEqual((await state()).upload_settings.from_name, "Artist A, Comp");
+      assert.equal(await tapped("All drives"), "All drives*,Artist A*,Artist B*,Comp*", "All drives: every one");
+      assert.equal(await tapped("Artist B"), "All drives,Artist A*,Artist B,Comp*", "a drive off: the rest left on");
       assert.deepEqual(page.errors, []);
     } finally { await b.close(); }
   });

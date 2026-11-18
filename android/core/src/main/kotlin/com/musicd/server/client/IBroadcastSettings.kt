@@ -44,10 +44,26 @@ data class IBroadcastAccount(
     val again: Boolean get() = (pendingUrl != null && !pendingError) || reading || (connected && upload.running)
 }
 
-/** Upload from ([from]: "all", a drive's folder, or none chosen; [fromNote] said where none is), how many at once, and while music plays at home or away (item 451). */
+/**
+ * Upload from ([from]: "all", one drive's folder, "drives" for several, or none chosen; [fromNote] said where none is),
+ * how many at once, and while music plays at home or away (items 451, 472).
+ */
 data class IBroadcastUploadChoices(val from: String?, val fromNote: String, val atOnce: Int, val home: Boolean, val homeAtOnce: Int, val away: Boolean, val awayAtOnce: Int,
-    /** What may be chosen: All music, then each drive offered, as (value, name). */
-    val sources: List<Pair<String, String>>)
+    /** What may be chosen: All drives, then each drive offered, as (value, name). */
+    val sources: List<Pair<String, String>>,
+    /** The values lit: All drives and every drive where All drives is chosen, else the drives chosen, any number. */
+    val on: Set<String> = emptySet()) {
+    /**
+     * Upload from's [value] tapped (ibroadcastFromTap): the change to keep. All drives on or off; a drive on or off among
+     * the rest (with All drives on, the others but that one).
+     */
+    fun tap(value: String): org.json.JSONObject {
+        if (value == "all") return org.json.JSONObject().put("from", if (from == "all") org.json.JSONObject.NULL else "all")
+        val next = on - "all"
+        val drives = if (value in next) next - value else next + value
+        return org.json.JSONObject().put("drives", org.json.JSONArray(drives.toList()))
+    }
+}
 
 /** The upload as the page says it (ibroadcastUploadWords): under way or not, the line under Upload, the progress, and the files left out or not sent, a line each. */
 data class IBroadcastUploadWords(val running: Boolean, val status: String, val progress: String, val problems: String)
@@ -86,12 +102,16 @@ object IBroadcastSettings {
         val c = j.optJSONObject("upload_settings") ?: JSONObject()
         val from = c.optString("from").takeIf { it.isNotEmpty() && !c.isNull("from") }
         val list = j.optJSONArray("upload_sources")
-        val sources = listOf("all" to "All music") + (0 until (list?.length() ?: 0)).mapNotNull { list!!.optJSONObject(it) }.map { it.optString("path") to it.optString("name") }
-        return IBroadcastUploadChoices(from, fromNote(from), c.optInt("at_once", 3), c.optBoolean("home"), c.optInt("home_at_once", 3), c.optBoolean("away"), c.optInt("away_at_once", 1), sources)
+        val sources = listOf("all" to "All drives") + (0 until (list?.length() ?: 0)).mapNotNull { list!!.optJSONObject(it) }.map { it.optString("path") to it.optString("name") }
+        // Lit (ibroadcastFromOn, item 472): All drives and every drive where All drives is chosen, else the drives chosen.
+        val drives = c.optJSONArray("drives")?.let { a -> (0 until a.length()).map { a.optString(it) } }
+            ?: listOfNotNull(from?.takeIf { it != "all" && it != "drives" })
+        val on = if (from == "all") sources.map { it.first }.toSet() else drives.toSet()
+        return IBroadcastUploadChoices(from, fromNote(from), c.optInt("at_once", 3), c.optBoolean("home"), c.optInt("home_at_once", 3), c.optBoolean("away"), c.optInt("away_at_once", 1), sources, on)
     }
 
     /** What is said under Upload from (ibroadcastFromNote): to choose, where nothing is. */
-    fun fromNote(from: String?): String = if (from == null) "Choose All music or a drive to upload from." else ""
+    fun fromNote(from: String?): String = if (from == null) "Choose All drives, or the drives to upload from." else ""
 
     /** What the upload schedule's switch says (item 447; ibroadcastScheduleNote). */
     fun scheduleNote(on: Boolean): String = if (on) "Uploads each day between these times, stopping at the end" else "Off: uploads only when you tap Upload now"

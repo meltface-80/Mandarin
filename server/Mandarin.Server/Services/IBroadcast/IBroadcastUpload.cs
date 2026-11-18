@@ -58,6 +58,7 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
         public double SendingMs, SendingSince;
         public int Sending;
         public string? Album, File, Error, From, HeldWhere;
+        public List<string> Drives = [];
         public bool Stopped;
         public readonly List<(string File, string Why)> Problems = [];
     }
@@ -77,13 +78,17 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
     public void Start(bool scheduled = false)
     {
         if (!IBroadcast.Connected()) throw new ServiceError("Not signed in to iBroadcast", 401);
-        var from = IBroadcastUploadChoices.Stored().From;
-        if (from == null) throw new ServiceError("Choose what to upload from first: All music or a drive", 409);
-        if (from != IBroadcastUploadChoices.All && !Directory.Exists(from)) throw new ServiceError($"{IBroadcastUploadChoices.NameOf(from)} isn't there: connect it, or choose again", 409);
+        var c = IBroadcastUploadChoices.Stored();
+        if (!c.Chosen) throw new ServiceError("Choose what to upload from first: All drives or the drives to send", 409);
+        // The drives chosen that are connected (item 472); one that isn't is left out, said, unless none is left.
+        var drives = IBroadcastUploadChoices.DrivesNow(c, out var missing);
+        if (drives.Count == 0)
+            throw new ServiceError(c.All ? "No drive is connected to upload from" : $"{IBroadcastUploadChoices.NameOf(c)} isn't there: connect it, or choose again", 409);
         lock (gate)
         {
             if (now != null) return;
-            now = new Run { Started = IBroadcastApi.Now(), From = from };
+            if (missing.Count > 0) Server.Log($"[ibroadcast] upload: {string.Join(", ", missing.Select(IBroadcastUploadChoices.NameOf))} not connected: left out");
+            now = new Run { Started = IBroadcastApi.Now(), From = IBroadcastUploadChoices.NameOf(c), Drives = drives };
             stop = new CancellationTokenSource();
             if (!scheduled) Note(true);
             var (run, token) = (now, stop.Token);
@@ -139,12 +144,12 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
 
     private async Task Go(Run run, CancellationToken token)
     {
-        Server.Log($"[ibroadcast] upload: begun, from {IBroadcastUploadChoices.NameOf(run.From)}");
+        Server.Log($"[ibroadcast] upload: begun, from {run.From}");
         using var all = CancellationTokenSource.CreateLinkedTokenSource(token);
         try
         {
             var have = await Files.Md5s(token);
-            var files = IBroadcastUploadLocal.Of(run.From);
+            var files = IBroadcastUploadLocal.Of(run.Drives);
             var sent = Records();
             var todo = files.Where(f => !(sent.TryGetValue(f.Path, out var r) && r.Size == f.Size && r.Mtime == f.Mtime && have.Contains(r.Md5))).ToList();
             run.Already = files.Count - todo.Count;
@@ -284,7 +289,7 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
         var speed = ms > 1000 ? Interlocked.Read(ref run.Sent) / (ms / 1000) : 0;
         return new JsonObject
         {
-            ["running"] = running, ["held"] = run.HeldWhere != null, ["held_where"] = run.HeldWhere, ["from"] = IBroadcastUploadChoices.NameOf(run.From),
+            ["running"] = running, ["held"] = run.HeldWhere != null, ["held_where"] = run.HeldWhere, ["from"] = run.From,
             ["started"] = run.Started, ["finished"] = running ? null : run.Finished,
             ["files_total"] = run.FilesTotal, ["files_done"] = run.FilesDone, ["bytes_total"] = run.BytesTotal, ["bytes_done"] = run.BytesDone,
             ["album"] = run.Album, ["file"] = run.File, ["speed"] = Math.Round(speed),
