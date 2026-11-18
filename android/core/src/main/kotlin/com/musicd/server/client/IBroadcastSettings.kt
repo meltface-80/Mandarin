@@ -37,6 +37,8 @@ data class IBroadcastAccount(
     val scannerHours: String = "",
     /** What the upload is from and how hard it pushes (item 451): the choices as kept, and the drives offered. */
     val choices: IBroadcastUploadChoices = IBroadcastUploadChoices(null, "", 3, false, 3, false, 1, emptyList()),
+    /** Upload bandwidth (item 479): the home's upload speed and the share of it the upload may use. */
+    val bandwidth: IBroadcastBandwidth = IBroadcastBandwidth(null, 100, null, null),
 ) {
     /** The address of a sign-in under way, without its scheme. */
     val linkText: String get() = pendingUrl?.replace(Regex("^https?://"), "") ?: ""
@@ -94,7 +96,8 @@ object IBroadcastSettings {
         return IBroadcastAccount(on, status, premium, formats, pending?.optString("url")?.takeIf { it.isNotEmpty() }, pending?.optString("code").orEmpty(),
             pending?.optString("error").orEmpty().isNotEmpty(), import, reading, if (on) libraryWords(l, at) else "", uploadWords(if (on) j.optJSONObject("upload") else null, at),
             on && j.optJSONObject("schedule")?.optBoolean("on") == true, j.optJSONObject("schedule")?.optString("start").orEmpty(),
-            j.optJSONObject("schedule")?.optString("end").orEmpty(), if (on) scannerHours(j.optJSONObject("scanner_hours")) else "", choices(j))
+            j.optJSONObject("schedule")?.optString("end").orEmpty(), if (on) scannerHours(j.optJSONObject("scanner_hours")) else "", choices(j),
+            IBroadcastBandwidthWords.parse(j))
     }
 
     /** The upload's choices and the drives offered ([j]: the state), as the page has them. */
@@ -147,7 +150,8 @@ object IBroadcastSettings {
         if (u.optBoolean("running")) {
             if (n("files_total") == 0L && n("files_done") == 0L) return IBroadcastUploadWords(true, "Looking at what iBroadcast has…", "", problems)
             val parts = mutableListOf("${n("files_done")} of ${n("files_total")} files", size(u.optDouble("bytes_done", 0.0)) + " of " + size(u.optDouble("bytes_total", 0.0)))
-            if (u.optDouble("speed", 0.0) > 0) parts += size(u.optDouble("speed")) + "/s"
+            // In Mbps, as internet providers and routers say speeds (item 479).
+            if (u.optDouble("speed", 0.0) > 0) parts += IBroadcastBandwidthWords.ofBytes(u.optDouble("speed"))
             if (u.has("eta") && !u.isNull("eta")) parts += left(u.optLong("eta"))
             val status = if (u.optBoolean("held")) (if (u.optString("held_where") == "away") "Paused while music plays away from home" else "Paused while music plays") else "Uploading " + (u.optString("album").takeIf { it.isNotEmpty() && !u.isNull("album") } ?: "…")
             return IBroadcastUploadWords(true, status, parts.joinToString(" · "), problems)

@@ -51,6 +51,8 @@ class FakeIBroadcast {
     this.uploadDelayMs = 0;            // how long each upload is held before it is answered
     this.sending = 0;                  // uploads under way now, and the most there have been at once (item 451)
     this.mostAtOnce = 0;
+    this.receiving = 0;                // files' bodies arriving now, and the most at once (item 479)
+    this.mostReceiving = 0;
     this.statusDelayMs = 0;            // how long the account's status is held before it is answered (item 452)
     this.refuseLogin = 0;              // how many uploads are answered as iBroadcast answered a real one whose login it couldn't confirm (item 454)
     this.refusedWith = [];             // the access token each refused upload came with
@@ -218,8 +220,12 @@ class FakeIBroadcast {
   start() {
     this.server = http.createServer((req, res) => {
       const chunks = [];
+      // A file's body arriving: how many at once, as their bytes come (item 479), not only once each has come.
+      const file = req.method === "POST" && req.url === "/upload" && (Number(req.headers["content-length"] || 0) > 0 || /chunked/.test(req.headers["transfer-encoding"] || ""));
+      if (file) { this.receiving++; this.mostReceiving = Math.max(this.mostReceiving, this.receiving); }
       req.on("data", c => chunks.push(c));
-      req.on("end", () => { const raw = Buffer.concat(chunks); return this.handle(req, res, raw.toString("utf8"), raw).catch(e => { res.writeHead(500); res.end(String(e)); }); });
+      req.on("end", () => {
+        if (file) this.receiving--; const raw = Buffer.concat(chunks); return this.handle(req, res, raw.toString("utf8"), raw).catch(e => { res.writeHead(500); res.end(String(e)); }); });
     });
     return new Promise(resolve => this.server.listen(0, "127.0.0.1", () => { this.port = this.server.address().port; resolve(this); }));
   }
