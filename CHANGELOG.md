@@ -1,13 +1,16 @@
 # Changelog
 
-## Unreleased
+## v1.3.5
 
-- New - iBroadcast → Upload bandwidth (item 479): enter your home's upload speed and choose how much of it uploads may use (25, 50, 75 or 100 %), leaving the rest for everything else on your connection. The limit covers every file sent at once, and holds at once, an upload under way included. The upload's speed is now said in Mbps, as internet providers say it
-- Fixed - iBroadcast's Upload from: "All music" sent nothing where your drives aren't music folders, as it meant only the library's own files (item 472). It is now **All drives**, every drive offered, read from the drives themselves. And any number of the drives can be chosen at once, 2 of 3 say, each file sent once; a chosen drive that isn't connected is left out and the log says so, the upload going on with the rest
-- Fixed - iBroadcast didn't keep files whose names have accented letters and are long, such as an opera box set's tracks (item 480). Mandarin sent such a name encoded (=?utf-8?B?…?=), a third longer and with its extension hidden; it now sends it as it is, as iBroadcast's own uploader does, and sends the path from the drive (not from Mandarin's own folders), a very long name shortened. Files left as "not kept" are tried again under the new names
-- Fixed - iBroadcast's Upload now no longer sends the same files on every upload when iBroadcast takes them but doesn't keep them (item 477). What iBroadcast says as it takes a file is kept; a file it has taken twice and still doesn't have is left, listed on the page with iBroadcast's own words, and not sent again unless the file changes
-- Fixed - An iBroadcast album chosen to play while MusicBrainz was busy left a "[crash]" warning in the log and wasn't matched by sound again that run (item 478). It is now said plainly, and tried again the next time you choose it
-- Fixed - On iBroadcast's page and Upload bandwidth, a setting changed just as the page opened could be shown as it was before (item 483): the page's reading of the settings, answered after the change, was painted over it. A reading is now painted only where nothing was changed while it was asked
+Uploads to iBroadcast are easier to live with: a limit on how much of your internet upload they use, any number of drives at once, and files with long or accented names kept.
+
+- New - Upload bandwidth, in Settings → Services → iBroadcast: enter your upload speed and choose how much of it uploads may use (25, 50, 75 or 100 %), leaving the rest for everything else
+- Changed - iBroadcast's Upload from: "All music" is now All drives, and any number of drives can be chosen at once
+- Changed - An upload's speed is shown in Mbps
+- Fixed - iBroadcast now keeps files with long or accented names, such as an opera box set's tracks
+- Fixed - A file iBroadcast takes but doesn't keep is no longer sent again on every upload: it is left, and listed with iBroadcast's reason
+- Fixed - Upload from "All music" sent nothing where your drives aren't music folders
+- Fixed - An iBroadcast album chosen to play while MusicBrainz is busy is matched by sound the next time you choose it
 
 ## v1.3.4
 
