@@ -55,12 +55,13 @@ import org.json.JSONObject
  * then Upload (item 446): how the one under way is going (asked again every two seconds while it goes), or what the last
  * one did, Upload now or Stop upload, and the files left out or not sent; and on a schedule (item 447), its switch and
  * hours beside the Library Scanner's, which they can't overlap (a window that would refused, in the server's words);
- * and (item 451) Upload from, files at once, and uploading while music plays at home or away, each with its number.
+ * and (item 451) Upload from, files at once, and uploading while music plays at home or away, each with its number;
+ * and (item 479) Upload bandwidth, a row saying the limit that opens its own page (SettingsIBroadcastBandwidth.kt).
  */
 
-/** Settings' iBroadcast page ([client]: the server's, [onBack]: back to Services). */
+/** Settings' iBroadcast page ([client]: the server's, [onBack]: back to Services, [onOpen]: a page of its own, Upload bandwidth's). */
 @Composable
-internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit) {
+internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit, onOpen: (String) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var info by remember { mutableStateOf<String?>(null) }
@@ -149,6 +150,7 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit)
             account?.takeIf { it.connected }?.let { a ->
                 UploadBlock(a.upload, asking, { info = IBroadcastSettings.UPLOAD_INFO }, {
                     ChoiceRows(a.choices, asking) { patch -> asking = true; change("/upload/settings", patch) { j -> asking = false; show(j) } }
+                    OpenRow("Upload bandwidth", a.bandwidth.said, Modifier.parity("settings-ibroadcast.bandwidth", Contract.label("settings-ibroadcast.bandwidth")).clickable { onOpen("ibroadcast-bandwidth") })
                 }) { path -> asking = true; change(path) { j -> asking = false; show(j) } }
                 ScheduleRows(a, asking) { patch -> asking = true; change("/schedule", patch) { j -> asking = false; show(j) } }
             }
@@ -207,6 +209,16 @@ private fun CountRow(name: String, counts: List<SegChoice>, now: Int, keyed: (In
         Box(Modifier.widthIn(max = 150.dp)) {
             Seg(counts, "$now", key = keyed)
         }
+    }
+}
+
+/** A row that opens a page of its own (item 479): its [name], what it is set to ([said]) and ›; [modifier] its parity and tap. */
+@Composable
+private fun OpenRow(name: String, said: String, modifier: Modifier) {
+    Row(modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(10.dp)).background(paletteColor(Palette.BG_ELEV_2)).padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(name, Modifier.weight(1f), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
+        Text("$said ›", color = paletteColor(Palette.TEXT_DIM), fontSize = 13.sp, lineHeight = 18.sp)
     }
 }
 

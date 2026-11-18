@@ -3068,6 +3068,12 @@ input.vol-range::-moz-range-thumb {
 .ib-from .seg-btn:last-child { border-bottom: 0; }
 .seg.ib-count { margin-top: 0; flex: 0 0 auto; border-radius: 999px; }
 .ib-count .seg-btn { flex: 0 0 auto; padding: 6px 14px; }
+/* Upload bandwidth's row on iBroadcast's page (item 479): its name, what it is set to, opening its page. */
+.settings-nav-item.ib-open-row { flex-direction: row; justify-content: space-between; min-height: 44px; padding: 10px 12px; margin: 6px 0; border-radius: 10px; text-align: left; gap: 12px; }
+.ib-open-said { color: var(--text-dim); font-size: 13px; white-space: nowrap; }
+.ib-open-said::after { content: " \203A"; color: var(--text-faint); }
+.ib-speed { display: inline-flex; align-items: center; gap: 8px; }
+.ib-speed-in { width: 90px; text-align: right; }
 /* Services: the Qobuz and Tidal blocks the same — the quality selects one
    width, the signed-in line clear of the rows, the rows one height. */
 #qobuz-quality, #tidal-quality { width: 12.5em; }

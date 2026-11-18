@@ -12,7 +12,8 @@
  *            its album, a fixture's), byte ranges answered as a server answers them; refused without the access token;
  *   /upload  the upload server (item 446), as iBroadcast's own uploader asks it: an empty POST answers the MD5 of every
  *            file it has ({ md5 }); a multipart POST (file, file_path, method) is a file uploaded, kept in uploads with
- *            its MD5, and its MD5 then among them. 401 without the access token; busy (503) as often as busy says; how
+ *            its MD5, and its MD5 then among them (but one notKept says: taken, as iBroadcast answered a real one's
+ *            files it didn't keep, item 477). 401 without the access token; busy (503) as often as busy says; how
  *            many are under way at once counted (item 451).
  * What was asked for is recorded: the client id and scope a code was asked with, the bodies the API was sent.
  */
@@ -50,11 +51,14 @@ class FakeIBroadcast {
     this.uploadDelayMs = 0;            // how long each upload is held before it is answered
     this.sending = 0;                  // uploads under way now, and the most there have been at once (item 451)
     this.mostAtOnce = 0;
+    this.receiving = 0;                // files' bodies arriving now, and the most at once (item 479)
+    this.mostReceiving = 0;
     this.statusDelayMs = 0;            // how long the account's status is held before it is answered (item 452)
     this.refuseLogin = 0;              // how many uploads are answered as iBroadcast answered a real one whose login it couldn't confirm (item 454)
     this.refusedWith = [];             // the access token each refused upload came with
     this.refuseLoginOn = new Set();    // which uploads asked (the 1st, the 4th…) are answered so, whatever refuseLogin says
     this.uploadTries = 0;              // how many uploads have been asked
+    this.notKept = () => false;        // a file (its file_path) taken, as iBroadcast answers, but not kept: not among its MD5s (item 477)
     this.server = null;
     this.port = 0;
   }
@@ -190,6 +194,7 @@ class FakeIBroadcast {
       if (!file) return json(400, { result: false, message: "No file" });
       const md5 = crypto.createHash("md5").update(file.data).digest("hex");
       this.uploads.push({ name: file.filename, file_path: field("file_path"), method: field("method"), size: file.data.length, md5, data: Buffer.from(file.data) });
+      if (this.notKept(field("file_path"))) return json(200, { result: true, message: "Track already in library" });
       this.md5s.push(md5);
       return json(200, { result: true, message: "File uploaded" });
     }
@@ -215,8 +220,12 @@ class FakeIBroadcast {
   start() {
     this.server = http.createServer((req, res) => {
       const chunks = [];
+      // A file's body arriving: how many at once, as their bytes come (item 479), not only once each has come.
+      const file = req.method === "POST" && req.url === "/upload" && (Number(req.headers["content-length"] || 0) > 0 || /chunked/.test(req.headers["transfer-encoding"] || ""));
+      if (file) { this.receiving++; this.mostReceiving = Math.max(this.mostReceiving, this.receiving); }
       req.on("data", c => chunks.push(c));
-      req.on("end", () => { const raw = Buffer.concat(chunks); return this.handle(req, res, raw.toString("utf8"), raw).catch(e => { res.writeHead(500); res.end(String(e)); }); });
+      req.on("end", () => {
+        if (file) this.receiving--; const raw = Buffer.concat(chunks); return this.handle(req, res, raw.toString("utf8"), raw).catch(e => { res.writeHead(500); res.end(String(e)); }); });
     });
     return new Promise(resolve => this.server.listen(0, "127.0.0.1", () => { this.port = this.server.address().port; resolve(this); }));
   }

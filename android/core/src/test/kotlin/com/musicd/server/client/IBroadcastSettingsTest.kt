@@ -47,7 +47,7 @@ class IBroadcastSettingsTest {
         val going = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":true,"held":false,"files_total":120,"files_done":3,
             "bytes_total":2500000000,"bytes_done":45200000,"speed":1250000,"eta":7505,"album":"Artist A – Album One",
             "problems":[{"file":"/music/X/01.aif","why":"iBroadcast doesn't take .aif files"}]}}"""), at).upload
-        assertEquals(IBroadcastUploadWords(true, "Uploading Artist A – Album One", "3 of 120 files · 45.2 MB of 2.5 GB · 1.3 MB/s · about 2 h 5 min left",
+        assertEquals(IBroadcastUploadWords(true, "Uploading Artist A – Album One", "3 of 120 files · 45.2 MB of 2.5 GB · 10 Mbps · about 2 h 5 min left",
             "01.aif: iBroadcast doesn't take .aif files"), going)
         val held = IBroadcastSettings.parse(JSONObject("""{"connected":true,"upload":{"running":true,"held":true,"files_total":2,"files_done":1,
             "bytes_total":900,"bytes_done":400,"speed":0,"eta":null,"album":"A – B"}}"""), at).upload

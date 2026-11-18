@@ -49,8 +49,12 @@ test("the Bridges' updates are asked again only while Settings → Updates can b
   await wait(7000);
   assert.equal(await asks(), first, "not asked again while Settings is closed");
 
-  // Settings → Updates open: asked at once, and every few seconds while the update goes on.
+  // Settings → Updates open: asked at once, and every few seconds while the update goes on. Waited for until it has
+  // been asked three more times, not counted after a fixed 7.5 s: that left the third ask (at 6 s, were nothing ever
+  // late) 1.5 s to spare, and on a busy machine it came after the count (item 481: 2 of the 3, once).
   await page.eval(`window.__openSettingsPane("system"), true`);
-  await wait(7500);
-  assert.ok(await asks() >= first + 3, "asked again and again while it can be seen: " + (await asks()));
+  const t0 = Date.now();
+  let now = await asks();
+  while (now < first + 3 && Date.now() - t0 < 30000) { await wait(250); now = await asks(); }
+  assert.ok(now >= first + 3, "asked again and again while it can be seen: " + now + " (from " + first + ") in " + (Date.now() - t0) + " ms");
 });
