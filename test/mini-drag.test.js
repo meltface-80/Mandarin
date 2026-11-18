@@ -45,10 +45,17 @@ const GRIP = `(() => { const b = document.getElementById("mini-transport").getBo
   return { x, y, bare: document.elementFromPoint(x, y) === document.getElementById("mini-transport") }; })()`;
 const TITLE = `(() => { const b = document.getElementById("mt-title").getBoundingClientRect(); return { x: b.left + 8, y: b.top + b.height / 2 }; })()`;
 
+// A drag, then the page done with it: the moves and the release reach the page in their turn, later than they were
+// sent on a busy machine (a frame or more); so the bar is read once it has moved and the drag has ended, five seconds
+// at most (never: read as it is, and the asserts say).
 async function drag(page, from, dx, dy, steps = 8) {
+  const start = await page.eval(BOX);
   await page.mouse("mousePressed", from.x, from.y);
   for (let i = 1; i <= steps; i++) { await page.mouse("mouseMoved", from.x + dx * i / steps, from.y + dy * i / steps); await sleep(10); }
   await page.mouse("mouseReleased", from.x + dx, from.y + dy);
+  const done = `(() => { const el = document.getElementById("mini-transport"), b = el.getBoundingClientRect();
+    return !el.classList.contains("is-dragging") && (Math.round(b.left) !== ${start.l} || Math.round(b.top) !== ${start.t}); })()`;
+  for (let i = 0; i < 100 && !(await page.eval(done)); i++) await sleep(50);
   await sleep(80);
 }
 
@@ -78,7 +85,9 @@ test("the desktop mini player can be dragged about, stays on screen, and is reme
 
       // A click on the title still is, straight after a drag.
       const t = await page.eval(TITLE);
-      await page.mouse("mousePressed", t.x, t.y); await page.mouse("mouseReleased", t.x, t.y); await sleep(60);
+      await page.mouse("mousePressed", t.x, t.y); await page.mouse("mouseReleased", t.x, t.y);
+      // The click in its turn, as the drag's moves are (above), five seconds at most.
+      for (let i = 0; i < 100 && (await page.eval(BOX)).clicks === 0; i++) await sleep(50);
       assert.equal((await page.eval(BOX)).clicks, 1, "a click on the title after a drag still opens Now playing");
 
       // Dragged by the title, past the top left: wholly on screen.
