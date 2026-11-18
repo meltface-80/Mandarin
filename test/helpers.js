@@ -56,12 +56,13 @@ function apiOf(base, token) {
 /**
  * A server's first scan (begun half a second after it starts) ended and the
  * library read: `n` albums in it, or any where `n` is left out. Waited for
- * 30 s, not the 15 s other waits keep: a scan runs at the lowest priority on
+ * 60 s, not the 15 s other waits keep: a scan runs at the lowest priority on
  * the cores every server here shares (Cpu.Place.cs: nice 19), one shorter than
  * 5 s tells the library nothing before its end, and with those cores busy its
  * end comes late. Item 475: in one full run four servers' scans, each done
- * reading, ended 11 to 17 s later, together; busy loops on those cores alone
- * hold a scan's end back as long as they run.
+ * reading, ended 11 to 17 s later, together; and with a busy loop pinned to
+ * each of those cores for the whole test, a first scan was read 47 to 52 s
+ * after the sign-in (five runs).
  * @param {string} base  "http://127.0.0.1:<port>"
  * @param {string} token
  * @param {number} [n]
@@ -71,7 +72,7 @@ async function firstScan(base, token, n) {
   await until(async () => {
     const s = (await api("status")).json;
     return s && (n === undefined ? s.index_count > 0 : s.index_count === n) && !(s.scan && s.scan.running);
-  }, 30000, "the first scan");
+  }, 60000, "the first scan");
 }
 
 /**

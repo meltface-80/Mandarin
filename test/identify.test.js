@@ -18,7 +18,7 @@ const { FakeMusicBrainz } = require("./fake-musicbrainz");
 const { FakeITunes } = require("./fake-itunes");
 const { createServer, built } = require("./server");
 const { score, scoreAsync } = require("./score");
-// The waits the tests share (helpers.js): until's 15 s, and the first scan's own 30 (item 475).
+// The waits the tests share (helpers.js): until's 15 s, and the first scan's own 60 (item 475).
 const { until, firstScan } = require("./helpers");
 
 const rules = built();
