@@ -73,12 +73,16 @@ internal fun SettingsIBroadcast(client: () -> ServerClient?, onBack: () -> Unit,
     var updating by remember { mutableStateOf(false) }
     var asking by remember { mutableStateOf(false) }
     fun show(j: JSONObject) { account = IBroadcastSettings.parse(j, at) }
-    suspend fun load() { readSetting(client, "ibroadcast")?.let(::show) }
+    // A reading shown only where nothing was changed while it was asked (item 483): answered after a change, it says
+    // what was so before it (a switch just put on shown off again, until the next reading).
+    var changes by remember { mutableStateOf(0) }
+    suspend fun load() { val before = changes; readSetting(client, "ibroadcast")?.let { if (changes == before) show(it) } }
     // Asked again every 2 s while something goes on, else every 30 s; a change that starts something (Upload now) is
     // followed within 2 s, not at the end of the 30 (item 451: the page sat on "Looking at what iBroadcast has…").
     LaunchedEffect(Unit) { while (true) { untilOnScreen(); load(); var waited = 0L; do { delay(2_000L); waited += 2_000L } while (account?.again != true && waited < 30_000L) } }
     fun change(path: String, body: JSONObject = JSONObject(), timeout: Int = 20_000, done: (JSONObject) -> Unit = ::show) {
         val c = client() ?: return
+        changes++
         val call = { c.post("/api/settings/ibroadcast$path", body, timeout).also { j -> j.optString("error").takeIf { it.isNotEmpty() }?.let { throw IllegalStateException(it) } } }
         // Update library now reads the whole library: beside the lane, so a change asked meanwhile isn't held (item 390).
         val made = if (timeout > ServerWrites.LANE_MOST) ServerWrites.aside(call) else ServerWrites.write(call)
