@@ -70,9 +70,13 @@ internal fun SettingsIBroadcastBandwidth(client: () -> ServerClient?, onBack: ()
     var editing by remember { mutableStateOf(false) }
     var asking by remember { mutableStateOf(false) }
     fun show(j: JSONObject) { b = IBroadcastBandwidthWords.parse(j); if (!editing) typed = b.speedText }
-    LaunchedEffect(Unit) { untilOnScreen(); readSetting(client, "ibroadcast")?.let(::show) }
+    // The page's reading shown only where nothing was changed while it was asked (item 483): answered after a change, it
+    // says what was so before it.
+    var changes by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) { untilOnScreen(); val before = changes; readSetting(client, "ibroadcast")?.let { if (changes == before) show(it) } }
     fun save(patch: JSONObject) {
         val c = client() ?: return
+        changes++
         asking = true
         val made = ServerWrites.write { c.post("/api/settings/ibroadcast/upload/speed", patch, 20_000).also { j -> j.optString("error").takeIf { it.isNotEmpty() }?.let { throw IllegalStateException(it) } } }
         scope.launch {

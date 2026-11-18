@@ -62,16 +62,24 @@ function ibroadcastTyped(text) {
     const row = $("ib-bandwidth-said");
     if (row) row.textContent = ibroadcastBandwidthSaid(s);
   }
+  // Each reading and each change numbered as it is asked: only the latest asked is painted (item 483). A reading asked as
+  // the page opened and answered after a change made since said what was so before the change, and was painted over it.
+  let asked = 0;
   async function look() {
-    try { paint(await (await fetch("/api/settings/ibroadcast", { cache: "no-store" })).json()); } catch (e) { /* the page shows the last state */ }
+    const mine = ++asked;
+    try {
+      const j = await (await fetch("/api/settings/ibroadcast", { cache: "no-store" })).json();
+      if (mine === asked) paint(j);
+    } catch (e) { /* the page shows the last state */ }
   }
   /* A change ([patch]: speed_mbps or percent): kept, or refused in the server's words. @param {object} patch */
   async function save(patch) {
+    const mine = ++asked;
     try {
       const r = await fetch("/api/settings/ibroadcast/upload/speed", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Couldn't keep that");
-      paint(j);
+      if (mine === asked) paint(j);
     } catch (e) { settingsToast(/** @type {Error} */ (e).message, "error"); look(); }
   }
   speed.addEventListener("change", () => {
