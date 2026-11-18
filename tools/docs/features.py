@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.3.4, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.3.5, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -125,7 +125,7 @@ FEATURES = [
      "Nothing to set up: they come from your files' genre tags. A genre written two ways (*Indie Rock*, "
      "*indie rock*) is one, spelled as most of your albums spell it; a Qobuz album's French genre "
      "(*Électronique*) shows in English (*Electronic*). Your files are not changed."),
-    ("edit", "✏️", "Edit album", True,
+    ("edit", "✏️", "Edit album", False,
      "Correct an album's title, artist, year and version (name, label, catalogue number, barcode, "
      "country, pressing year, format), choose its cover and split two merged releases apart. Your files "
      "never change.",
@@ -166,7 +166,7 @@ FEATURES = [
      "All of each file's tags are read into the server's database, including MusicBrainz IDs, "
      "barcode, catalogue number, ISRC and ReplayGain, and used to identify albums.",
      "Nothing to set up: tags are read with every scan."),
-    ("scanner", "🔎", "Library Scanner", True,
+    ("scanner", "🔎", "Library Scanner", False,
      "One switch, Album Scanner, names albums from their files' identifiers, MusicBrainz, their sound (AcoustID) and "
      "Apple's iTunes catalogue, measures ReplayGain and finds missing covers, while nothing plays. iBroadcast albums too.",
      "Open **Settings → Library Scanner** and switch **Album Scanner** on; off, none of it is done. **Progress** counts the "
@@ -324,7 +324,7 @@ FEATURES = [
      "without Android's mixer; DSD natively or as DoP.",
      "Plug the DAC in. It shows on **This phone**'s page in **Settings → Audio Devices**; switch on "
      "**USB direct** there. Pull it out while playing and the phone pauses, as when headphones come out."),
-    ("bridge", "🌉", "Mandarin Bridge", True,
+    ("bridge", "🌉", "Mandarin Bridge", False,
      "A USB DAC on an Android device, a Linux computer or a Raspberry Pi, as a room Mandarin plays to: "
      "over SlimProto, a continuous stream of PCM.",
      "Install it from [Downloads](#downloads): the Android app, the Linux install line, or the Raspberry Pi "
@@ -333,7 +333,7 @@ FEATURES = [
      "is fed and the DAC), its settings behind the cog. With no USB DAC plugged in, a music player (a FiiO R7, say) "
      "is played through its own DAC at each track's own rate; **DSD as DoP** is a switch to try in its Settings (leave "
      "it off on a FiiO R7). Details under [Mandarin Bridge](#mandarin-bridge)."),
-    ("output", "📈", "Upsampling and output", True,
+    ("output", "📈", "Upsampling and output", False,
      "For each streamer or DAC: Bit-perfect or upsampled recipes, filters in either phase, shaped dither, PCM "
      "made DSD, Headroom against clipping, and a safety net when the server falls behind.",
      "Open **Settings → Audio Devices**, tap a streamer or DAC, and choose a recipe under **Sound**, or open "
@@ -357,7 +357,7 @@ FEATURES = [
      "and press **Record**: Mandarin plays the song, records what the DAC is fed and compares them. **Compare two "
      "songs** takes song A and song B from your music and null-tests them, with a verdict in plain words, where in the "
      "spectrum they differ, spectrograms and the difference to download. Details under [SQ-tool](#sq-tool)."),
-    ("downloads", "⬇️", "Downloads", True,
+    ("downloads", "⬇️", "Downloads", False,
      "Albums kept on the phone as the original files or Opus 256, played without the server. "
      "Smart Picks, the Album of the day and new albums can download by themselves.",
      "On an album, **⋯ → Download to this phone**. Quality, the download folder, Wi-Fi only and automatic "
@@ -419,7 +419,7 @@ FEATURES = [
      "date and name), with their edits, favourites and plays. **Before a restore.** The copy of the "
      "database Mandarin keeps before each restore (and Mandarin OS before it switches builds) is listed "
      "with the backups and restored the same way; it holds the database only, no settings."),
-    ("qobuz", "🎼", "Qobuz", True,
+    ("qobuz", "🎼", "Qobuz", False,
      "Sign in with your Qobuz subscription: your favourites and purchases become albums here, and "
      "the Qobuz browser plays anything in the catalogue, streamed through the server.",
      "**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** on a cover "
@@ -433,7 +433,7 @@ FEATURES = [
      "Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites "
      "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
      "Details under [Tidal](#tidal)."),
-    ("ibroadcast", "📻", "iBroadcast", True,
+    ("ibroadcast", "📻", "iBroadcast", False,
      "Sign in to your iBroadcast account: your iBroadcast albums become albums here and play in every room, "
      "on every Bridge and on the phone, each track as you uploaded it.",
      "**Settings → Services → iBroadcast → Sign in on iBroadcast**: open the link, approve Mandarin there with the code "
@@ -443,14 +443,16 @@ FEATURES = [
      "sound when you choose one to play."),
     ("ibroadcast-upload", "⬆️", "Upload to iBroadcast", True,
      "Your library uploaded to your iBroadcast account, each file as it is and nothing sent twice: now, or each day "
-     "on a schedule.",
-     "**Settings → Services → iBroadcast → Upload**: choose **Upload from** (All music, or one drive) and **Files at "
-     "once**, then **Upload now**; it shows what it is sending, its speed and the time left, and **Stop upload** stops "
-     "it. **Upload while music plays at home** and **away from home** let it go on while you listen, with their own "
-     "files at once. **Upload on a schedule** uploads each day between the times you set, never in the Library "
-     "Scanner's hours. DSD, and files over iBroadcast's 1.5 GB, are sent as FLAC. An upload under way carries on "
-     "after the server restarts."),
-    ("export", "📤", "Export library", True,
+     "on a schedule, within the upload speed you allow.",
+     "**Settings → Services → iBroadcast → Upload**: choose **Upload from** (All drives, or any of your drives, "
+     "several at once) and **Files at once**, then **Upload now**; it shows what it is sending, its speed and the "
+     "time left, and **Stop upload** stops it. **Upload bandwidth** limits how much of your internet upload it uses: "
+     "enter your upload speed and choose 25, 50, 75 or 100 % of it. **Upload while music plays at home** and **away "
+     "from home** let it go on while you listen, with their own files at once. **Upload on a schedule** uploads each "
+     "day between the times you set, never in the Library Scanner's hours. DSD, and files over iBroadcast's 1.5 GB, "
+     "are sent as FLAC; a file iBroadcast won't keep is listed with its reason. An upload under way carries on after "
+     "the server restarts."),
+    ("export", "📤", "Export library", False,
      "Your library as a CSV file, an album and its tracks a row each, for Mandarin Migration to add to a Qobuz account.",
      "Open **☰ → Export library**, above Settings, and save the file."),
     ("logging", "📝", "Logging", False,
