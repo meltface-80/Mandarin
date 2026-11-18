@@ -41,7 +41,10 @@ const ACCOUNT = `(async () => { ${HELPERS}
   await until(() => document.querySelectorAll(".acct-device").length > 0);
   const out = { ask: $("acct-ask").checked, note: $("acct-ask-note").textContent, password: shown($("acct-pw-block")),
     signout: shown($("acct-signout")), devices: document.querySelectorAll(".acct-device").length };
-  $("acct-ask").click();
+  // Switched on with no account, the page leaves for the account's making as the click is handled (settings-account.js:
+  // location.href, inside the change). Clicked once this has answered: clicked first, the page could be gone before the
+  // answer was (item 476: "Inspected target navigated or closed", once, on a busy machine).
+  setTimeout(() => $("acct-ask").click(), 0);
   return out;
 })()`;
 
