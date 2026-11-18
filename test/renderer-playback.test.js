@@ -17,6 +17,7 @@ const { haveFfmpeg, makeLibrary, gen, probe, writeDsf } = require("./fixtures");
 const { FakeHousehold } = require("./fake-sonos");
 const { FakeRenderer, idFor } = require("./fake-renderer");
 const { signIn } = require("./auth-helper");
+const { firstScan } = require("./helpers");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port();
@@ -71,7 +72,9 @@ test("a renderer is a zone", { skip, timeout: 150000 }, async (t) => {
   const WIIM = idFor(wiim.udn), POLY = idFor(poly.udn), DAC = idFor(dac.udn);
 
   try {
-    await until(async () => (await api("status")).index_count === 5);
+    // The first scan ended and read (helpers.js: it can take most of a minute on a busy machine, item 475). It was given
+    // 10 s here: with the machine loaded the test ended there, six runs in six, before any of what it is for.
+    await firstScan(B, token, 5);
     // A renderer found on the network is off until switched on: two rooms only…
     await until(async () => { const z = await api("zones"); return z.zones.length === 2; }, 20000);
     await until(async () => { const l = (await api("audio-devices")).devices; return l.some(d => d.id === WIIM) && l.some(d => d.id === POLY); }, 20000);
