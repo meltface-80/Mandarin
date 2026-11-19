@@ -120,14 +120,16 @@ internal sealed class IBroadcastStreams(IBroadcast account) : Catalogue("ibroadc
     /// <summary>
     /// [tracks], chosen to play, their originals' rates and depths read now where they aren't known yet (item 463): an
     /// album new to the library is played before the reading after the library's (Rates) has come to it, and a track
-    /// planned without its rate is planned at 44.1 kHz, a 24/96 original turned down to it. Four at a time, five
-    /// seconds at most (a track not read by then planned as before, its reading kept for the next time).
+    /// planned without its rate is planned at 44.1 kHz, a 24/96 original turned down to it. All at once, up to
+    /// <see cref="AtOnce"/> (item 490: four at a time, an album of sixteen tracks was four readings one after another,
+    /// and the play waited 5 s for them, its tap taken for one that did nothing); [mostMs] at most, a track not read by
+    /// then planned as before, its reading kept for the next time.
     /// </summary>
-    public async Task KnowRates(List<Playback.PlayTrack> tracks)
+    public async Task KnowRates(List<Playback.PlayTrack> tracks, int mostMs = 5000)
     {
         var want = tracks.Where(t => t.Lossless && t.SampleRate is null or <= 0 && TrackIdOf(t.Path) is not null).ToList();
         if (want.Count == 0 || !IBroadcast.Connected()) return;
-        var gate = new SemaphoreSlim(4);
+        var gate = new SemaphoreSlim(AtOnce);
         var reads = want.Select(async t =>
         {
             await gate.WaitAsync();
@@ -140,28 +142,48 @@ internal sealed class IBroadcastStreams(IBroadcast account) : Catalogue("ibroadc
             catch (ServiceError) { return null; }   // gone, or signed out: planned as before
             finally { gate.Release(); }
         }).ToList();
-        await Task.WhenAny(Task.WhenAll(reads), Task.Delay(5000));
+        await Task.WhenAny(Task.WhenAll(reads), Task.Delay(mostMs));
         foreach (var r in reads.Where(r => r.IsCompletedSuccessfully).Select(r => r.Result))
             if (r is var (t, rate, bits)) { t.SampleRate = rate; t.Bits = bits; }
     }
 
-    /// <summary>The lossless tracks whose rate isn't known yet, read one after another (after a library reading).</summary>
+    /// <summary>How many of an album's rates are read at once as it is chosen to play.</summary>
+    public const int AtOnce = 16;
+    /// <summary>How many the reading after a library reading reads at once (item 490: one at a time, thousands new took hours).</summary>
+    public const int RatesAtOnce = 4;
+    // One reading after a library reading at a time: another asked while it goes is let go, the one going reads what is new.
+    private int ratesGoing;
+
+    /// <summary>
+    /// The lossless tracks whose rate isn't known yet, read after a library reading: <see cref="RatesAtOnce"/> at a time,
+    /// the albums added last first, so those just come in are the first ready to play (item 490).
+    /// </summary>
     public async Task Rates()
     {
-        List<object?[]> want;
-        using (var c = Db.Open())
-            want = Library.Rows(c, "SELECT id, path FROM tracks WHERE path LIKE 'ibroadcast://track/%' AND lossless = 1 AND (sample_rate IS NULL OR sample_rate = 0)");
-        var found = 0;
-        foreach (var r in want)
+        if (Interlocked.Exchange(ref ratesGoing, 1) == 1) return;
+        try
         {
-            if (!IBroadcast.Connected()) return;
-            try
+            List<object?[]> want;
+            using (var c = Db.Open())
+                want = Library.Rows(c, @"SELECT t.id, t.path FROM tracks t JOIN albums a ON a.id = t.album_id
+                    WHERE t.path LIKE 'ibroadcast://track/%' AND t.lossless = 1 AND (t.sample_rate IS NULL OR t.sample_rate = 0)
+                    ORDER BY a.added_at DESC, a.id DESC, COALESCE(t.disc_no, 1), COALESCE(t.track_no, 0)");
+            var found = 0;
+            var queue = new System.Collections.Concurrent.ConcurrentQueue<object?[]>(want);
+            await Task.WhenAll(Enumerable.Range(0, RatesAtOnce).Select(async _ =>
             {
-                if (await Probe(await Url(((string)r[1]!)["ibroadcast://track/".Length..])) is { } f) { Keep((long)r[0]!, f.Rate, f.Bits); found++; }
-            }
-            catch (ServiceError) { /* gone, or signed out: the next */ }
+                while (IBroadcast.Connected() && queue.TryDequeue(out var r))
+                {
+                    try
+                    {
+                        if (await Probe(await Url(((string)r[1]!)["ibroadcast://track/".Length..])) is { } f) { Keep((long)r[0]!, f.Rate, f.Bits); Interlocked.Increment(ref found); }
+                    }
+                    catch (ServiceError) { /* gone, or signed out: the next */ }
+                }
+            }));
+            if (found > 0) await Library.Tell(new JsonObject { ["services"] = "changed" });
         }
-        if (found > 0) await Library.Tell(new JsonObject { ["services"] = "changed" });
+        finally { Volatile.Write(ref ratesGoing, 0); }
     }
 
     private static readonly HttpClient Http = new(new SocketsHttpHandler { UseProxy = false, PooledConnectionIdleTimeout = TimeSpan.FromSeconds(30) }) { Timeout = Timeout.InfiniteTimeSpan };
