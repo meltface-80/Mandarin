@@ -7,6 +7,7 @@
 - Fixed - Away from home, Now playing and the mini player on a screen opened at home follow this phone and play on it, where they went on showing the room left at home and their buttons did nothing
 - Fixed - An upload to iBroadcast gives iBroadcast half an hour to list a file before sending it again, and a file it took but didn't keep is tried again after a day, then at longer gaps. After a fault at iBroadcast, hundreds of good files were sent twice and then left for good
 - Fixed - Your iBroadcast library is read again where iBroadcast has moved a track to another album or lists one twice: every reading failed, unsaid, and the library stood still
+- Fixed - An iBroadcast album new to the library starts on the first tap of Play Now: its tracks' rates are read all at once, so it is answered in about a second where it took up to five, and the Android app dims Play Now and Queue until it is, so a second tap no longer starts it again
 
 ## v1.3.5
 

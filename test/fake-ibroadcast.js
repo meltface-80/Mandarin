@@ -53,6 +53,11 @@ class FakeIBroadcast {
     this.mostAtOnce = 0;
     this.receiving = 0;                // files' bodies arriving now, and the most at once (item 479)
     this.mostReceiving = 0;
+    this.streamDelayMs = 0;            // how long each of a track's streams is held before it is answered (item 490)
+    this.streaming = 0;                // streams being answered now, and the most there have been at once
+    this.mostStreaming = 0;
+    this.probing = 0;                  // of them, a file's first 64 KB read for its rate (item 490), and the most at once
+    this.mostProbing = 0;
     this.statusDelayMs = 0;            // how long the account's status is held before it is answered (item 452)
     this.refuseLogin = 0;              // how many uploads are answered as iBroadcast answered a real one whose login it couldn't confirm (item 454)
     this.refusedWith = [];             // the access token each refused upload came with
@@ -158,6 +163,10 @@ class FakeIBroadcast {
       const id = u.pathname.split("/").pop();
       const t = this.albums.flatMap(a => a.tracks).find(x => String(x.id) === id && x.src);
       if (!t) { res.writeHead(404); return res.end(); }
+      const probe = req.headers.range === "bytes=0-65535";
+      this.mostStreaming = Math.max(this.mostStreaming, ++this.streaming);
+      if (probe) this.mostProbing = Math.max(this.mostProbing, ++this.probing);
+      try { if (this.streamDelayMs) await new Promise(r => setTimeout(r, this.streamDelayMs)); } finally { this.streaming--; if (probe) this.probing--; }
       const body = require("fs").readFileSync(t.src);
       const m = /^bytes=(\d+)-(\d*)$/.exec(req.headers.range || "");
       if (m) {
