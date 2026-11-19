@@ -10,6 +10,14 @@
 //   - one you have here too (one title and one artist, as Mandarin Migration compares them): left out, the files here
 //     its copy, and counted ("also here").
 // Its cover is iBroadcast's for its first track (artwork_server/artwork/<id>-1000), kept beside the database once.
+//
+// A track is one row whichever album it is under (item 489). Each album's tracks were written as new unless that album
+// had them already, so a track iBroadcast had moved to another album, listed under two, or listed twice in one, was
+// written a second time: "UNIQUE constraint failed: tracks.path", the whole reading undone, and nothing said but an
+// unwaited task's failure in the log. From noon on the day iBroadcast's uploads failed, every reading of a real library
+// ended so, and it stood at 3,732 albums while iBroadcast had 4,927. Now a track is found wherever it is and moved, its
+// id kept; it is written under the album its own entry names (else the first to list it), once; and a reading whose
+// rows can't be written says so, wherever it was asked for.
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Mandarin.Server.Scan;
@@ -75,7 +83,11 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
                 if (IBroadcastApi.Str(st["status"]?["lastmodified"]) is { } lm && lm == IBroadcastApi.Str(kept?["lastmodified"]) && FilesKnown()) return kept;
             }
             var answer = await account.Api.Json("library", null, account.Api.Library);
-            var found = Write(answer);
+            JsonObject found;
+            try { found = Write(answer); }
+            // Whatever goes wrong writing it is said as iBroadcast's own refusals are, by everything that reads it (item 489:
+            // it wasn't one of those, so it went unsaid: a task that failed with no one waiting on it).
+            catch (Exception e) when (e is not ServiceError) { throw new ServiceError($"its rows couldn't be written ({e.GetType().Name}: {e.Message})", 500); }
             Save(StateKey, found);
             Server.Log($"[ibroadcast] the library read: {found["albums"]} albums in it, {found["also_here"]} of them here as files too, {found["tracks"]} tracks");
             await Library.Tell(new JsonObject { ["services"] = "changed" });
@@ -160,18 +172,35 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
             .GroupBy(a => Library.ExportCanon(Text(a.Value.GetValueOrDefault("name"))) + "|" + Text(a.Value.GetValueOrDefault("artist_id")))
             .Select(g => g.OrderBy(a => Number(a.Value.GetValueOrDefault("disc")) ?? 1).ThenBy(a => a.Key, StringComparer.Ordinal).ToList()).ToList();
         var written = new List<string>();
-        int alsoHere = 0, trackCount = 0;
+        int alsoHere = 0, trackCount = 0, moved = 0;
         var now = IBroadcastApi.Now();
+        // Which album each track is written under (item 489): the one its own entry names, where that is among these; else
+        // the first to list it. Once, however many list it.
+        var setOf = sets.SelectMany((set, i) => set.Select(a => (a.Key, i))).ToDictionary(x => x.Key, x => x.i, StringComparer.Ordinal);
+        var under = new Dictionary<string, int>(StringComparer.Ordinal);
+        int listedTwice = 0;
+        for (int i = 0; i < sets.Count; i++)
+            foreach (var tid in sets[i].SelectMany(a => a.Value.GetValueOrDefault("tracks") as JsonArray ?? []).Select(Text))
+            {
+                if (!tracks.TryGetValue(tid, out var tr) || Trashed(tr)) continue;
+                if (under.ContainsKey(tid)) { listedTwice++; continue; }
+                under[tid] = setOf.TryGetValue(Text(tr.GetValueOrDefault("album_id")), out var named) ? named : i;
+            }
         using var tx = c.BeginTransaction();
-        foreach (var set in sets)
+        // Every iBroadcast track here now, wherever it is: one under another album is moved, not written again.
+        var all = Library.Rows(c, "SELECT path, id, album_id FROM tracks WHERE path LIKE 'ibroadcast://track/%'")
+            .ToDictionary(r => (string)r[0]!, r => (Id: (long)r[1]!, Album: r[2] as long? ?? 0), StringComparer.Ordinal);
+        var kept = new HashSet<string>(StringComparer.Ordinal);
+        for (int at = 0; at < sets.Count; at++)
         {
+            var set = sets[at];
             var first = set[0].Value;
             var title = Text(first.GetValueOrDefault("name"));
             var artist = ArtistName(first.GetValueOrDefault("artist_id"));
             if (artist.Length == 0) artist = "Unknown artist";
             if (here.Contains(Library.ExportCanon(title) + "|" + Library.ExportCanon(artist))) { alsoHere++; continue; }
             var rows = set.SelectMany(a => (a.Value.GetValueOrDefault("tracks") as JsonArray ?? []).Select(id => (Disc: Number(a.Value.GetValueOrDefault("disc")) is double d && d > 0 ? d : 1, Id: Text(id))))
-                .Where(t => tracks.TryGetValue(t.Id, out var tr) && !Trashed(tr)).Select(t => (t.Disc, t.Id, T: tracks[t.Id])).ToList();
+                .Where(t => under.TryGetValue(t.Id, out var u) && u == at).DistinctBy(t => t.Id).Select(t => (t.Disc, t.Id, T: tracks[t.Id])).ToList();
             if (rows.Count == 0) continue;
             var key = "ibroadcast:" + set[0].Key;
             var formats = rows.Select(t => Format(Text(t.T.GetValueOrDefault("type")))).ToList();
@@ -198,15 +227,15 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
                          44100, 16, $lossless, $container, $compilation, $now, $now)", album);
                 id = (long)Library.Rows(c, "SELECT last_insert_rowid()")[0][0]!;
             }
-            // Each track kept where it was (item 450): its id, so a queue or a play still knows it, and its rate and depth, read once.
-            var had = Library.Rows(c, "SELECT path, id FROM tracks WHERE album_id = $1", id).ToDictionary(r => (string)r[0]!, r => (long)r[1]!, StringComparer.Ordinal);
-            foreach (var gone in had.Where(h => !rows.Any(r => "ibroadcast://track/" + r.Id == h.Key)))
-                Run(c, "DELETE FROM tracks WHERE id = $id", ("$id", gone.Value));
+            // Each track kept as it was (item 450): its id, so a queue or a play still knows it, and its rate and depth, read once.
             foreach (var (disc, tid, t) in rows)
             {
                 var (codec, container, lossless) = Format(Text(t.GetValueOrDefault("type")));
                 var trackArtist = ArtistName(t.GetValueOrDefault("artist_id"));
-                var sql = had.ContainsKey("ibroadcast://track/" + tid)
+                var had = all.TryGetValue("ibroadcast://track/" + tid, out var was1);
+                if (had && was1.Album != id) moved++;
+                kept.Add("ibroadcast://track/" + tid);
+                var sql = had
                     ? @"UPDATE tracks SET album_id=$album_id, size=$size, title=$title, artist=$artist, album_artist=$album_artist, album=$album, track_no=$track_no,
                         disc_no=$disc_no, duration=$duration, codec=$codec, container=$container, lossless=$lossless, year=$year, genres=$genres, rg_track_gain=$gain
                         WHERE path=$path"
@@ -228,7 +257,8 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
                 ("$ns", KeptNs), ("$k", key), ("$v", new JsonObject { ["why"] = "library", ["at"] = now, ["cover"] = Text(rows[0].T.GetValueOrDefault("artwork_id")) }.ToJsonString()), ("$ts", now));
             written.Add(key);
         }
-        // Gone from iBroadcast (or here as files now): gone here.
+        // Gone from iBroadcast (or here as files now): gone here, its tracks first, those of an album that stays among them.
+        foreach (var gone in all.Where(h => !kept.Contains(h.Key))) Run(c, "DELETE FROM tracks WHERE id = $id", ("$id", gone.Value.Id));
         var keep = written.ToHashSet(StringComparer.Ordinal);
         foreach (var gone in Library.Rows(c, "SELECT key FROM albums WHERE key LIKE 'ibroadcast:%'").Select(r => (string)r[0]!).Where(k => !keep.Contains(k)).ToList())
         {
@@ -236,6 +266,8 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
             Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", KeptNs), ("$k", gone));
         }
         tx.Commit();
+        if (moved > 0 || listedTwice > 0)
+            Server.Log($"[ibroadcast] the library read: {moved} track(s) now under another album, moved; {listedTwice} listed more than once, each written once under the album its own entry names");
         return new JsonObject
         {
             ["lastmodified"] = IBroadcastApi.Str(answer["status"]?["lastmodified"]), ["at"] = now, ["albums"] = written.Count + alsoHere, ["also_here"] = alsoHere,
