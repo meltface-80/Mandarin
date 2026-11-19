@@ -11,6 +11,13 @@ import com.musicd.server.client.OfflineKind
 internal object OfflineNow {
     val kind = mutableStateOf<OfflineKind?>(null)
     val on: Boolean get() = kind.value != null
+    /**
+     * Offline, and the server still looked for as the app comes back on screen (item 485, ServerReach's LookWait): the
+     * screens keep the server's rooms as last answered until the look answers ([followRoom]).
+     */
+    val looking = mutableStateOf(false)
+    /** This phone's room, the one room offline: as [goOffline] was last told. */
+    @Volatile var phone = ""
 }
 
 /**
@@ -20,6 +27,7 @@ internal object OfflineNow {
 internal fun OfflineNow.goOffline(kind: OfflineKind, phoneZone: String) {
     if (this.kind.value == null) { HomeKept.reset(); ArtistPages.kept.clear() }
     this.kind.value = kind
+    phone = phoneZone
     NativeShell.zone = phoneZone
     NativeShell.homeArgs.value = NativeShell.homeArgs.value.first to phoneZone
 }

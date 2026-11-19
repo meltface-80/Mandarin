@@ -17,7 +17,8 @@ class PhoneRoomTest {
         val plays = ArrayList<String>()
         val commands = ArrayList<Phone.Command>()
         var waited: Pair<Long, Long>? = null
-        override fun ready() = starts
+        var asked = 0
+        override fun ready(): Boolean { asked++; return starts }
         override fun state() = st
         override fun revision() = st?.revision ?: 1
         override fun waitForChange(since: Long, ms: Long) { waited = since to ms }
@@ -94,6 +95,44 @@ class PhoneRoomTest {
         assertEquals(1, deck.commands[4].index)
         deck.starts = false
         try { client.control("PHONE_1", "next"); fail("no player") } catch (e: ServerClient.ServerException) { assertEquals(PhoneRoom.NOT_STARTED, e.message) }
+    }
+
+    /** Item 485: the phone told Now playing in a server's room what its own player held, a song of hours before. */
+    @Test fun `another room's state isn't the phone's to give`() {
+        try { client.zoneState("SLIM_1"); fail("the phone answered for a room of the server's") } catch (e: ServerClient.ServerException) { assertEquals(404, e.status) }
+        try { client.zoneState("SLIM_1", waitFor = 9); fail("held for a room of the server's") } catch (e: ServerClient.ServerException) { assertEquals(404, e.status) }
+        // Nor is its player started, or held, to answer it.
+        assertEquals(0, deck.asked); assertEquals(null, deck.waited)
+        assertEquals("Come Together", client.zoneState("PHONE_1").zone?.nowPlaying?.title)
+    }
+
+    /**
+     * Item 485: back on screen and the server still looked for, what a screen in a server's room sends isn't taken by
+     * the phone's player (a tap on play would have started the phone's own queue); offline for sure, it is, as before.
+     */
+    @Test fun `while the server is looked for, another room's requests aren't the phone's to take`() {
+        var held = true
+        val waiting = ServerClient(ServerAddress("phone", 0), transport = LocalTransport(PhoneAnswers({ PhoneInfo("1.0.17", "owner", true) }, { shelf },
+            PhoneRoom("PHONE_1", deck, held = { held }) { shelf }, { shelf.all() })::answer))
+        val asks = listOf<Pair<String, () -> Any>>(
+            "control" to { waiting.control("SLIM_1", "playpause") }, "seek" to { waiting.seek("SLIM_1", 30.0) },
+            "volume" to { waiting.zoneVolume("SLIM_1", 40.0) }, "repeat" to { waiting.zoneSettings("SLIM_1", loop = "loop") },
+            "from here" to { waiting.playFromHere("SLIM_1", 2) }, "the queue" to { waiting.queue("SLIM_1") },
+            "an album" to { waiting.playAlbum(7, "Blue Train", "John Coltrane", "SLIM_1", "play_now") },
+            "a track" to { waiting.playTrack(3, 1, "Something", "Abbey Road", "The Beatles", "SLIM_1", "play_next") },
+            "a selection" to { waiting.playMulti(listOf(summary(7)), "SLIM_1", "queue") })
+        for ((what, ask) in asks) {
+            try { ask(); fail("$what was taken by the phone") } catch (e: ServerClient.ServerException) { assertEquals(what, 503, e.status); assertEquals(what, PhoneRoom.LOOKING, e.message) }
+        }
+        assertTrue(deck.commands.isEmpty()); assertTrue(deck.plays.isEmpty()); assertEquals(0, deck.asked)
+        // The phone's own room is the phone's still.
+        waiting.control("PHONE_1", "playpause")
+        assertEquals(listOf("pause"), deck.commands.map { it.op })
+        // The server not found: the phone is the one room, and takes what any screen sends (item 117: the screen on show stays).
+        held = false
+        for ((_, ask) in asks) ask()
+        assertEquals(listOf("pause", "pause", "seek", "volume", "mode", "jump"), deck.commands.map { it.op })
+        assertEquals(3, deck.plays.size)
     }
 
     @Test fun `the server's own, the library's, a setting as last given, and what needs the server`() {

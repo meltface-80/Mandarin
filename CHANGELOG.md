@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed - The Android app's Now playing no longer shows a song from the phone's own queue, without its cover, when the app is opened again after the Wi-Fi dropped for a moment: it shows the room's own track, and asks Mandarin again the moment it answers
+
 ## v1.3.5
 
 Uploads to iBroadcast are easier to live with: a limit on how much of your internet upload they use, any number of drives at once, and files with long or accented names kept.
