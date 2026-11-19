@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Fixed - The Android app's Now playing no longer shows a song from the phone's own queue, without its cover, when the app is opened again after the Wi-Fi dropped for a moment: it shows the room's own track, and asks Mandarin again the moment it answers
+- Fixed - An album's cover no longer fails to draw now and then when many covers are asked for at once, as on a wall of new albums
 
 ## v1.3.5
 
