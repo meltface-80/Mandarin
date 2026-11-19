@@ -3,7 +3,8 @@
  * Files iBroadcast takes but doesn't keep (item 477). A real upload's same 46 files were sent on every Upload now:
  * iBroadcast answered each as taken, yet never listed it among the MD5s it has, nor in its library, and what it said
  * was nowhere. Now what it says as it takes a file is kept; one taken twice and still not kept is left while it stays
- * as it is, said on the page with iBroadcast's words, and not sent again. A file that changes is sent again.
+ * as it is, said on the page with iBroadcast's words, and not sent again for now (item 488: tried again after a day,
+ * test/ibroadcast-upload-waits.test.js). A file that changes is sent again.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -73,8 +74,8 @@ test("item 477: a file iBroadcast takes but doesn't keep is sent twice, then lef
   assert.equal(u.skipped, 2);
   assert.equal(u.already, 5);
   assert.equal(u.problems.length, 2);
-  for (const p of u.problems) assert.match(p.why, /iBroadcast took it 2 times but didn't keep it \(it said: "Track already in library"\); not sent again unless the file changes/);
-  assert.ok(ctx.logs.some(l => /2 left as iBroadcast took them 2 times but didn't keep them \(from Hi Res\)/.test(l)), JSON.stringify(ctx.logs.filter(l => /ibroadcast/.test(l)).slice(-5)));
+  for (const p of u.problems) assert.match(p.why, /iBroadcast took it 2 times but didn't keep it \(it said: "Track already in library"\); tried again after about 24 hours/);
+  assert.ok(ctx.logs.some(l => /2 left for now as iBroadcast took them but didn't keep them \(from Hi Res\)/.test(l)), JSON.stringify(ctx.logs.filter(l => /ibroadcast/.test(l)).slice(-5)));
   // Changed: as any other file, sent again.
   const f = path.join(lib.music, "Artist B", "Hi Res", "01 Hi 1.flac");
   fs.utimesSync(f, new Date(), new Date(Date.now() + 5000));

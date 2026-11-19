@@ -135,6 +135,9 @@ internal static partial class Jobs
         {
             LimitBytes = cfg["ibroadcast_upload_limit"] is JsonValue ibl && ibl.TryGetValue<double>(out var lim) && lim > 0 ? (long)lim : 1_500_000_000,
             HoldMs = cfg["ibroadcast_upload_limit"] != null ? 200 : 5000,
+            // The tests' uploads follow one another at once: no wait unless one asks for it (item 488).
+            WaitMs = cfg["ibroadcast_upload_wait_ms"] is JsonValue ibq && ibq.TryGetValue<double>(out var wait) ? wait : cfg["ibroadcast_upload_limit"] != null ? 0 : Services.IBroadcast.IBroadcastUploadSent.WaitMs,
+            AgainMs = cfg["ibroadcast_upload_again_ms"] is JsonValue iba && iba.TryGetValue<double>(out var again) && again > 0 ? again : Services.IBroadcast.IBroadcastUploadSent.AgainMs,
             ResumeEveryMs = cfg["ibroadcast_upload_limit"] != null ? 200 : 15_000,
             Files = new Services.IBroadcast.IBroadcastUploadFiles(IBroadcast.Api, dataDir) { Waits = cfg["ibroadcast_upload_limit"] != null ? [TimeSpan.FromMilliseconds(200)] : [TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(5)] },
         };

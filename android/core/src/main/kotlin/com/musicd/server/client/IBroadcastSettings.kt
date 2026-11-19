@@ -153,6 +153,8 @@ object IBroadcastSettings {
             // In Mbps, as internet providers and routers say speeds (item 479).
             if (u.optDouble("speed", 0.0) > 0) parts += IBroadcastBandwidthWords.ofBytes(u.optDouble("speed"))
             if (u.has("eta") && !u.isNull("eta")) parts += left(u.optLong("eta"))
+            // Sent a short while ago and not listed by iBroadcast yet: neither sent again nor counted against them (item 488).
+            if (n("waiting") > 0) parts += "${n("waiting")} waiting on iBroadcast"
             val status = if (u.optBoolean("held")) (if (u.optString("held_where") == "away") "Paused while music plays away from home" else "Paused while music plays") else "Uploading " + (u.optString("album").takeIf { it.isNotEmpty() && !u.isNull("album") } ?: "…")
             return IBroadcastUploadWords(true, status, parts.joinToString(" · "), problems)
         }
@@ -160,6 +162,7 @@ object IBroadcastSettings {
         val said = mutableListOf("${n("uploaded")} uploaded", "${n("already")} already in iBroadcast")
         if (n("converted") > 0) said += "${n("converted")} made FLAC"
         if (n("skipped") > 0) said += "${n("skipped")} left out"
+        if (n("waiting") > 0) said += "${n("waiting")} waiting on iBroadcast"
         if (n("failed") > 0) said += "${n("failed")} not sent"
         return IBroadcastUploadWords(false, how + " · " + at(u.optLong("finished")), said.joinToString(" · "), problems)
     }

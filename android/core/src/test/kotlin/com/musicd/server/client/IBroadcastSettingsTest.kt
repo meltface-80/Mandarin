@@ -121,4 +121,15 @@ class IBroadcastSettingsTest {
         val out = IBroadcastSettings.parse(JSONObject("""{"connected":false}"""))
         assertEquals(listOf("", "", ""), listOf(out.status, out.premium, out.formats))
     }
+
+    /** Item 488: files sent a short while ago that iBroadcast hasn't listed yet, said in the one line, as the page says them. */
+    @Test fun `files waited for are said in the upload's line, under way and done`() {
+        val running = IBroadcastSettings.uploadWords(JSONObject("""{"running":true,"files_total":46,"files_done":2,"bytes_total":1.1e9,"bytes_done":5.19e7,"speed":0,"waiting":731}"""), { "" })
+        assertEquals("2 of 46 files · 51.9 MB of 1.1 GB · 731 waiting on iBroadcast", running.progress)
+        val done = IBroadcastSettings.uploadWords(JSONObject("""{"running":false,"finished":1,"uploaded":0,"already":5,"skipped":1,"waiting":2}"""), { "then" })
+        assertEquals("0 uploaded · 5 already in iBroadcast · 1 left out · 2 waiting on iBroadcast", done.progress)
+        // None waited for: nothing said of it.
+        val none = IBroadcastSettings.uploadWords(JSONObject("""{"running":false,"finished":1,"uploaded":3,"already":5,"waiting":0}"""), { "then" })
+        assertEquals("3 uploaded · 5 already in iBroadcast", none.progress)
+    }
 }
