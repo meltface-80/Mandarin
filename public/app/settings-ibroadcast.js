@@ -59,6 +59,8 @@ function ibroadcastUploadWords(u, at) {
     // In Mbps, as internet providers and routers say speeds (item 479).
     if (u.speed > 0) parts.push(ibroadcastMbps(u.speed));
     if (typeof u.eta === "number") parts.push(ibroadcastLeft(u.eta));
+    // Sent a short while ago and not listed by iBroadcast yet: neither sent again nor counted against them (item 488).
+    if (u.waiting) parts.push(u.waiting + " waiting on iBroadcast");
     const status = u.held ? (u.held_where === "away" ? "Paused while music plays away from home" : "Paused while music plays") : "Uploading " + (u.album || "…");
     return { running: true, status, progress: parts.join(" · "), problems };
   }
@@ -66,6 +68,7 @@ function ibroadcastUploadWords(u, at) {
   const said = [u.uploaded + " uploaded", u.already + " already in iBroadcast"];
   if (u.converted) said.push(u.converted + " made FLAC");
   if (u.skipped) said.push(u.skipped + " left out");
+  if (u.waiting) said.push(u.waiting + " waiting on iBroadcast");
   if (u.failed) said.push(u.failed + " not sent");
   return { running: false, status: how + " · " + at(u.finished), progress: said.join(" · "), problems };
 }
