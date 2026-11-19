@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.musicd.server.client.NowPlayingView
 import com.musicd.server.client.Retry
+import com.musicd.server.client.RoomFollowed
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.VolumeScale
 import kotlinx.coroutines.Dispatchers
@@ -49,20 +50,29 @@ internal class RoomState {
  */
 private val kept = HashMap<String, RoomState>()
 
-/** The room [zoneId] followed while this is on screen; its state the one kept for it, so a new screen starts as the last left it. */
+/**
+ * The room of the screen opened in [zoneId], followed while this is on screen; its state the one kept for it, so a new
+ * screen starts as the last left it. Offline that room is the phone's, the one room there, kept as the phone's own; and
+ * while the server is still looked for as the app comes back on screen, the screen's own, as the server last told it and
+ * not asked for ([RoomFollowed], item 485: the phone's own queue was shown, and kept, as the server's room's).
+ */
 @Composable
 internal fun followRoom(zoneId: String, client: () -> ServerClient?): RoomState {
-    val room = remember(zoneId) { kept.getOrPut(zoneId) { RoomState() } }
+    val offline = OfflineNow.kind.value != null
+    val followed = RoomFollowed.of(zoneId, offline, OfflineNow.looking.value, OfflineNow.phone)
+    val id = followed.id
+    val room = remember(id) { kept.getOrPut(id) { RoomState() } }
     // Followed while the app is on screen (item 120: it was all night too, beside the notification's own following);
-    // back on screen, asked for at once.
+    // back on screen, asked for at once. Asked afresh too when the phone's answers give way to the server's or the
+    // server's to the phone's (item 485: a room waited on the phone's answer, held 20 s, after the server was back).
     val onScreen by NativeShell.onScreen
-    LaunchedEffect(zoneId, onScreen) {
-        if (zoneId.isEmpty() || !onScreen) return@LaunchedEffect
+    LaunchedEffect(followed, offline, onScreen) {
+        if (!followed.ask || !onScreen) return@LaunchedEffect
         var revision: Long? = null
         var missed = 0
         while (isActive) {
             val c = client()
-            val st = if (c == null) null else withContext(Dispatchers.IO) { runCatching { c.zoneState(zoneId, revision) }.getOrNull() }
+            val st = if (c == null) null else withContext(Dispatchers.IO) { runCatching { c.zoneState(id, revision) }.getOrNull() }
             // Not answered (the server away, or a room it won't offer: a Sonos room away from home): asked again less
             // and less often, 2 s up to half a minute (item 119: it was every 2 s for as long as the screen was up).
             if (st == null) { delay(Retry.ms(++missed)); continue }
