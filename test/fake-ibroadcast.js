@@ -80,7 +80,7 @@ class FakeIBroadcast {
     for (const a of this.albums) {
       albums[a.id] = [a.name, a.tracks.map(t => t.id), a.artist.id, !!a.trashed, 0, a.disc || 0, a.year || 0];
       artists[a.artist.id] = [a.artist.name, [], false, 0];
-      for (const t of a.tracks) tracks[t.id] = [t.track, a.year || 0, t.title, t.genre || "", t.length || 60, a.id, t.artwork_id || 0, a.artist.id, "", "2026-11-16", !!t.trashed,
+      for (const t of a.tracks) tracks[t.id] = [t.track, a.year || 0, t.title, t.genre || "", t.length || 60, t.album_id || a.id, t.artwork_id || 0, a.artist.id, "", "2026-11-16", !!t.trashed,
         t.size || 1000, t.path || "", "", 0, 0, "/128/a/b/" + t.id, t.type || "audio/flac", t.replay_gain || "", "12:00:00"];
     }
     return { albums, artists, tracks, playlists: { map: { name: 0, tracks: 1 } }, tags: {}, trash: { map: { name: 0, tracks: 1 } } };
