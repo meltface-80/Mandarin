@@ -10,14 +10,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
+import android.widget.Toast
+import com.musicd.server.client.AwayRooms
 import com.musicd.server.client.NowPlayingView
+import com.musicd.server.client.PhoneRoom
 import com.musicd.server.client.Retry
 import com.musicd.server.client.RoomFollowed
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.VolumeScale
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /*
@@ -28,8 +35,8 @@ import kotlinx.coroutines.withContext
  * shell, docs/specs/screens.json).
  */
 
-/** What the room is doing, as last answered. */
-internal class RoomState {
+/** What the room [id] is doing, as last answered. */
+internal class RoomState(val id: String = "") {
     /** The track playing there, null while nothing is (or before the first answer). */
     var view by mutableStateOf<NowPlayingView?>(null)
     /** The room's name, once the server has answered. */
@@ -54,14 +61,20 @@ private val kept = HashMap<String, RoomState>()
  * The room of the screen opened in [zoneId], followed while this is on screen; its state the one kept for it, so a new
  * screen starts as the last left it. Offline that room is the phone's, the one room there, kept as the phone's own; and
  * while the server is still looked for as the app comes back on screen, the screen's own, as the server last told it and
- * not asked for ([RoomFollowed], item 485: the phone's own queue was shown, and kept, as the server's room's).
+ * not asked for ([RoomFollowed], item 485: the phone's own queue was shown, and kept, as the server's room's). Away from
+ * home it is the phone's too, the one room the server offers there (item 487: a screen opened at home went on asking
+ * for the room left there, and was refused). [RoomState.id] says which.
  */
 @Composable
 internal fun followRoom(zoneId: String, client: () -> ServerClient?): RoomState {
     val offline = OfflineNow.kind.value != null
-    val followed = RoomFollowed.of(zoneId, offline, OfflineNow.looking.value, OfflineNow.phone)
+    val away = NativeShell.away.value
+    val context = LocalContext.current
+    // This phone's room: offline as the phone's own answers name it, away as the server does.
+    val phone = if (offline) OfflineNow.phone else if (away) Store.awayRoom(context).orEmpty() else ""
+    val followed = RoomFollowed.of(zoneId, offline, OfflineNow.looking.value, away, phone)
     val id = followed.id
-    val room = remember(id) { kept.getOrPut(id) { RoomState() } }
+    val room = remember(id) { kept.getOrPut(id) { RoomState(id) } }
     // Followed while the app is on screen (item 120: it was all night too, beside the notification's own following);
     // back on screen, asked for at once. Asked afresh too when the phone's answers give way to the server's or the
     // server's to the phone's (item 485: a room waited on the phone's answer, held 20 s, after the server was back).
@@ -90,6 +103,19 @@ internal fun followRoom(zoneId: String, client: () -> ServerClient?): RoomState 
         while (room.view?.playing == true) { delay(500); room.now = System.currentTimeMillis() }
     }
     return room
+}
+
+/**
+ * A tap's request ([block]) sent to [c] off the main thread; what it does shows in the room's next answer. Refused
+ * because the server is still looked for ([PhoneRoom.LOOKING], item 485), or by the server for a room left at home in
+ * the moment before away counts ([AwayRooms.REFUSED]), that is said: the tap did nothing to see (item 487).
+ */
+internal fun CoroutineScope.sendTap(context: Context, c: ServerClient, block: (ServerClient) -> Unit) {
+    launch(Dispatchers.IO) {
+        val refused = runCatching { block(c) }.exceptionOrNull()
+        val said = (refused as? ServerClient.ServerException)?.message?.takeIf { it == PhoneRoom.LOOKING || it == AwayRooms.REFUSED }
+        if (said != null) withContext(Dispatchers.Main) { Toast.makeText(context, said, Toast.LENGTH_SHORT).show() }
+    }
 }
 
 /** The cover [key] at [size] pixels, once fetched; null until then, or with no key. */

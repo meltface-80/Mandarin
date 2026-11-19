@@ -17,15 +17,18 @@ data class Followed(val id: String, val ask: Boolean)
 
 object RoomFollowed {
     /**
-     * The room the screen opened in [screen] follows. Online, its own. [offline], the phone's ([phone]) — but while the
+     * The room the screen opened in [screen] follows. At home, its own. [offline], the phone's ([phone]) — but while the
      * server is still [looking]ed for, its own, not asked for: the phone has nothing to say of it ([PhoneRoom]), and the
-     * server answers in a moment or the phone's room takes its place.
+     * server answers in a moment or the phone's room takes its place. [away] with the server answering, the phone's too
+     * (item 487): it is the one room the server offers there, and another's is refused ([AwayRoom]). The phone's room not
+     * yet known ([phone] empty), the screen's own.
      */
-    fun of(screen: String, offline: Boolean, looking: Boolean, phone: String): Followed = when {
+    fun of(screen: String, offline: Boolean, looking: Boolean, away: Boolean, phone: String): Followed = when {
         screen.isEmpty() -> Followed("", false)
-        !offline || screen == phone -> Followed(screen, true)
-        looking -> Followed(screen, false)
-        else -> Followed(phone, true)
+        phone.isEmpty() || screen == phone -> Followed(screen, true)
+        offline -> if (looking) Followed(screen, false) else Followed(phone, true)
+        away -> Followed(phone, true)
+        else -> Followed(screen, true)
     }
 }
 
@@ -53,4 +56,14 @@ class LookWait {
 
     /** No look to wait for: off screen, online, Offline mode, or no network. */
     fun end() { waiting = false }
+
+    companion object {
+        /**
+         * The longest the screens wait, from when the way to the server last changed (item 487). At home the server is a
+         * moment away, and its look can take a few seconds: six. [away], three: at the start that may only be the Wi-Fi
+         * not yet awake (it was back half a second after the screen, and the wait then runs on as at home), but away for
+         * good the room is the phone's whatever the look finds, and six seconds of the room left at home was too long.
+         */
+        fun mostMs(away: Boolean): Long = if (away) 3_000L else 6_000L
+    }
 }

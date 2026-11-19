@@ -51,6 +51,11 @@ internal object NativeShell {
         get() = prefsNow.value
         set(v) { prefsNow.value = v }
     @Volatile var zone: String = ""
+    /**
+     * Away from home, and for long enough to act on (item 487; ServerReach's AwayStood, three seconds on screen): a screen
+     * opened at home follows this phone's room then ([followRoom]), and what it sends is sent for it ([Store.screenClient]).
+     */
+    val away = mutableStateOf(false)
     /** Where they are kept (set by [attach]). */
     private var store: Context? = null
 

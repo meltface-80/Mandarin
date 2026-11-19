@@ -15,26 +15,47 @@ class RoomFollowedTest {
     private val phone = "PHONE_1"
 
     @Test fun `online a screen follows its own room`() {
-        assertEquals(Followed(bridge, true), RoomFollowed.of(bridge, offline = false, looking = false, phone = phone))
-        assertEquals(Followed(phone, true), RoomFollowed.of(phone, offline = false, looking = false, phone = phone))
+        assertEquals(Followed(bridge, true), RoomFollowed.of(bridge, offline = false, looking = false, away = false, phone = phone))
+        assertEquals(Followed(phone, true), RoomFollowed.of(phone, offline = false, looking = false, away = false, phone = phone))
         // Whatever was being waited for when it came back.
-        assertEquals(Followed(bridge, true), RoomFollowed.of(bridge, offline = false, looking = true, phone = phone))
+        assertEquals(Followed(bridge, true), RoomFollowed.of(bridge, offline = false, looking = true, away = false, phone = phone))
     }
 
     @Test fun `offline the phone is the one room, and a screen follows it`() {
-        assertEquals(Followed(phone, true), RoomFollowed.of(bridge, offline = true, looking = false, phone = phone))
-        assertEquals(Followed(phone, true), RoomFollowed.of(phone, offline = true, looking = false, phone = phone))
+        assertEquals(Followed(phone, true), RoomFollowed.of(bridge, offline = true, looking = false, away = false, phone = phone))
+        assertEquals(Followed(phone, true), RoomFollowed.of(phone, offline = true, looking = false, away = false, phone = phone))
     }
 
     @Test fun `while the server is looked for, a screen keeps its room as last answered and asks no one`() {
-        assertEquals(Followed(bridge, false), RoomFollowed.of(bridge, offline = true, looking = true, phone = phone))
+        assertEquals(Followed(bridge, false), RoomFollowed.of(bridge, offline = true, looking = true, away = false, phone = phone))
         // The phone's own room is the phone's to answer all the while.
-        assertEquals(Followed(phone, true), RoomFollowed.of(phone, offline = true, looking = true, phone = phone))
+        assertEquals(Followed(phone, true), RoomFollowed.of(phone, offline = true, looking = true, away = false, phone = phone))
     }
 
     @Test fun `a screen with no room follows none`() {
-        for (offline in listOf(false, true)) for (looking in listOf(false, true))
-            assertEquals(Followed("", false), RoomFollowed.of("", offline, looking, phone))
+        for (offline in listOf(false, true)) for (looking in listOf(false, true)) for (away in listOf(false, true))
+            assertEquals(Followed("", false), RoomFollowed.of("", offline, looking, away, phone))
+    }
+
+    /** Item 487: opened at home in the Bridge's room, Now playing went on asking for the Bridge's from away, and was refused. */
+    @Test fun `away with the server answering, a screen follows the phone's room, and its own again at home`() {
+        assertEquals(Followed(phone, true), RoomFollowed.of(bridge, offline = false, looking = false, away = true, phone = phone))
+        assertEquals(Followed(phone, true), RoomFollowed.of(phone, offline = false, looking = false, away = true, phone = phone))
+        assertEquals(Followed(bridge, true), RoomFollowed.of(bridge, offline = false, looking = false, away = false, phone = phone))
+    }
+
+    @Test fun `away and offline are as offline, the phone's room once the look has answered`() {
+        assertEquals(Followed(bridge, false), RoomFollowed.of(bridge, offline = true, looking = true, away = true, phone = phone))
+        assertEquals(Followed(phone, true), RoomFollowed.of(bridge, offline = true, looking = false, away = true, phone = phone))
+    }
+
+    @Test fun `the phone's room not yet known, a screen keeps its own`() {
+        assertEquals(Followed(bridge, true), RoomFollowed.of(bridge, offline = false, looking = false, away = true, phone = ""))
+    }
+
+    @Test fun `the wait is shorter away than at home`() {
+        assertEquals(3_000L, LookWait.mostMs(away = true))
+        assertEquals(6_000L, LookWait.mostMs(away = false))
     }
 
     @Test fun `the wait lasts until the look answers`() {

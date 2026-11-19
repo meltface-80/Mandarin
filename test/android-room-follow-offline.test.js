@@ -21,9 +21,10 @@ const read = f => fs.readFileSync(path.join(APP, f), "utf8");
 test("a screen follows the room RoomFollowed gives it, and asks afresh when the phone's answers and the server's change places", () => {
   const src = read("RoomFollow.kt");
   const follow = src.slice(src.indexOf("internal fun followRoom("), src.indexOf("internal fun rememberCover("));
-  assert.match(follow, /val offline = OfflineNow\.kind\.value != null\s+val followed = RoomFollowed\.of\(zoneId, offline, OfflineNow\.looking\.value, OfflineNow\.phone\)/);
+  // Offline the phone's room is as the phone's own answers name it; away (item 487), as the server does.
+  assert.match(follow, /val offline = OfflineNow\.kind\.value != null\s+val away = NativeShell\.away\.value\s+val context = LocalContext\.current\s+\/\/[^\n]*\n\s+val phone = if \(offline\) OfflineNow\.phone else if \(away\) Store\.awayRoom\(context\)\.orEmpty\(\) else ""\s+val followed = RoomFollowed\.of\(zoneId, offline, OfflineNow\.looking\.value, away, phone\)/);
   // Kept and asked for by the room followed, not the one the screen was opened in.
-  assert.match(follow, /val id = followed\.id\s+val room = remember\(id\) \{ kept\.getOrPut\(id\) \{ RoomState\(\) \} \}/);
+  assert.match(follow, /val id = followed\.id\s+val room = remember\(id\) \{ kept\.getOrPut\(id\) \{ RoomState\(id\) \} \}/);
   assert.match(follow, /c\.zoneState\(id, revision\)/);
   assert.doesNotMatch(follow, /zoneState\(zoneId/);
   // Online again (or offline), the loop starts again: the server is asked at once, not after the phone's held answer.
@@ -39,8 +40,9 @@ test("offline, the phone's room is the one goOffline was told", () => {
 test("the wait begins as the app comes back on screen offline, and ends with the look's answer", () => {
   const reach = read("ServerReach.kt");
   const resumed = reach.slice(reach.indexOf("fun resumed()"), reach.indexOf("fun paused()"));
+  assert.ok(resumed.length > 100);
   // Not in Offline mode, nor with no network: there is no look to wait for.
-  assert.match(resumed, /if \(offline\) \{[\s\S]*?if \(!Store\.offlineMode\(a\) && Away\.hasNetwork\(a\)\) \{[\s\S]*?wait\.begin\(\); OfflineNow\.looking\.value = true\s+main\.removeCallbacks\(waitMost\); main\.postDelayed\(waitMost, WAIT_MOST_MS\)\s+\}\s+lookSoon\(500\); return/);
+  assert.match(resumed, /if \(offline\) \{[\s\S]*?if \(!Store\.offlineMode\(a\) && Away\.hasNetwork\(a\)\) \{[\s\S]*?wait\.begin\(\); OfflineNow\.looking\.value = true\s+waitAtMost\(\)\s+\}\s+lookSoon\(500\); return/);
   // Each look asked for is numbered, and the watch answers for the one it made.
   assert.match(reach, /private fun lookSoon\(ms: Long\) \{ look = wait\.asked\(\); main\.removeCallbacks\(serverWatch\); main\.postDelayed\(serverWatch, ms\) \}/);
   const watch = reach.slice(reach.indexOf("private val serverWatch"), reach.indexOf("private val netWatch"));
@@ -49,15 +51,18 @@ test("the wait begins as the app comes back on screen offline, and ends with the
   assert.match(watch, /if \(Store\.offlineMode\(a\)\) \{ waitOver\(\); return \}\s+if \(!Away\.hasNetwork\(a\)\) \{ waitOver\(\); main\.postDelayed\(this, 10_000\); return \}/);
 });
 
-test("the wait never outlasts the screen, a start, or six seconds", () => {
+test("the wait never outlasts the screen, a start, or its few seconds", () => {
   const reach = read("ServerReach.kt");
   assert.match(reach, /private fun waitOver\(\) \{ wait\.end\(\); OfflineNow\.looking\.value = false; main\.removeCallbacks\(waitMost\) \}/);
-  assert.match(reach, /fun paused\(\) \{ onScreen = false; live\.stop\(\); waitOver\(\) \}/);
+  assert.match(reach, /fun paused\(\) \{ onScreen = false; live\.stop\(\); waitOver\(\); awayLook\(\) \}/);
   assert.match(reach, /fun go\(\) \{\s+waitOver\(\)/);
   assert.match(reach, /fun stop\(\) \{[\s\S]*?main\.removeCallbacksAndMessages\(null\)\s+waitOver\(\)/);
   assert.match(reach, /private fun goOffline\(\) \{[\s\S]*?\+\+seq\s+waitOver\(\)\s+OfflineNow\.goOffline\(/);
   assert.match(reach, /private val waitMost = Runnable \{ if \(wait\.waiting\) phoneAnswers\(/);
-  assert.match(reach, /const val WAIT_MOST_MS = 6_000L/);
+  // Three seconds away, six at home (item 487, LookWait.mostMs), counted again when the way changes while the screens wait.
+  assert.match(reach, /private fun waitAtMost\(\) \{ main\.removeCallbacks\(waitMost\); main\.postDelayed\(waitMost, LookWait\.mostMs\(Store\.isAway\(a\)\)\) \}/);
+  const moved = reach.slice(reach.indexOf("fun moved()"), reach.indexOf("fun modeChanged()"));
+  assert.match(moved, /if \(offline\) \{\s+\/\/[^\n]*\n\s+if \(wait\.waiting\) waitAtMost\(\)\s+if \(Away\.hasNetwork\(a\)\) lookSoon\(500\); return\s+\}/);
 });
 
 test("while the server is looked for, the phone's player is told so", () => {

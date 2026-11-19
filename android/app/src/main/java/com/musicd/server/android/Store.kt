@@ -260,14 +260,25 @@ object Store {
      * The services keep [client]: what they ask is the server's alone.
      */
     fun screenClient(context: Context): ServerClient? {
-        if (!OfflineNow.on) return client(context)
+        // Away, what a screen sends for a room is sent for this phone's, the one room there (item 487, AwayRoom).
+        val app = context.applicationContext
+        if (!OfflineNow.on) return client(context) { com.musicd.server.client.AwayRoom(it) { if (NativeShell.away.value) awayRoom(app) else null } }
         val c = context.applicationContext
         return ServerClient(server(c) ?: ServerAddress("phone", 0), token = token(c),
             transport = AppLog.net(com.musicd.server.client.LocalTransport { m, p, q, b -> OfflineApi.answers(c).answer(m, p, q, b) }, "phone"))
     }
 
+    /** This phone's room while away from home, the one room the server offers there (item 487); null at home, or before the server has named it. */
+    fun awayRoom(context: Context): String? {
+        if (!isAway(context)) return null
+        return prefs(context).getString("phone_zone", null)?.takeIf { it.isNotEmpty() }
+    }
+
     /** A client for the server, signed in — null until both are known. The server's gate shutting on this phone signs it in again (item 111). */
-    fun client(context: Context): ServerClient? {
+    fun client(context: Context): ServerClient? = client(context) { it }
+
+    /** [client], its requests through [over] on their way (the screens': [screenClient]). */
+    private fun client(context: Context, over: (com.musicd.server.client.Transport) -> com.musicd.server.client.Transport): ServerClient? {
         val address = active(context) ?: return null
         val token = token(context) ?: return null
         // Every request logged, while logging is on (item 121); each asked on the way to the server as it is when asked, once
@@ -278,6 +289,6 @@ object Store {
             { prefs(app).edit().putString(KEY_SETTINGS_KEPT, it).apply() })
         return ServerClient(address, token = token,
             // The gate shut signs the phone out only on its own server (item 158: another Mandarin at the home address did).
-            transport = com.musicd.server.client.KeptTransport(AppLog.server({ active(app)?.baseUrl ?: address.baseUrl }, token, { Away.awaitWay(app); Away.notBeforeVpn(app) }) { if (Away.stillOurs(app)) MainActivity.gateShut() else Away.recheck(app) }))
+            transport = over(com.musicd.server.client.KeptTransport(AppLog.server({ active(app)?.baseUrl ?: address.baseUrl }, token, { Away.awaitWay(app); Away.notBeforeVpn(app) }) { if (Away.stillOurs(app)) MainActivity.gateShut() else Away.recheck(app) })))
     }
 }
