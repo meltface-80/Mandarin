@@ -54,7 +54,7 @@ internal sealed partial class LabelLogos(string dataDir, MusicBrainz? mb, string
 
     private static string Text(object? v) => Js.Truthy(v) ? Js.Str(v) : "";
     public static string DiscogsToken() => Text(Labels.Setting("discogsToken"));
-    public static string FanartKey() => Text(Labels.Setting("fanartKey"));
+    public static string FanartKey() => Text(Labels.Setting("fanartKey")) is { Length: > 0 } saved ? saved : BuiltInKeys.Fanart;   // Mandarin's own (item 491)
 
     // ------------------------------------------------------------ is the key good
 

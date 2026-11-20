@@ -56,12 +56,11 @@ class SettingsTest {
         assertFalse(unasked.ok)
         assertEquals("Saved — ab…yz", unasked.placeholder(""))
         assertEquals("Current: ab…yz — couldn’t reach the service to check it.", unasked.status)
-        // The page's rows, in its order (item 414c: AcoustID's after FanArt.tv's).
-        assertEquals(listOf("discogs-token", "fanart-key", "acoustid-key", "lastfm-key", "lastfm-secret"), ApiKeySpec.ALL.map { it.route })
-        val acoustid = ApiKeySpec.ALL[2]
-        assertEquals(listOf("AcoustID key", "key", "Paste AcoustID application key…"), listOf(acoustid.name, acoustid.field, acoustid.emptyHint))
-        assertEquals("AcoustID key saved — checked and working", acoustid.saved(ok))
-        assertEquals("Saved, but AcoustID refused this key", acoustid.saved(bad))
+        // The page's rows, in its order: AcoustID's and FanArt.tv's keys Mandarin's own since item 491, no row of theirs.
+        assertEquals(listOf("discogs-token", "lastfm-key", "lastfm-secret"), ApiKeySpec.ALL.map { it.route })
+        val lastfm = ApiKeySpec.ALL[1]
+        assertEquals("Last.fm key saved — checked and working", lastfm.saved(ok))
+        assertEquals("Saved, but Last.fm refused this key", lastfm.saved(bad))
         val discogs = ApiKeySpec.ALL[0]
         assertEquals("Discogs token saved — checked and working", discogs.saved(ok))
         assertEquals("Saved, but Discogs refused this token", discogs.saved(bad))

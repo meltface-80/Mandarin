@@ -23,6 +23,8 @@ if (args.Length == 1 && args[0] == "--version")
     Console.WriteLine(version);
     return 0;
 }
+// Which of Mandarin's own keys the build carries (item 491), by name only.
+if (args.Length == 1 && args[0] == "--built-in-keys") { Console.WriteLine(Mandarin.Server.BuiltInKeys.Said()); return 0; }
 
 // `mandarin-server --srp-vector test/srp-vector.json`: the server's half of
 // SRP against the fixed example the page and the Android app are checked

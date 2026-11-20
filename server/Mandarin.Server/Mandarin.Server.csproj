@@ -3,6 +3,12 @@
     Mandarin's server, in C# (v0.8.1 on; the whole server since v0.9.0, no
     Node server behind it). See server/README.md.
   -->
+  <!-- Mandarin's own AcoustID and FanArt.tv keys (item 491), put in by server/build.sh from the build's secrets, never
+       written in the source; a build without them carries none (BuiltInKeys.cs). -->
+  <ItemGroup>
+    <AssemblyMetadata Include="AcoustIdKey" Value="$(AcoustIdKey)" Condition="'$(AcoustIdKey)' != ''" />
+    <AssemblyMetadata Include="FanartKey" Value="$(FanartKey)" Condition="'$(FanartKey)' != ''" />
+  </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>

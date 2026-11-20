@@ -22,6 +22,11 @@ case "$what" in
     done
     said="$(server/bin/linux-x64/mandarin-server --version)"
     [ "$said" = "$v" ] || { echo "the server built says $said, not $v" >&2; exit 1; }
+    # Mandarin's own AcoustID and FanArt.tv keys (item 491): carried wherever the build was given them, said by name only.
+    keys="$(server/bin/linux-x64/mandarin-server --built-in-keys)"
+    echo "built-in keys: $keys"
+    if [ -n "${MANDARIN_ACOUSTID_KEY:-}" ] && ! echo "$keys" | grep -q "acoustid=yes"; then echo "the AcoustID key given isn't in the server built" >&2; exit 1; fi
+    if [ -n "${MANDARIN_FANART_KEY:-}" ] && ! echo "$keys" | grep -q "fanart=yes"; then echo "the FanArt.tv key given isn't in the server built" >&2; exit 1; fi
     (cd "$out" && sha256sum mandarin-server-*.gz > mandarin-server.sha256 && cat mandarin-server.sha256)
     ;;
   bundle)

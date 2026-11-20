@@ -61,11 +61,22 @@ function scanNowWords(a) {
   }
 }
 
+/*
+ * How far matching by sound has got (item 419; GET /api/album-scanner's sound_tally): the albums matched so far, those
+ * still to look at, and when it will (the Album Scanner off, or outside its hours). On API Keys until its key became
+ * Mandarin's own (item 491).
+ */
+function scanSoundTally(t) {
+  if (!t) return "";
+  const when = !t.waiting ? "" : t.held === "off" ? ", when the Album Scanner is on" : t.held === "hours" ? ", in the Album Scanner's hours" : "";
+  return "By sound: " + t.matched + (t.matched === 1 ? " album" : " albums") + " matched so far, " + t.waiting + " still to look at" + when + ".";
+}
+
 /* Why the albums left unsure aren't matched by sound (item 414c, GET /api/album-scanner's sound); "" when they are. */
 function scanSoundNote(a) {
   switch (a && a.sound) {
-    case "needs-key": return "Matching by sound needs an AcoustID key (Settings → API Keys).";
-    case "refused": return "AcoustID refused the key, so albums aren't matched by sound (Settings → API Keys).";
+    case "needs-key": return "This build of Mandarin carries no AcoustID key, so albums aren't matched by sound.";
+    case "refused": return "AcoustID refused Mandarin's key, so albums aren't matched by sound for now.";
     case "limited": return "AcoustID asked to wait: matching by sound rests a few minutes.";
     case "unreachable": return "AcoustID can't be reached: matching by sound rests a few minutes.";
     default: return "";

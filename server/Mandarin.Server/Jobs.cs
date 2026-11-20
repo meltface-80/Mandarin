@@ -123,6 +123,7 @@ internal static partial class Jobs
         // Headphone profiles and Last.fm (v0.8.26): where AutoEq and Last.fm are, and the environment's Last.fm key.
         AutoEq = new AutoEq(Text(cfg["autoeq_url"]), Log);
         LastfmEnvKey = Text(cfg["lastfm_key"]);
+        BuiltInKeys.Configure(Text(cfg["acoustid_built_in"]), Text(cfg["fanart_built_in"]));
         // Qobuz's and Tidal's catalogue (v0.8.39): their addresses as set up (the tests' fakes).
         // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database. Tidal's sign-in (v0.8.47): where it is asked.
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };

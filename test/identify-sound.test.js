@@ -234,7 +234,7 @@ test("no key, a key refused, AcoustID busy or not reached: skipped quietly, the 
   }
 });
 
-test("Settings → API Keys: AcoustID's row as the others, page and app in step; its key kept through a sealed backup", { skip: rules, timeout: 120000 }, async () => {
+test("Settings → API Keys: the page's rows and the app's in step, AcoustID's none (item 491); a key saved kept through a sealed backup", { skip: rules, timeout: 120000 }, async () => {
   // The page's rows and the app's (ApiKeySpec.ALL), in the same order, with the same names, boxes and help.
   const root = path.join(__dirname, "..");
   const html = fs.readFileSync(path.join(root, "public", "index.html"), "utf8");
@@ -245,9 +245,9 @@ test("Settings → API Keys: AcoustID's row as the others, page and app in step;
   const consts = Object.fromEntries([...kt.matchAll(/const val ([A-Z_]+) = "((?:[^"\\]|\\.)*)"/g)].map(m => [m[1], m[2]]));
   const app = [...kt.matchAll(/ApiKeySpec\("([a-z-]+)", "[a-z]+", "([^"]+)", "([^"]+)", "[^"]+", "[^"]+",\s*(?:"((?:[^"\\]|\\.)*)"|([A-Z_]+))\)/g)]
     .map(m => ({ name: m[2], info: m[4] != null ? m[4] : consts[m[5]], route: m[1], hint: m[3] }));
-  assert.deepEqual(page.map(x => x.route), ["discogs-token", "fanart-key", "acoustid-key", "lastfm-key", "lastfm-secret"]);
+  // AcoustID's and FanArt.tv's keys Mandarin's own since item 491: no row of theirs.
+  assert.deepEqual(page.map(x => x.route), ["discogs-token", "lastfm-key", "lastfm-secret"]);
   assert.deepEqual(app, page);
-  assert.match(page[2].info, /acoustid\.org\/new-application/);
 
   // The key in a backup sealed with a passphrase: in no part of the file in the clear; back with the passphrase.
   const lib = makeLibrary();

@@ -7,7 +7,10 @@ cd "$(dirname "$0")"
 RID=${RID:-linux-$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')}
 VERSION=${VERSION:-$(grep -m1 '"version"' ../package.json | cut -d'"' -f4)}
 VERSION=${VERSION:-0.0.0}
+# Mandarin's own AcoustID and FanArt.tv keys (item 491), from the build's secrets where it has them (the workflows'
+# MANDARIN_ACOUSTID_KEY and MANDARIN_FANART_KEY): in the program, never in the source. Without them, none.
 dotnet publish Mandarin.Server/Mandarin.Server.csproj -c Release -r "$RID" -p:Version="$VERSION" \
+  -p:AcoustIdKey="${MANDARIN_ACOUSTID_KEY:-}" -p:FanartKey="${MANDARIN_FANART_KEY:-}" \
   -p:SelfContained=true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true \
   -o bin/"$RID" --nologo -v quiet
 # Put in place by a rename, never copied over (item 382): a server still running from this file (one a test left behind)

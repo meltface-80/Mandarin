@@ -6,7 +6,7 @@ import org.json.JSONObject
 /*
  * Edit album's Match by sound (bug list item 419), typed: the server's job (/api/identify/sound) — where it is, what came
  * of it, the releases the album's tracks are on by AcoustID — with what the page says of each, as album-editor-sound.js
- * says them; and the Album Scanner's tally of it under Settings → API Keys' AcoustID key, as settings.js's soundTallyText.
+ * says them; and the Album Scanner's tally of it, on its page (item 491), as scanner-words.js's scanSoundTally.
  */
 
 /** A release the tracks are on by sound: its names, what sets it apart, how many of the tracks are on it, how sure the scan is and why. */
@@ -46,8 +46,8 @@ data class SoundJob(val state: String, val done: Int, val of: Int, val answer: S
             "asking" -> Said("Asking AcoustID…", " $done of ${n(of)} (three a second).")
             "fetching" -> Said("Asking MusicBrainz for the releases…", " A few seconds: one request a second.")
             else -> when (answer) {
-                "needs-key" -> Said("No AcoustID key.", " Add an AcoustID key in Settings → API Keys.")
-                "refused" -> Said("AcoustID refused the key.", " Check it in Settings → API Keys.")
+                "needs-key" -> Said("No AcoustID key.", " This build of Mandarin carries none.")
+                "refused" -> Said("AcoustID refused Mandarin's key.", " Try again later.")
                 "limited" -> Said("AcoustID asks to wait.", " Try again in a few minutes.")
                 "unreachable" -> Said("AcoustID can't be reached.", " Try again later.")
                 "no-files" -> Said("No files to listen to.", " Only an album's own files can be matched by sound.")
@@ -75,7 +75,7 @@ data class SoundJob(val state: String, val done: Int, val of: Int, val answer: S
     }
 }
 
-/** The Album Scanner's matching by sound (Settings → API Keys, under AcoustID's key): albums [matched] so far, [waiting] still to look at, and why not now ([held] "off" or "hours"). */
+/** The Album Scanner's matching by sound (on the Album Scanner's page since item 491): albums [matched] so far, [waiting] still to look at, and why not now ([held] "off" or "hours"). */
 data class SoundTally(val matched: Int, val waiting: Int, val held: String?) {
     /** The line, as the page's soundTallyText. */
     val line: String get() {
