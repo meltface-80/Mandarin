@@ -49,8 +49,8 @@ internal sealed class AcoustId(string? baseUrl, string version)
 
     public bool Paused => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() < Interlocked.Read(ref PausedUntil);
 
-    /* The key kept, or "". */
-    public static string Key() => Labels.Setting(Setting) is string s ? s.Trim() : "";
+    /* The key saved on this server (one pasted before item 491, or a test's), else Mandarin's own (BuiltInKeys), or "". */
+    public static string Key() => Labels.Setting(Setting) is string s && s.Trim().Length > 0 ? s.Trim() : BuiltInKeys.AcoustId;
 
     /* Asked in turn, a third of a second at least after the one before. */
     private async Task<JsObj> Ask(HttpMethod method, string url, string? form)

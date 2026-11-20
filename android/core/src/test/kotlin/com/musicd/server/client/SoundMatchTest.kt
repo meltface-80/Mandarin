@@ -26,8 +26,8 @@ class SoundMatchTest {
     @Test fun plainAnswers() {
         fun said(answer: String, error: String? = null) =
             job("""{"state":"done","answer":"$answer","error":${if (error == null) "null" else "\"$error\""},"releases":[]}""").said
-        assertEquals(Said("No AcoustID key.", " Add an AcoustID key in Settings → API Keys."), said("needs-key"))
-        assertEquals("AcoustID refused the key. Check it in Settings → API Keys.", said("refused").text)
+        assertEquals(Said("No AcoustID key.", " This build of Mandarin carries none."), said("needs-key"))
+        assertEquals("AcoustID refused Mandarin's key. Try again later.", said("refused").text)
         assertEquals("AcoustID asks to wait. Try again in a few minutes.", said("limited").text)
         assertEquals("AcoustID can't be reached. Try again later.", said("unreachable").text)
         assertEquals("AcoustID doesn't know these recordings. Try Find match, or the barcode.", said("no-match").text)

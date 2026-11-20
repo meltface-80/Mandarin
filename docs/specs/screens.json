@@ -704,7 +704,7 @@
       }
     },
     "settings-keys": {
-      "page": "Settings' API Keys (in Setup): Back, API Keys; Discogs, FanArt.tv, AcoustID, Last.fm and Last.fm's shared secret, each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key (AcoustID's with how many albums are matched by sound and still to look at); then Scrobbling: what it is (the account connected, a sign-in waiting, plays waiting to go) and Connect to Last.fm or Disconnect",
+      "page": "Settings' API Keys (in Setup): Back, API Keys; Discogs, Last.fm and Last.fm's shared secret (AcoustID's and FanArt.tv's are Mandarin's own, item 491), each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key; then Scrobbling: what it is (the account connected, a sign-in waiting, plays waiting to go) and Connect to Last.fm or Disconnect",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsPanes.kt"],
       "preview": false,
       "items": {
@@ -716,7 +716,6 @@
         "check": { "kind": "shows", "each": true, "when": "the key checked by its service" },
         "save": { "kind": "action", "label": "Save", "each": true },
         "status": { "kind": "shows", "each": true },
-        "sound": { "kind": "shows", "when": "an AcoustID key saved: the albums matched by sound so far, those still to look at, and whether the Album Scanner is off or outside its hours" },
         "scrobble": { "kind": "action", "label": ["Connect to Last.fm", "Disconnect"], "when": "Scrobbling: Connect while no account is connected (Last.fm's page to allow Mandarin on), Disconnect while one is" },
         "scrobble-status": { "kind": "shows", "when": "Scrobbling: the account, a sign-in waiting on Last.fm, plays waiting to go, what went wrong" }
       }
