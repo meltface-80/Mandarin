@@ -8,6 +8,7 @@
 - Fixed - An upload to iBroadcast gives iBroadcast half an hour to list a file before sending it again, and a file it took but didn't keep is tried again after a day, then at longer gaps. After a fault at iBroadcast, hundreds of good files were sent twice and then left for good
 - Fixed - Your iBroadcast library is read again where iBroadcast has moved a track to another album or lists one twice: every reading failed, unsaid, and the library stood still
 - Fixed - An iBroadcast album new to the library starts on the first tap of Play Now: its tracks' rates are read all at once, so it is answered in about a second where it took up to five, and the Android app dims Play Now and Queue until it is, so a second tap no longer starts it again
+- Fixed - Signing in to iBroadcast reads the account once while iBroadcast is slow to answer, where each look at the page began another reading, which could land later and put back the sign-in token just replaced
 - Changed - Mandarin carries its own AcoustID and FanArt.tv keys: matching albums by sound, artist photos and FanArt.tv's label logos work without pasting a key, and their fields are gone from Settings → API Keys. How far matching by sound has got is shown on the Album Scanner's page
 
 ## v1.3.5
