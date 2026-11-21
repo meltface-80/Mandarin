@@ -1606,6 +1606,21 @@
             <div id="spotify-import-status" data-parity="settings-service.import-status" class="settings-token-status"></div>
           </div>
         </div>
+        <!-- Spotify Connect (item 501, app/settings-spotify-connect.js): Mandarin as a speaker in the Spotify app, through Soloist. -->
+        <div class="settings-block" id="spotify-connect">
+          <div class="settings-block-title" data-parity="settings-service.title">Spotify Connect <button data-parity="settings-service.info" class="settings-info-btn" data-info="Mandarin as a speaker in the Spotify app: choose it in the app's devices, and what you play there plays in the room chosen here, made for that room as your library is (upsampled in its filter where it upsamples). It runs Spotify's own Soloist player, which needs Spotify Premium and a Soloist API key of your own, from developer.spotify.com/documentation/soloist. Mandarin downloads Soloist from Spotify and keeps it current. The first time, choose Mandarin in the Spotify app on the same Wi-Fi; after that it stays signed in. Lossless where your plan has it: the line under the title says what the sound proves." aria-label="Info">&#9432;</button></div>
+          <div id="spotify-connect-status" data-parity="settings-service.connect-status" class="settings-token-status"></div>
+          <div id="spotify-connect-sound" data-parity="settings-service.connect-sound" class="settings-token-status" hidden></div>
+          <input id="spotify-connect-key" data-parity="settings-service.connect-key" class="settings-token-input" type="password" autocomplete="off" spellcheck="false" placeholder="Soloist API key" aria-label="Soloist API key">
+          <input id="spotify-connect-name" data-parity="settings-service.connect-name" class="settings-token-input" type="text" autocomplete="off" spellcheck="false" placeholder="Mandarin" aria-label="Name in the Spotify app">
+          <div class="settings-token-row">
+            <button id="spotify-connect-save" data-parity="settings-service.connect-save" class="settings-update-btn" type="button">Save</button>
+            <button id="spotify-connect-download" data-parity="settings-service.connect-download" class="settings-update-btn hidden" type="button">Download Soloist</button>
+          </div>
+          <div class="settings-row"><span class="settings-label" data-parity="settings-service.name">Room <button data-parity="settings-service.info" class="settings-info-btn" data-info="The room Spotify plays in when you choose Mandarin in the Spotify app. Each room is sent Spotify as it is sent your library: beside its name, how." aria-label="Info">&#9432;</button></span>
+            <div class="settings-select-wrap"><select id="spotify-connect-room" data-parity="settings-service.connect-room" aria-label="Spotify Connect room" class="settings-select"></select></div></div>
+          <div id="spotify-connect-build" data-parity="settings-service.connect-build" class="settings-token-status"></div>
+        </div>
       </div>
 
       <!-- iBroadcast's page (item 443): one of Services' (app/settings-ibroadcast.js). -->

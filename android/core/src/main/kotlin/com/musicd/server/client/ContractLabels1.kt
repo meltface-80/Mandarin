@@ -296,5 +296,10 @@ internal object ContractLabels1 {
         "settings-service.import" to listOf("Favourites and purchases in the library", "Favourites in the library", "Saved albums in the library"),
         "settings-service.update" to listOf("Update library now", "…"),
         "settings-service.signout" to listOf("Sign out"),
+        "settings-service.connect-key" to listOf("Soloist API key"),
+        "settings-service.connect-name" to listOf("Name in the Spotify app"),
+        "settings-service.connect-save" to listOf("Save"),
+        "settings-service.connect-download" to listOf("Download Soloist", "Update Soloist", "Downloading…"),
+        "settings-service.connect-room" to listOf("Spotify Connect room"),
     )
 }

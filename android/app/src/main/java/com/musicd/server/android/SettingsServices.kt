@@ -244,7 +244,7 @@ internal fun StatusLine(text: String, modifier: Modifier) {
 
 /** A field's ground (.settings-token-input): 34 tall, 8 round on the raised ground, 10 and 7 in, its [hint] faint while empty. */
 @Composable
-private fun FieldBox(empty: Boolean, hint: String, inner: @Composable () -> Unit) {
+internal fun FieldBox(empty: Boolean, hint: String, inner: @Composable () -> Unit) {
     val shape = RoundedCornerShape(8.dp)
     Box(Modifier.fillMaxWidth().height(34.dp).clip(shape).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(Palette.BORDER), shape).padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart) {

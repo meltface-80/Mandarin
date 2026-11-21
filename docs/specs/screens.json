@@ -759,8 +759,8 @@
       }
     },
     "settings-service": {
-      "page": "Settings' Qobuz, Tidal (item 449) and Spotify (item 497), each one of Services' pages: Back to Services, its title; the account under its title and ⓘ and what is said of the sign-in: Qobuz's email and password and Sign in, Tidal's Sign in on tidal.com (then the link to open, the code and Cancel), Spotify's Sign in on Spotify (then, on the web page, where to paste the address Spotify sent you to, Finish sign-in and Cancel; the app catches it by itself); once signed in, the stream quality chosen from a list, favourites in the library on or off, Update library now, Sign out, and what the library holds of the service",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsServices.kt", "android/app/src/main/java/com/musicd/server/android/SettingsSpotify.kt"],
+      "page": "Settings' Qobuz, Tidal (item 449) and Spotify (item 497), each one of Services' pages: Back to Services, its title; the account under its title and ⓘ and what is said of the sign-in: Qobuz's email and password and Sign in, Tidal's Sign in on tidal.com (then the link to open, the code and Cancel), Spotify's Sign in on Spotify (then, on the web page, where to paste the address Spotify sent you to, Finish sign-in and Cancel; the app catches it by itself); once signed in, the stream quality chosen from a list, favourites in the library on or off, Update library now, Sign out, and what the library holds of the service; on Spotify's, then Spotify Connect (item 501) under its title and ⓘ: what Soloist says or what plays, how the room is sent it while it plays, the Soloist API key, the name the Spotify app shows, Save, Download or Update Soloist once a key is saved, the room Spotify plays in, and Soloist's build and when it runs out",
+      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsServices.kt", "android/app/src/main/java/com/musicd/server/android/SettingsSpotify.kt", "android/app/src/main/java/com/musicd/server/android/SettingsSpotifyConnect.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Services" },
@@ -784,7 +784,15 @@
         "import": { "kind": "action", "label": ["Favourites and purchases in the library", "Favourites in the library", "Saved albums in the library"], "when": "signed in to the service" },
         "update": { "kind": "action", "label": ["Update library now", "…"], "when": "signed in to the service, with its favourites in the library" },
         "signout": { "kind": "action", "label": "Sign out", "when": "signed in to the service" },
-        "import-status": { "kind": "shows", "when": "signed in to the service" }
+        "import-status": { "kind": "shows", "when": "signed in to the service" },
+        "connect-status": { "kind": "shows", "when": "on Spotify's page" },
+        "connect-sound": { "kind": "shows", "when": "Spotify playing through Mandarin" },
+        "connect-key": { "kind": "action", "label": "Soloist API key", "when": "on Spotify's page" },
+        "connect-name": { "kind": "action", "label": "Name in the Spotify app", "when": "on Spotify's page" },
+        "connect-save": { "kind": "action", "label": "Save", "when": "on Spotify's page" },
+        "connect-download": { "kind": "action", "label": ["Download Soloist", "Update Soloist", "Downloading…"], "when": "a Soloist API key saved" },
+        "connect-room": { "kind": "action", "label": "Spotify Connect room", "when": "on Spotify's page" },
+        "connect-build": { "kind": "shows", "when": "Soloist downloaded" }
       }
     },
     "settings-ibroadcast": {
