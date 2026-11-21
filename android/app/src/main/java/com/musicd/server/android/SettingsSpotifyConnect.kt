@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Choice
 import com.musicd.server.client.Contract
+import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.SpotifyConnect
 import com.musicd.server.client.SpotifyConnectSettings
