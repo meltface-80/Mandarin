@@ -161,6 +161,7 @@ internal object ContractLabels1 {
         "menu.pitchfork" to listOf("Pitchfork"),
         "menu.qobuz" to listOf("Qobuz"),
         "menu.tidal" to listOf("Tidal"),
+        "menu.spotify" to listOf("Spotify"),
         "menu.shelf" to listOf("Shelf"),
         "menu.later" to listOf("Listen later"),
         "menu.rescan" to listOf("Rescan library"),

@@ -14,7 +14,8 @@ public sealed class LeftoversTests
         await (await Session.Started(lib: lib)).DisposeAsync();
         var db = Path.Combine(lib.Data, "musicd.db");
         SqliteDump.Exec(db, """
-            INSERT INTO albums(key, title, artist, dir, added_at, updated_at) VALUES('spotify:a1', 'Gone', 'Someone', 'spotify://album/a1', 1, 2);
+            INSERT INTO albums(id, key, title, artist, dir, added_at, updated_at) VALUES(7000, 'spotify:a1', 'Kept', 'Someone', 'spotify://album/a1', 1, 2);
+            INSERT INTO tracks(id, album_id, path, mtime, size, title) VALUES(7001, 7000, 'spotify://track/t1', 0, 0, 'Kept 1');
             INSERT INTO favourites(key, added_at) VALUES('spotify:a1', 1);
             INSERT INTO cache(ns, key, value, ts) VALUES('spotify-kept', 'spotify:a1', '{}', 1);
             INSERT INTO settings(key, value) VALUES('spotify', '{"token":"t"}');

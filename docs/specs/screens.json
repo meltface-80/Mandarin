@@ -394,7 +394,7 @@
       }
     },
     "menu": {
-      "page": "the side menu (#menu-overlay, the row's Menu): the drawer from the left over a dimmed screen, Mandarin's mark and name with the power button (Restart, Shut down), the Offline mode switch in the app, then Pitchfork, Qobuz, Tidal, Shelf, Listen later, Rescan library with how old the library is, Export library (the library's own files as a CSV for Mandarin Migration, item 436), and Settings; a tap beside it closes it",
+      "page": "the side menu (#menu-overlay, the row's Menu): the drawer from the left over a dimmed screen, Mandarin's mark and name with the power button (Restart, Shut down), the Offline mode switch in the app, then Pitchfork, Qobuz, Tidal, Spotify, Shelf, Listen later, Rescan library with how old the library is, Export library (the library's own files as a CSV for Mandarin Migration, item 436), and Settings; a tap beside it closes it",
       "native": ["android/app/src/main/java/com/musicd/server/android/MenuDrawer.kt"],
       "preview": false,
       "items": {
@@ -408,6 +408,7 @@
         "pitchfork": { "kind": "action", "label": "Pitchfork" },
         "qobuz": { "kind": "action", "label": "Qobuz", "when": "signed in to Qobuz" },
         "tidal": { "kind": "action", "label": "Tidal", "when": "signed in to Tidal" },
+        "spotify": { "kind": "action", "label": "Spotify", "when": "signed in to Spotify" },
         "shelf": { "kind": "action", "label": "Shelf", "when": "online" },
         "later": { "kind": "action", "label": "Listen later" },
         "rescan": { "kind": "action", "label": "Rescan library" },
@@ -499,7 +500,7 @@
       }
     },
     "service-browser": {
-      "page": "the Qobuz or Tidal browser (the side menu's Qobuz or Tidal, signed in): over the whole screen, its title and ✕, the search field and the tabs (New Releases, then the service's own lists) pinned at its head, the line saying what is shown, the albums as the wall's tiles with the service's favourite (+ or ✓) on each cover; a search's artists as a strip of round pictures above its albums, and Load more",
+      "page": "the Qobuz, Tidal or Spotify browser (the side menu's Qobuz, Tidal or Spotify, signed in): over the whole screen, its title and ✕, the search field and the tabs (New Releases, then the service's own lists; Spotify's New from artists you follow and Your albums, item 498) pinned at its head, the line saying what is shown, the albums as the wall's tiles with the service's favourite (+ or ✓) on each cover; a search's artists as a strip of round pictures above its albums, and Load more",
       "native": ["android/app/src/main/java/com/musicd/server/android/ServiceBrowserScreen.kt", "android/app/src/main/java/com/musicd/server/android/SearchRows.kt"],
       "preview": false,
       "items": {

@@ -153,6 +153,10 @@
           </svg>
         </button>
 
+        <!-- Spotify's: three curved lines (item 498). Shown once signed in. -->
+        <button id="spotify-toggle" class="icon-btn hidden" aria-label="Spotify" title="Spotify">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path stroke-width="2.4" d="M4.5 8.6Q12 5.6 19.5 9.6"/><path stroke-width="2" d="M5.6 12.8Q12 10.4 18 13.6"/><path stroke-width="1.7" d="M6.8 16.8Q12 15 16.6 17.4"/></svg>
+        </button>
         <!-- Tidal's mark: three diamonds (v0.6.24). Shown once signed in. -->
         <button id="tidal-toggle" class="icon-btn hidden" aria-label="Tidal" title="Tidal">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.6 5.4 12 9.8 7.6 14.2 3.2 9.8Zm8.8 0 4.4 4.4-4.4 4.4L12 9.8Zm-4.4 5.2 4.4 4.4-4.4 4.4-4.4-4.4Z"/></svg>
@@ -750,6 +754,10 @@
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.6 5.4 12 9.8 7.6 14.2 3.2 9.8Zm8.8 0 4.4 4.4-4.4 4.4L12 9.8Zm-4.4 5.2 4.4 4.4-4.4 4.4-4.4-4.4Z"/></svg>
           <span>Tidal</span>
         </button>
+        <button class="menu-item hidden" type="button" data-target="spotify-toggle" id="menu-item-spotify" data-parity="menu.spotify">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" aria-hidden="true"><path stroke-width="2.4" d="M4.5 8.6Q12 5.6 19.5 9.6"/><path stroke-width="2" d="M5.6 12.8Q12 10.4 18 13.6"/><path stroke-width="1.7" d="M6.8 16.8Q12 15 16.6 17.4"/></svg>
+          <span>Spotify</span>
+        </button>
         <!-- Shelf: flicking through the collection, a page of its own (/shelf). -->
         <button class="menu-item" type="button" data-action="shelf" data-parity="menu.shelf">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 5v13M7.5 5v13M15 5v13M18.5 5v13"/><rect x="9.5" y="4" width="4" height="15" rx=".8"/><path d="M2 21h20"/></svg>
@@ -919,6 +927,37 @@
       <div id="qobuz-nr-list" class="qobuz-nr-list album-grid"></div>
       <button id="qobuz-load-more" class="hidden" type="button" data-parity="service-browser.load-more">Load more</button>
       <div id="qobuz-nr-detail" class="qobuz-nr-detail hidden"></div>
+    </div>
+  </div>
+
+  <!-- Spotify browser overlay (item 498): the same browser as Qobuz's and Tidal's, its own ids -->
+  <div id="spotify-overlay" class="settings-overlay hidden" role="dialog" aria-modal="true" aria-label="Spotify">
+    <div class="settings-backdrop" data-spotify-close></div>
+    <div class="settings-sheet qobuz-sheet">
+      <div class="qobuz-pin">
+        <div class="settings-grip" aria-hidden="true"></div>
+        <div class="settings-head">
+          <h2 data-parity="service-browser.title">Spotify</h2>
+          <button id="spotify-overlay-close" class="icon-btn" type="button" aria-label="Close" data-spotify-close data-parity="service-browser.close">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="qobuz-search-row">
+          <input id="spotify-search-input" type="search" placeholder="Search Spotify…" aria-label="Search Spotify…" data-parity="service-browser.search"
+                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+          <button id="spotify-search-clear" class="hidden" type="button" aria-label="Clear search" data-parity="service-browser.search-clear">×</button>
+        </div>
+        <div id="spotify-tabs" role="tablist" aria-label="Spotify sections">
+          <button class="qobuz-tab is-active" type="button" role="tab" data-parity="service-browser.tab" data-qtab="new-releases">New from artists you follow</button>
+          <button class="qobuz-tab" type="button" role="tab" data-parity="service-browser.tab" data-qtab="your-albums">Your albums</button>
+        </div>
+      </div>
+      <div id="spotify-nr-status" class="settings-token-status" data-parity="service-browser.status"></div>
+      <div id="spotify-artist-head" class="hidden"></div>
+      <div id="spotify-artists" class="hidden"></div>
+      <div id="spotify-nr-list" class="qobuz-nr-list album-grid"></div>
+      <button id="spotify-load-more" class="hidden" type="button" data-parity="service-browser.load-more">Load more</button>
+      <div id="spotify-nr-detail" class="qobuz-nr-detail hidden"></div>
     </div>
   </div>
 

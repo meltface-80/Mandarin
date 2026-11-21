@@ -3,15 +3,22 @@
  * fake-spotify.js — Spotify on loopback, as much of it as Mandarin asks (bug list item 497): the accounts service
  * (authorize, approved when the test says so; /api/token for the code, with PKCE's verifier checked against the
  * challenge, and for a refresh, each refresh token good once, as Spotify's are) and the Web API (/v1/me, the saved
- * albums a page at a time with Spotify's "next", an album with its tracks' first page). What was asked for is
- * recorded; access tokens can be made to expire, the token call slowed, and a list's next page sent elsewhere.
+ * albums a page at a time with Spotify's "next", an album with its tracks' first page; item 498: the artists you
+ * follow a page at a time by cursor, an artist and their albums, search, an album saved or unsaved in your library).
+ * What was asked for is recorded; access tokens can be made to expire, the token call slowed, and a list's next page
+ * sent elsewhere.
  */
 const http = require("http");
 const crypto = require("crypto");
 
 class FakeSpotify {
-  /* albums: [{ id, name, artist, date, upc, tracks: [{ id, name, ms }] }], saved: [{ id, added_at, as? }] newest first */
-  constructor({ albums = [], saved = [], user = { id: "listener1", display_name: "A Listener" }, page = 2, trackPage = 50 } = {}) {
+  /* albums: [{ id, name, artist, date, upc, type?, tracks: [{ id, name, ms }] }], saved: [{ id, added_at, as? }] newest
+   * first; followed: [{ id, name }] (each artist's albums are those whose artist is their name) */
+  constructor({ albums = [], saved = [], followed = [], user = { id: "listener1", display_name: "A Listener" }, page = 2, trackPage = 50 } = {}) {
+    this.followed = followed;
+    this.followPage = 50;
+    this.followDelayMs = 0;            // those followed answered this late (two asks then overlap)              // the most artists a page of those followed holds (smaller: more pages)
+    this.library = [];                 // { method, uris } every PUT or DELETE /me/library
     this.albums = albums;
     this.saved = saved;
     this.user = user;
@@ -69,6 +76,7 @@ class FakeSpotify {
     const tracks = first.map((t, i) => this.trackJson(a, t, i));
     o.external_ids = { upc: a.upc || null };
     o.label = a.label || "";
+    o.album_type = a.type || "album";
     o.tracks = { items: tracks, total: a.tracks.length, offset: 0, limit: this.trackPage,
       next: a.tracks.length > this.trackPage ? this.apiUrl + "albums/" + a.id + "/tracks?offset=" + this.trackPage + "&limit=" + this.trackPage : null };
     return o;
@@ -121,7 +129,51 @@ class FakeSpotify {
       const next = !more ? null : this.nextElsewhere || this.apiUrl + "me/albums?offset=" + (offset + limit) + "&limit=" + limit;
       return this.send(res, 200, { items, total: this.saved.length, offset, limit, next });
     }
-    let m = /^albums\/([^/]+)$/.exec(path);
+    if (path === "me/following") {
+      if (this.followDelayMs) await new Promise(r => setTimeout(r, this.followDelayMs));
+      const after = u.searchParams.get("after"), limit = Math.min(Number(u.searchParams.get("limit") || 20), this.followPage);
+      const from = after ? this.followed.findIndex(a => a.id === after) + 1 : 0;
+      const items = this.followed.slice(from, from + limit).map(a => ({ id: a.id, name: a.name, images: [] }));
+      const more = from + limit < this.followed.length;
+      return this.send(res, 200, { artists: { items, total: this.followed.length, limit, cursors: { after: more ? items.at(-1).id : null },
+        next: more ? this.apiUrl + "me/following?type=artist&limit=" + limit + "&after=" + items.at(-1).id : null } });
+    }
+    if (path === "me/library" && (req.method === "PUT" || req.method === "DELETE")) {
+      const uris = (u.searchParams.get("uris") || "").split(",");
+      this.library.push({ method: req.method, uris });
+      for (const uri of uris) {
+        const id = uri.replace(/^spotify:album:/, "");
+        if (req.method === "PUT" && !this.saved.some(x => x.id === id)) this.saved.unshift({ id, added_at: new Date().toISOString() });
+        if (req.method === "DELETE") this.saved = this.saved.filter(x => x.id !== id);
+      }
+      res.writeHead(200); return res.end();
+    }
+    if (path === "search") {
+      const q = (u.searchParams.get("q") || "").toLowerCase(), limit = Number(u.searchParams.get("limit") || 20), offset = Number(u.searchParams.get("offset") || 0);
+      if (limit > 10) return this.send(res, 400, { error: { status: 400, message: "Invalid limit" } });
+      const hits = this.albums.filter(a => (a.name + " " + a.artist).toLowerCase().includes(q));
+      const artists = [...new Set(hits.map(a => a.artist))].map(n => ({ id: "ar-" + n.replace(/\W+/g, ""), name: n, images: [] }));
+      return this.send(res, 200, { albums: { items: hits.slice(offset, offset + limit).map(a => this.albumJson(a, false)), total: hits.length, offset, limit },
+        artists: { items: artists, total: artists.length } });
+    }
+    let m = /^artists\/([^/]+)$/.exec(path);
+    if (m) {
+      const a = this.followed.find(x => x.id === m[1]) || this.albums.map(x => ({ id: "ar-" + x.artist.replace(/\W+/g, ""), name: x.artist })).find(x => x.id === m[1]);
+      return a ? this.send(res, 200, { id: a.id, name: a.name, images: [{ url: this.base + "/img/" + a.id + ".jpg", width: 320, height: 320 }] })
+        : this.send(res, 404, { error: { status: 404, message: "Non existing id" } });
+    }
+    m = /^artists\/([^/]+)\/albums$/.exec(path);
+    if (m) {
+      this.artistAlbumCalls = (this.artistAlbumCalls || 0) + 1;
+      const ar = this.followed.find(x => x.id === m[1]);
+      const name = ar ? ar.name : (this.albums.find(x => "ar-" + x.artist.replace(/\W+/g, "") === m[1]) || {}).artist;
+      const limit = Number(u.searchParams.get("limit") || 20), offset = Number(u.searchParams.get("offset") || 0);
+      if (limit > 10) return this.send(res, 400, { error: { status: 400, message: "Invalid limit" } });
+      const groups = (u.searchParams.get("include_groups") || "album,single").split(",");
+      const mine = this.albums.filter(a => a.artist === name && groups.includes(a.type || "album")).sort((x, y) => (y.date || "").localeCompare(x.date || ""));
+      return this.send(res, 200, { items: mine.slice(offset, offset + limit).map(a => this.albumJson(a, false)), total: mine.length, offset, limit });
+    }
+    m = /^albums\/([^/]+)$/.exec(path);
     if (m) { const a = this.albums.find(x => x.id === m[1]); return a ? this.send(res, 200, this.albumJson(a, true)) : this.send(res, 404, { error: { status: 404, message: "Non existing id" } }); }
     m = /^albums\/([^/]+)\/tracks$/.exec(path);
     if (m) {

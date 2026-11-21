@@ -4,7 +4,7 @@
 //
 // What Spotify serves is decided by the account, up to lossless (FLAC, 24-bit/44.1 kHz): the rows say that ceiling, as
 // Spotify's own apps do. Playing is item 499 (Soloist on the server); until then a Spotify track says so when asked.
-// Browsing (the side menu's page) is item 498: until then these lists are empty, and no route reaches them.
+// Browsing (the side menu's page, item 498) is SpotifyBrowse.cs.
 using Mandarin.Server.Tags;
 
 namespace Mandarin.Server.Services;
@@ -53,9 +53,9 @@ internal sealed partial class SpotifyCatalogue : Catalogue
         var art = FirstArtist(a);
         var genres = Items(P(a, "genres"));
         return Obj(
-            ("id", Js.Str(P(a, "id"))), ("title", Or(P(a, "name"), "")), ("version", ""), ("artist", Or(P(art, "name"), "")),
-            ("artist_id", Js.Str(Or(P(art, "id"), ""))), ("image", Largest(P(a, "images"))), ("year", Slice(date, 4)), ("date", date),
-            ("label", Or(P(a, "label"), "")), ("genre", genres.Count > 0 ? genres[0] : ""), ("genres", genres), ("upc", Or(P(P(a, "external_ids"), "upc"), null)),
+            ("id", Js.Str(P(a, "id"))), ("title", Or(P(a, "name"), "")), ("version", ""), ("artist", Or(AndP(art, "name"), "")),
+            ("artist_id", Js.Str(Or(AndP(art, "id"), ""))), ("image", Largest(P(a, "images"))), ("year", Slice(date, 4)), ("date", date),
+            ("label", Or(P(a, "label"), "")), ("genre", genres.Count > 0 ? genres[0] : ""), ("genres", genres), ("upc", Or(AndP(P(a, "external_ids"), "upc"), null)),
             ("rate", 44100.0), ("bits", 24.0), ("tracks_count", NumOr(P(a, "total_tracks"), 0)), ("duration", 0.0),
             ("hires", false), ("quality", "24/44.1"), ("streamable", !(P(a, "is_playable") is false)), ("kept", false), ("favourited", false),
             ("release_date", date), ("in_library", false));
@@ -65,11 +65,11 @@ internal sealed partial class SpotifyCatalogue : Catalogue
     {
         var art = FirstArtist(t) ?? FirstArtist(al);
         return Obj(
-            ("id", Js.Str(P(t, "id"))), ("title", Or(P(t, "name"), "")), ("artist", Or(P(art, "name"), "")),
+            ("id", Js.Str(P(t, "id"))), ("title", Or(P(t, "name"), "")), ("artist", Or(AndP(art, "name"), "")),
             ("duration", Math.Round(NumOr(P(t, "duration_ms"), 0) / 1000)),
             ("track_no", NumOr(P(t, "track_number"), double.NaN) is var n && !double.IsNaN(n) ? n : null),
             ("disc_no", NumOr(P(t, "disc_number"), 1)), ("rate", 44100.0), ("bits", 24.0),
-            ("streamable", !(P(t, "is_playable") is false)), ("isrc", Or(P(P(t, "external_ids"), "isrc"), null)));
+            ("streamable", !(P(t, "is_playable") is false)), ("isrc", Or(AndP(P(t, "external_ids"), "isrc"), null)));
     }
 
     // ------------------------------------------------------------ the catalogue (item 498 browses it)
@@ -84,7 +84,7 @@ internal sealed partial class SpotifyCatalogue : Catalogue
     private readonly object savedGate = new();
     private (double At, Task<List<object?>> Task)? saved;
     /* The saved albums, one reading shared by everyone asking within the minute; [fresh] (the import) read anew. */
-    private Task<List<object?>> Saved(bool fresh = false)
+    internal Task<List<object?>> Saved(bool fresh = false)
     {
         lock (savedGate)
         {
@@ -95,12 +95,7 @@ internal sealed partial class SpotifyCatalogue : Catalogue
         }
     }
 
-    public override Task<List<object?>> NewReleases(double days, Ask ask) => Task.FromResult(new List<object?>());
-    public override Task<List<object?>> Featured(string type, Ask ask) => throw new ServiceError("Spotify doesn't feature that list", 404);
-    public override Task<JsObj> Search(string query, double offset, Ask ask, double limit = 50) =>
-        Task.FromResult(Obj(("albums", new List<object?>()), ("artists", new List<object?>()), ("total", 0.0), ("has_more", false), ("limit", limit)));
-    public override Task<JsObj> ArtistAlbums(string artistId, double offset, Ask ask, double limit = 50) => throw new ServiceError("Not yet", 404);
-    public override Task<JsObj> AlbumDetail(string id, Ask ask) => throw new ServiceError("Not yet", 404);
+    // The browser's lists, search, artists and albums: SpotifyBrowse.cs (item 498).
 
     // ------------------------------------------------------------ rows in the library
 
@@ -117,8 +112,6 @@ internal sealed partial class SpotifyCatalogue : Catalogue
         return (album, list.Where(t => Js.Truthy(t) && !(P(t, "is_playable") is false)).Select(t => NormTrack(t, a)).ToList());
     }
 
-    /* Saving or unsaving on Spotify itself is item 498's (Spotify's library call changed in February 2026). */
-    protected override Task ApiFavourite(string id, bool on) => throw new ServiceError("Not yet", 404);
 
     // ------------------------------------------------------------ the import
 

@@ -175,7 +175,7 @@ function serviceBrowserViews(sb) {
       const tabDef = view.kind === "tab" ? cfg.tabs.find(t => t.id === view.tab) : null;
       if (view.kind === "tab" && tabDef && tabDef.kind === "new-releases") {
         if (statusEl) statusEl.textContent = "Loading new releases…";
-        const j = await sb.qFetch(cfg.apiBase + "/new-releases?days=30");
+        const j = await sb.qFetch(cfg.apiBase + "/new-releases?days=" + (tabDef.days || 30));
         if (seq !== sb.reqSeq) return; // a newer view/request superseded this one
         resetListContainers();
         const albums = j.albums || [];

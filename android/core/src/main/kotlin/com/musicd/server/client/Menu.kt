@@ -11,32 +11,32 @@ import kotlin.math.roundToLong
  * power.js say them, so the app's menu and the page's read alike.
  */
 object Menu {
-    /** Which of the rows that come and go are offered: Qobuz and Tidal once signed in, Shelf unless switched off. */
-    data class Items(val qobuz: Boolean = false, val tidal: Boolean = false, val shelf: Boolean = true)
+    /** Which of the rows that come and go are offered: Qobuz, Tidal and Spotify once signed in, Shelf unless switched off. */
+    data class Items(val qobuz: Boolean = false, val tidal: Boolean = false, val shelf: Boolean = true, val spotify: Boolean = false)
 
     /**
-     * The rows offered, from `/api/settings/qobuz`, `/tidal` and `/shelf` as the page reads them
+     * The rows offered, from `/api/settings/qobuz`, `/tidal`, `/shelf` and `/spotify` as the page reads them
      * (settings-services.js, features.js): an answer missing (null) leaves its row as it was ([d]: as last
      * seen, else as the markup has it).
      */
-    fun items(qobuz: JSONObject?, tidal: JSONObject?, shelf: JSONObject?, d: Items = Items()): Items {
+    fun items(qobuz: JSONObject?, tidal: JSONObject?, shelf: JSONObject?, d: Items = Items(), spotify: JSONObject? = null): Items {
         return Items(qobuz?.optBoolean("connected") ?: d.qobuz,
-            tidal?.optBoolean("connected") ?: d.tidal, shelf?.optBoolean("enabled") ?: d.shelf)
+            tidal?.optBoolean("connected") ?: d.tidal, shelf?.optBoolean("enabled") ?: d.shelf, spotify?.optBoolean("connected") ?: d.spotify)
     }
 
     /** Before the server has ever said (the menu never opened): the rows that come and go not drawn, so none is taken away. */
-    val UNKNOWN = Items(qobuz = false, tidal = false, shelf = false)
+    val UNKNOWN = Items(qobuz = false, tidal = false, shelf = false, spotify = false)
 
     /**
      * The rows and the server's status as last answered, kept for the next opening (item 122): the menu opens as it was
      * last seen and then follows the server, rather than opening as the markup has it and changing under the finger.
      */
     fun keep(items: Items, status: JSONObject?): String = JSONObject().put("qobuz", items.qobuz)
-        .put("tidal", items.tidal).put("shelf", items.shelf).put("status", status ?: JSONObject.NULL).toString()
+        .put("tidal", items.tidal).put("shelf", items.shelf).put("spotify", items.spotify).put("status", status ?: JSONObject.NULL).toString()
 
     /** The rows kept ([keep]), or null when none are. */
     fun keptItems(s: String?): Items? = s?.let { runCatching { JSONObject(it) }.getOrNull() }
-        ?.let { Items(it.optBoolean("qobuz"), it.optBoolean("tidal"), it.optBoolean("shelf")) }
+        ?.let { Items(it.optBoolean("qobuz"), it.optBoolean("tidal"), it.optBoolean("shelf"), it.optBoolean("spotify")) }
 
     /** The server's status kept ([keep]), or null. */
     fun keptStatus(s: String?): JSONObject? = s?.let { runCatching { JSONObject(it) }.getOrNull() }?.optJSONObject("status")
