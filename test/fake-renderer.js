@@ -266,8 +266,10 @@ class FakeRenderer {
       }
       if (req.method === "GET" && u.pathname === "/dac.json") {
         if (!this.dac) { res.writeHead(404); return res.end(); }
-        // What the DAC is being fed: read from the file the device fetched, as the app reads its own stream.
-        const last = [...this.fetches].reverse().find(f => f.body && f.body.length > 42);
+        // What the DAC is being fed: read from the file the device fetched for the track playing, as the app reads its
+        // own stream. Until that file is in, nothing (item 496): the last track's format was said for the new one where
+        // its fetch was slow, as no Bridge would.
+        const last = [...this.fetches].reverse().find(f => f.uri === this.uri && f.body && f.body.length > 42);
         const info = last ? require("./fixtures").probe(last.body) : null;
         const dsd = last && /\.dsf\b|\.dff\b/.test(last.uri) ? (this.dac.dsd || [64])[0] : 0;
         // renderer.nowExtra: more of what the app says it feeds its DAC (item 287: its words' bits, its volume, untouched).
