@@ -6,8 +6,8 @@
 //     one in February 2026, so this is built here: the artists you follow, then each one's latest albums and singles,
 //     one artist at a time (Development Mode's quota is small). Kept in the database, so
 //     the page opens on what was found; read again in the background once it is twelve hours old (a second apart, item
-//     499: four a second ran into Spotify's limit). The first time,
-//     the page waits for it a while and is given what has been found so far.
+//     499: four a second ran into Spotify's limit). The first time, the page waits four seconds at most (the phone
+//     gives up after six) and is given what has been found so far, with that it is still being gathered.
 //   - Your albums: your saved albums, as the import reads them.
 //   - Search: albums and artists, ten a page (Spotify's most since February 2026).
 //   - Saving an album: Spotify's one library call for everything (PUT or DELETE /me/library with the album's URI).
@@ -25,11 +25,21 @@ internal sealed partial class SpotifyCatalogue
     /* The gap between two artists' asks while the followed list is read (the tests make it short). */
     public int PaceMs { get; init; } = 1000;
     /* How long the page waits the first time, before it is given what has been found so far. */
-    public int FirstWaitMs { get; init; } = 25_000;
+    public int FirstWaitMs { get; init; } = 4_000;
     private readonly object followedGate = new();
     private Task? building;
 
     private string FollowedKey => Js.Str(Or(P(Account(), "userId"), ""));
+
+    /* Still gathering the list the first time, or after a partial one (item 499): the page says so rather than "none". */
+    public bool Gathering
+    {
+        get
+        {
+            lock (followedGate) if (building is not { IsCompleted: false }) return false;
+            return FollowedKept() is not { } k || k["partial"] is true;
+        }
+    }
 
     /* The kept list: { at, albums }, or null. */
     private JsObj? FollowedKept() => Extras.Taste.CacheGet("spotify-followed-new", FollowedKey, FollowedKeptMs) as JsObj;
@@ -50,7 +60,7 @@ internal sealed partial class SpotifyCatalogue
         if (key.Length == 0) return;
         try
         {
-            var artists = await Api.All("me/following?type=artist&limit=50", "artists");
+            var artists = await Api.All("me/following?type=artist&limit=50", "artists", patient: true);
             var since = DateTime.UtcNow.AddDays(-FollowedWithinDays).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
             var found = new Dictionary<string, JsObj>(StringComparer.Ordinal);
             var done = 0;
@@ -59,7 +69,7 @@ internal sealed partial class SpotifyCatalogue
                 if (Js.Str(Or(P(ar, "id"), "")) is not { Length: > 0 } id) continue;
                 if (done++ > 0) await Task.Delay(PaceMs);
                 object? j;
-                try { j = await Api.GetJson("artists/" + Uri.EscapeDataString(id) + "/albums?include_groups=album,single&limit=" + Page, FollowedFreshMs); }
+                try { j = await Api.GetJson("artists/" + Uri.EscapeDataString(id) + "/albums?include_groups=album,single&limit=" + Page, FollowedFreshMs, patient: true); }
                 catch (ServiceError e) when (e.Status is 404 or 403) { continue; }
                 foreach (var a in Items(P(j, "items")))
                     if (NormAlbum(a) is { } n && string.CompareOrdinal(Js.Str(n["date"]), since) >= 0) found[Js.Str(n["id"])] = n;

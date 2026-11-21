@@ -119,7 +119,9 @@ internal static partial class Jobs
         // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database. Tidal's sign-in (v0.8.47): where it is asked.
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
-        Spotify = new Services.SpotifyCatalogue(Text(cfg["spotify_url"]), Text(cfg["spotify_auth_url"])) { DataDir = dataDir };
+        Spotify = new Services.SpotifyCatalogue(Text(cfg["spotify_url"]), Text(cfg["spotify_auth_url"]),
+            cfg["spotify_busy_wait_ms"] is JsonValue bw && bw.TryGetValue<double>(out var bwv) && bwv > 0 ? (int)bwv : 5000)
+        { DataDir = dataDir, PaceMs = cfg["spotify_pace_ms"] is JsonValue sp && sp.TryGetValue<double>(out var spv) && spv >= 0 ? (int)spv : 1000 };
         IBroadcast = new Services.IBroadcast.IBroadcast(Text(cfg["ibroadcast_url"]));
         IBroadcastLibrary = new Services.IBroadcast.IBroadcastLibrary(IBroadcast, dataDir)
             { WatchMs = cfg["ibroadcast_watch_ms"] is JsonValue ibw && ibw.TryGetValue<double>(out var ibms) && ibms > 0 ? ibms : 10 * 60 * 1000 };

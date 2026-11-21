@@ -6,6 +6,10 @@
  *   - the saved albums imported from the listing alone: no album asked for again, only tracks past an album's first
  *     page; every album in the library, its tracks with it;
  *   - Spotify busy a moment (429, Retry-After: 1): waited out, the import goes on;
+ *   - Spotify busy for a few seconds: the page's asks answered at once that it is busy (the phone gives up after six
+ *     seconds; the owner's page timed out), while the import waits it out and goes on;
+ *   - new from the artists you follow, gathered slowly the first time: the page answered within the phone's six
+ *     seconds, saying it is still gathering, then the list once gathered;
  *   - Spotify asking for a long wait (Retry-After: an hour): Mandarin stops asking until then, says so, and asks
  *     nothing more of it meanwhile (the page's lists answered at once).
  */
@@ -34,11 +38,11 @@ const ALBUMS = Array.from({ length: 12 }, (_, i) => ({ id: "a" + i, name: "Album
 const SAVED = ALBUMS.map((a, i) => ({ id: a.id, added_at: new Date(Date.UTC(2026, 0, 1 + i)).toISOString() }));
 
 test("Spotify's import: from the listing alone, a busy moment waited out, a long wait kept", { skip: built(), timeout: 180000 }, async (t) => {
-  const spotify = await new FakeSpotify({ albums: ALBUMS, saved: SAVED, page: 5, trackPage: 5 }).start();
+  const spotify = await new FakeSpotify({ albums: ALBUMS, saved: SAVED, page: 5, trackPage: 5, followed: [{ id: "ar0", name: "Artist 0" }] }).start();
   const lib = makeLibrary();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const srv = require("./server").createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false,
-    identify: false, spotifyBaseUrl: spotify.apiUrl, spotifyAuthUrl: spotify.accountsUrl, qobuzSyncDelayMs: 1e9, serviceWatchMs: 1e9 });
+    identify: false, spotifyBaseUrl: spotify.apiUrl, spotifyAuthUrl: spotify.accountsUrl, qobuzSyncDelayMs: 1e9, serviceWatchMs: 1e9, spotifyPaceMs: 0 });
   await srv.start();
   let H;
   const call = async (method, p, body) => {
@@ -56,7 +60,7 @@ test("Spotify's import: from the listing alone, a busy moment waited out, a long
 
     await t.test("from the listing alone: no album asked for again, only tracks past a first page; every album in", async () => {
       const n = spotify.calls.length;
-      busyOnceAt(spotify, 4);
+      spotify.busyAtCall = n + 4;
       assert.equal((await post("settings/spotify", { import: true })).status, 200);
       const st = await imported();
       const asked = spotify.calls.slice(n).map(c => c.path);
@@ -67,6 +71,31 @@ test("Spotify's import: from the listing alone, a busy moment waited out, a long
       assert.equal(albums.length, 12);
       const first = (await get("album?offset=" + albums.find(a => a.title === "Album 00").offset)).j;
       assert.equal((first.tracks || []).length, 7, "all seven tracks, without ISRCs");
+    });
+
+    await t.test("busy a few seconds: the page told at once, the import waits it out", async () => {
+      spotify.busyFor = 2;
+      const importing = post("settings/spotify/import");
+      await sleep(300);
+      const t0 = Date.now();
+      const page = await get("spotify/search?q=album&offset=0");
+      assert.ok(Date.now() - t0 < 1500, "answered in " + (Date.now() - t0) + " ms");
+      assert.deepEqual([page.status, page.j.error], [503, "Spotify is busy: try again in a minute"]);
+      setTimeout(() => { spotify.busyFor = 0; }, 1000);
+      const r = await importing;
+      assert.equal(r.status, 200, r.text);
+      assert.deepEqual([r.j.result.albums, r.j.result.failed], [12, 0], "the import waited and went on");
+    });
+
+    await t.test("new from those followed, slow the first time: answered in time, saying it is still gathering", async () => {
+      spotify.followDelayMs = 6000;
+      const t0 = Date.now();
+      const first = await get("spotify/new-releases?days=90");
+      assert.ok(Date.now() - t0 < 5500, "answered in " + (Date.now() - t0) + " ms, within the phone's six seconds");
+      assert.deepEqual([first.status, first.j.building, first.j.albums], [200, true, []]);
+      spotify.followDelayMs = 0;
+      const done = await until(async () => { const j = (await get("spotify/new-releases?days=90")).j; return j.building === false && j; }, 20000, "gathered");
+      assert.deepEqual(done.albums, [], "Artist 0's albums older than three months");
     });
 
     await t.test("a long wait asked for: kept, said, and Spotify asked nothing meanwhile", async () => {
@@ -87,10 +116,3 @@ test("Spotify's import: from the listing alone, a busy moment waited out, a long
     await spotify.stop();
   }
 });
-
-/* The [nth] call from now answered busy for a moment (Retry-After: 1). */
-function busyOnceAt(spotify, nth) {
-  const start = spotify.calls.length;
-  const check = setInterval(() => { if (spotify.calls.length >= start + nth - 1) { spotify.busyOnce = true; clearInterval(check); } }, 5);
-  check.unref();
-}

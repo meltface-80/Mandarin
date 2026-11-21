@@ -10,8 +10,9 @@
 // made once more with a refreshed one. Spotify sends a new refresh token each time and the old one stops working, so
 // one refresh runs at a time and its token is kept at once; a call waiting on it takes the new one. Too many calls
 // (429): waited out as long as Spotify's Retry-After says, a minute at most, and made again, three times at most
-// (item 499); a longer wait is kept, and every call until then is answered at once that Spotify is busy, without asking
-// it, so a run of calls (an import) stops rather than asking again and again. Lists are read a page at a time, following Spotify's "next",
+// (item 499), by the import and the builders in the background; the page's own asks are answered at once that Spotify
+// is busy (the phone gives up after six seconds). The wait is kept: until it is over, every call is answered at once
+// that Spotify is busy, without asking it, so a run of calls (an import) stops rather than asking again and again. Lists are read a page at a time, following Spotify's "next",
 // and only ever on Spotify's own address: the token goes nowhere else. A failure is said in Spotify's words.
 using System.Security.Cryptography;
 using System.Text;
@@ -115,7 +116,12 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
     }
 
     /* A call: its answer as JSON (null for none); a GET kept [ttl] ms when asked to. */
-    public async Task<object?> Call(string method, string path, string? body = null, double ttl = 0)
+    /*
+     * A call: its answer as JSON (null for none); a GET kept [ttl] ms when asked to. [patient]: the import and the
+     * builders in the background, which wait out what Spotify asks (a minute at most each time); the page's own asks
+     * are answered at once that Spotify is busy, so the phone (which gives up after six seconds) hears it.
+     */
+    public async Task<object?> Call(string method, string path, string? body = null, double ttl = 0, bool patient = false)
     {
         var url = UrlOf(path);
         var key = "GET " + url;
@@ -123,7 +129,12 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
         string? refused = null;
         for (int attempt = 0; ; attempt++)
         {
-            if (Busy() is { } waiting) throw new ServiceError(waiting, 503);
+            var left = (busyUntil - NowMs()) / 1000;
+            if (left > 0)
+            {
+                if (!patient || left > MostWaitS) throw new ServiceError(Busy()!, 503);
+                await Task.Delay(TimeSpan.FromSeconds(left));
+            }
             var access = await Access(refused);
             (string, string)[] headers = [("Authorization", "Bearer " + access), ("Accept", "application/json")];
             var (status, text, retryAfter) = await SendTimed(method, url, headers, method == "GET" ? null : body ?? "", "application/json", Timeout);
@@ -131,8 +142,10 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
             if (status == 429)
             {
                 var wait = retryAfter ?? BusyWaitMs * (attempt + 1) / 1000.0;
-                if (wait > MostWaitS) { busyUntil = NowMs() + wait * 1000; Server.Log($"[spotify] Spotify asks Mandarin to wait {Math.Ceiling(wait / 60)} min"); }
-                else if (attempt < 3) { await Task.Delay(TimeSpan.FromSeconds(wait)); continue; }
+                var until = NowMs() + wait * 1000;
+                if (until > busyUntil) busyUntil = until;
+                if (wait > MostWaitS && NowMs() - longWaitSaid > 60_000) { longWaitSaid = NowMs(); Server.Log($"[spotify] Spotify asks Mandarin to wait {Math.Ceiling(wait / 60)} min"); }
+                if (patient && wait <= MostWaitS && attempt < 3) continue;
                 throw new ServiceError(Busy() ?? "Spotify is busy: try again in a minute", 503);
             }
             if (status is >= 200 and <= 299)
@@ -142,23 +155,29 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
                 return j;
             }
             var said = Js.Str(Or(P(P(ParseOrNull(text), "error"), "message"), "Spotify answered " + status));
-            throw new ServiceError(status == 429 ? "Spotify is busy: try again in a minute" : "Spotify: " + said, status is 401 or 403 or 404 ? status : 502);
+            throw new ServiceError("Spotify: " + said, status is 401 or 403 or 404 ? status : 502);
         }
     }
 
-    public Task<object?> GetJson(string path, double ttl = 0) => Call("GET", path, null, ttl);
+    private double longWaitSaid;
+
+    public Task<object?> GetJson(string path, double ttl = 0, bool patient = false) => Call("GET", path, null, ttl, patient);
 
     /* While Spotify has asked Mandarin to wait: what is said; null when it may be asked. */
-    public string? Busy() => NowMs() < busyUntil ? $"Spotify asked Mandarin to wait: it is asked again in {Math.Ceiling((busyUntil - NowMs()) / 60_000)} min" : null;
+    public string? Busy()
+    {
+        var left = busyUntil - NowMs();
+        return left <= 0 ? null : left > 90_000 ? $"Spotify asked Mandarin to wait: it is asked again in {Math.Ceiling(left / 60_000)} min" : "Spotify is busy: try again in a minute";
+    }
 
     /* Every item of a paged list, in order, Spotify's "next" followed. [inner]: the key the page sits under ("artists" for those followed). */
-    public async Task<List<object?>> All(string path, string? inner = null)
+    public async Task<List<object?>> All(string path, string? inner = null, bool patient = false)
     {
         var o = new List<object?>();
         string? next = path;
         for (int i = 0; next != null && i < MaxPages; i++)
         {
-            var j = await GetJson(next);
+            var j = await GetJson(next, 0, patient);
             var page = inner != null ? P(j, inner) : j;
             o.AddRange(Items(P(page, "items")));
             next = P(page, "next") is string n && n.Length > 0 ? n : null;
@@ -176,15 +195,15 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
     /* The signed-in account: { id, display_name }. */
     public Task<object?> Me() => GetJson("me");
     /* The saved albums, each { added_at, album }, newest first. */
-    public Task<List<object?>> SavedAlbums() => All("me/albums");
+    public Task<List<object?>> SavedAlbums(bool patient = false) => All("me/albums", null, patient);
     /* An album with its first page of tracks; the rest by AlbumTracks. */
-    public Task<object?> Album(string id) => GetJson("albums/" + Uri.EscapeDataString(id), Month);
+    public Task<object?> Album(string id, bool patient = false) => GetJson("albums/" + Uri.EscapeDataString(id), Month, patient);
     /* Every track of an album, the first page as the album gave it, the rest asked for. */
-    public async Task<List<object?>> AlbumTracks(object? album)
+    public async Task<List<object?>> AlbumTracks(object? album, bool patient = false)
     {
         var page = P(album, "tracks");
         var o = Items(P(page, "items")).ToList();
-        if (P(page, "next") is string n && n.Length > 0) o.AddRange(await All(n));
+        if (P(page, "next") is string n && n.Length > 0) o.AddRange(await All(n, null, patient));
         return o;
     }
 }

@@ -31,7 +31,8 @@ class FakeSpotify {
     this.calls = [];                   // { path, auth } every /v1 call
     this.tokenDelayMs = 0;
     this.busyOnce = false;             // the next /v1 call answered 429, Retry-After: 1
-    this.busyFor = 0;                  // every /v1 call answered 429 with this Retry-After (seconds) until it is 0 again
+    this.busyFor = 0;
+    this.busyAtCall = 0;               // the /v1 call of this number (counting from the first) answered busy once                  // every /v1 call answered 429 with this Retry-After (seconds) until it is 0 again
     this.nextElsewhere = null;         // an address the saved albums' next page points to instead
     this.server = null;
     this.base = "";
@@ -119,6 +120,7 @@ class FakeSpotify {
     const path = u.pathname.slice(4);
     this.calls.push({ path: path + u.search, auth });
     if (!this.access.has(auth)) return this.send(res, 401, { error: { status: 401, message: "The access token expired" } });
+    if (this.busyAtCall && this.calls.length === this.busyAtCall) { this.busyAtCall = 0; this.busyOnce = true; }
     if (this.busyOnce || this.busyFor) {
       const wait = this.busyFor || 1;
       this.busyOnce = false;

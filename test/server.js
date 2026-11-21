@@ -139,6 +139,8 @@ const FLAGS = { upnpMulticast: "UPNP_DISCOVERY", identify: "IDENTIFY", localAudi
 const CONFIG = {
   qobuzSyncDelayMs: "service_sync_delay_ms", serviceWatchMs: "service_watch_ms", ibroadcastWatchMs: "ibroadcast_watch_ms", ibroadcastUploadLimit: "ibroadcast_upload_limit", acoustidBuiltIn: "acoustid_built_in", fanartBuiltIn: "fanart_built_in", ibroadcastUploadWaitMs: "ibroadcast_upload_wait_ms", ibroadcastUploadAgainMs: "ibroadcast_upload_again_ms", ibroadcastScheduleTickMs: "ibroadcast_schedule_tick_ms", upnpOfflineMs: "upnp_offline_ms",
   localDevices: "local_devices", massRemoval: "mass_removal", tailscaleWatchdog: "tailscale_watchdog",
+  // Spotify's gaps (item 499): an artist a second while new from those followed is gathered; a 429 without a wait said.
+  spotifyPaceMs: "spotify_pace_ms", spotifyBusyWaitMs: "spotify_busy_wait_ms",
   // Loudness measured with the Album Scanner on (Jobs.cs, item 411): only where a test asks for it.
   loudness: "loudness",
   // Each track looked at for MQA (Mqa/MqaPass.cs, item 418): likewise only where a test asks, and how often it looks.

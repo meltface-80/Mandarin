@@ -180,7 +180,10 @@ function serviceBrowserViews(sb) {
         resetListContainers();
         const albums = j.albums || [];
         view.loaded = true;
-        if (statusEl) statusEl.textContent = albums.length
+        // Spotify's, gathered by the server from the artists you follow, the first time (item 499): said, not "none".
+        if (statusEl) statusEl.textContent = j.building
+          ? "Gathering new albums from the artists you follow… " + (albums.length ? albums.length + " so far. " : "") + "Look again in a minute."
+          : albums.length
           ? (albums.length + " releases in the last " + (j.days || 30) + " days")
           : ("No new releases found in the last " + (j.days || 30) + " days.");
         sb.appendAlbumRows(albums);

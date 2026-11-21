@@ -94,7 +94,7 @@ internal static partial class Library
                     return await SendJs(ctx, Jso(("connected", true), ("lists", await lists)));
                 case "new-releases":
                     var days = Math.Max(1, Math.Min(90, SH.NumOr(Num(Q(ctx, "days")), 30)));
-                    return await SendJs(ctx, Jso(("connected", true), ("days", days), ("albums", await svc.NewReleases(days, ask))));
+                    return await SendJs(ctx, Gathering(svc, Jso(("connected", true), ("days", days), ("albums", await svc.NewReleases(days, ask)))));
                 case "featured":
                     return await SendJs(ctx, Jso(("connected", true), ("albums", await svc.Featured(Q(ctx, "type") ?? "", ask))));
                 case "search":
