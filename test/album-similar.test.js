@@ -34,8 +34,10 @@ function deezerServer() {
   const asked = [];
   const server = http.createServer((req, res) => {
     const u = new URL(req.url, "http://x");
+    const send = (body) => { res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }); res.end(JSON.stringify(body)); };
+    // What it has been asked so far, for the page to wait on (not a call of Deezer's).
+    if (u.pathname === "/asked") return send(asked);
     asked.push(u.pathname + u.search);
-    const send = (body) => { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(body)); };
     if (u.pathname === "/search/artist") {
       const q = u.searchParams.get("q");
       return send({ data: acts[q] ? [{ id: acts[q], name: q, nb_fan: 1000 }] : [] });
@@ -50,7 +52,6 @@ function deezerServer() {
   });
   return {
     start: () => new Promise(r => server.listen(0, "127.0.0.1", () => r("http://127.0.0.1:" + server.address().port))),
-    asked: () => asked.slice(),
     stop: () => new Promise(r => { server.closeAllConnections(); server.close(r); })
   };
 }
@@ -85,9 +86,9 @@ test("the album view's sections under the review", { skip: rules || (!haveFfmpeg
     const H = { Authorization: "Bearer " + token };
     for (let i = 0; i < 150 && (await (await fetch(B + "/api/status", { headers: H })).json()).index_count < 7; i++) await sleep(100);
     const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }] });
-    const r = await page.eval(`(async () => {
+    const r = await page.eval(`(async (deezer) => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));
-      const until = async (f, ms = 10000) => { const t0 = Date.now(); while (!f()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
+      const until = async (f, ms = 20000) => { const t0 = Date.now(); while (!(await f())) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
       const $ = s => document.querySelector(s);
       const sec = id => { const s = document.getElementById(id); if (!s || s.classList.contains("hidden")) return null;
         return { title: s.querySelector(".more-title").textContent, tiles: [...s.querySelectorAll(".more-grid > *")].map(e => ({ text: (e.querySelector(".album-title, .more-artist-name") || e).textContent, hidden: e.classList.contains("hidden") })),
@@ -96,7 +97,8 @@ test("the album view's sections under the review", { skip: rules || (!haveFfmpeg
       await until(() => document.querySelector("#home-view .album"));
       const albums = (await (await fetch("/api/library/albums?count=50")).json()).albums;
       window.__openAlbum(albums.find(a => a.title === "OK Computer"), {});
-      await until(() => !document.getElementById("album-similar-albums").classList.contains("hidden"));
+      const shown = id => !document.getElementById(id).classList.contains("hidden");
+      if (!await until(() => ids.every(shown))) return { why: "not all four shown: " + ids.filter(shown) };
       const out = { by: sec("album-more-by"), appears: sec("album-more-appears"), artists: sec("album-similar-artists"), albums: sec("album-similar-albums"),
         cols: getComputedStyle($("#album-more-by .more-grid")).gridTemplateColumns.split(" ").length,
         lastfm: /last\\.fm/i.test(document.querySelector("#album-more-by").parentElement.textContent) || !!document.querySelector(".more-site, .more-ext, .is-external"),
@@ -112,18 +114,19 @@ test("the album view's sections under the review", { skip: rules || (!haveFfmpeg
       out.after = { by: sec("album-more-by"), artists: sec("album-similar-artists") };
       // Out of order: Thom Yorke's related list is slow; the album is left before it comes.
       window.__openAlbum(albums.find(a => a.title === "The Eraser"), {});
-      await sleep(300);
+      out.slowAsked = await until(async () => (await (await fetch(deezer + "/asked")).json()).some(p => p.startsWith("/artist/2/related")));
       window.__openAlbum(albums.find(a => a.title === "I See a Darkness"), {});
-      await sleep(${SLOW_MS} + 1500);
+      await sleep(${SLOW_MS} + 3000);
       out.late = ids.map(id => document.getElementById(id).classList.contains("hidden"));
       // Its similar artist opens their page here.
       window.__openAlbum(albums.find(a => a.title === "OK Computer"), {});
-      await until(() => !document.getElementById("album-similar-artists").classList.contains("hidden"));
+      await until(() => shown("album-similar-artists"));
       [...document.querySelectorAll("#album-similar-artists .more-artist")].find(e => e.textContent.includes("Muse")).click();
       out.opened = await until(() => window.__artistViewActive() && /Muse/.test(document.getElementById("album-count").textContent), 5000);
       out.href = location.href;
       return out;
-    })()`);
+    })(${JSON.stringify(base)})`);
+    assert.ok(!r.why, r.why);
     assert.equal(r.by.title, "More by Radiohead");
     assert.deepEqual(r.by.tiles.map(x => x.text), ["Amnesiac", "Hail to the Thief", "Kid A"], "A to Z, not the album open");
     assert.equal(r.by.more, false, "three: no More");
@@ -138,7 +141,7 @@ test("the album view's sections under the review", { skip: rules || (!haveFfmpeg
     assert.equal(r.after.by, null, "Bonnie Prince Billy has nothing more, and no Prince");
     assert.equal(r.after.artists, null, "nothing similar: the section stays hidden");
     assert.deepEqual(r.late, [true, true, true, true], "a late answer for an album left is not painted");
-    assert.ok(deezer.asked().some(p => p.startsWith("/artist/2/related")), "Thom Yorke's list was asked for");
+    assert.equal(r.slowAsked, true, "Thom Yorke's slow list was asked for before the album was left");
     assert.equal(r.opened, true, "a similar artist outside the library opens their page here: " + r.href);
     assert.deepEqual(page.errors, []);
   } finally {
