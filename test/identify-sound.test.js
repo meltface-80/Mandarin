@@ -245,8 +245,9 @@ test("Settings → API Keys: the page's rows and the app's in step, AcoustID's n
   const consts = Object.fromEntries([...kt.matchAll(/const val ([A-Z_]+) = "((?:[^"\\]|\\.)*)"/g)].map(m => [m[1], m[2]]));
   const app = [...kt.matchAll(/ApiKeySpec\("([a-z-]+)", "[a-z]+", "([^"]+)", "([^"]+)", "[^"]+", "[^"]+",\s*(?:"((?:[^"\\]|\\.)*)"|([A-Z_]+))\)/g)]
     .map(m => ({ name: m[2], info: m[4] != null ? m[4] : consts[m[5]], route: m[1], hint: m[3] }));
-  // AcoustID's and FanArt.tv's keys Mandarin's own since item 491, Discogs gone with the labels (item 492): no row of theirs.
-  assert.deepEqual(page.map(x => x.route), ["lastfm-key", "lastfm-secret"]);
+  // AcoustID's and FanArt.tv's keys Mandarin's own since item 491, Discogs gone with the labels (item 492), Last.fm's
+  // shared secret with scrobbling (item 493): no row of theirs.
+  assert.deepEqual(page.map(x => x.route), ["lastfm-key"]);
   assert.deepEqual(app, page);
 
   // The key in a backup sealed with a passphrase: in no part of the file in the clear; back with the passphrase.

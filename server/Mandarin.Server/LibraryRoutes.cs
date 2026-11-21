@@ -69,8 +69,6 @@ internal static partial class Library
         ["/api/album/art-search"] = AlbumArtSearch,
         ["/api/library/merged"] = MergedAlbums,   // albums that look like two copies merged (item 424, AlbumSplitRoutes.cs)
         ["/api/settings/lastfm-key"] = LastfmKeyState,
-        ["/api/settings/lastfm-secret"] = LastfmSecretState,
-        ["/api/lastfm/scrobbling"] = LastfmScrobbling,
         ["/api/lastfm/similar-artists"] = LastfmSimilarArtists,
         ["/api/lastfm/similar-albums"] = LastfmSimilarAlbums,
         ["/api/dsp/headphones"] = Headphones,
@@ -112,9 +110,6 @@ internal static partial class Library
         ["/api/album/join"] = JoinAlbumRoute,
         ["/api/album/look-again"] = LookAgainRoute,
         ["/api/settings/lastfm-key"] = SaveLastfmKey,
-        ["/api/settings/lastfm-secret"] = SaveLastfmSecret,
-        ["/api/lastfm/connect"] = LastfmConnect,
-        ["/api/lastfm/disconnect"] = LastfmDisconnect,
         ["/api/dsp/headphones/parse"] = ParseHeadphoneProfile,
         ["/api/download/albums"] = DownloadAlbums,
         ["/api/phone/plays"] = PhonePlays,

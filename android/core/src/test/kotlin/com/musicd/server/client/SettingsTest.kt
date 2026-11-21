@@ -58,7 +58,7 @@ class SettingsTest {
         assertEquals("Current: ab…yz — couldn’t reach the service to check it.", unasked.status)
         // The page's rows, in its order: AcoustID's and FanArt.tv's keys Mandarin's own since item 491, Discogs gone with the labels
         // (item 492), no row of theirs.
-        assertEquals(listOf("lastfm-key", "lastfm-secret"), ApiKeySpec.ALL.map { it.route })
+        assertEquals(listOf("lastfm-key"), ApiKeySpec.ALL.map { it.route })
         val lastfm = ApiKeySpec.ALL[0]
         assertEquals("Last.fm key saved — checked and working", lastfm.saved(ok))
         assertEquals("Saved, but Last.fm refused this key", lastfm.saved(bad))

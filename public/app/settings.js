@@ -68,7 +68,7 @@ function keyStatusText(j) {
   return "Current: " + j.masked + " — couldn’t reach the service to check it.";
 }
 
-// One API key's box, status line and Save: Last.fm's key and secret; [onPaint]
+// One API key's box, status line and Save: Last.fm's key; [onPaint]
 // with the server's answer, for a line of the key's own.
 function wireKey({ route, field, inputId, saveId, statusId, checkId, service, noun, onSaved, onPaint }) {
   const input  = document.getElementById(inputId);
@@ -116,7 +116,4 @@ function wireKey({ route, field, inputId, saveId, statusId, checkId, service, no
   return load;
 }
 const loadLastfmKey = wireKey({ route: "lastfm-key", field: "key", inputId: "lastfm-key-input", saveId: "lastfm-key-save",
-  statusId: "lastfm-key-status", checkId: "lastfm-key-check", service: "Last.fm", noun: "key", onSaved: () => loadScrobbling() });
-// Scrobbling's (settings-lastfm.js): saving it again leaves the account to connect again.
-const loadLastfmSecret = wireKey({ route: "lastfm-secret", field: "secret", inputId: "lastfm-secret-input", saveId: "lastfm-secret-save",
-  statusId: "lastfm-secret-status", checkId: "lastfm-secret-check", service: "Last.fm", noun: "shared secret", onSaved: () => loadScrobbling() });
+  statusId: "lastfm-key-status", checkId: "lastfm-key-check", service: "Last.fm", noun: "key" });
