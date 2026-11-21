@@ -52,6 +52,8 @@ internal fun SettingsSpotify(client: () -> ServerClient?, onBack: () -> Unit) {
             SettingsHead(Modifier.parity("settings-service.back", Contract.label("settings-service.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
                 "Spotify", Modifier.parity("settings-service.heading"))
             Block { SpotifyBlock(client) { info = it } }
+            // Spotify Connect (item 501): Mandarin as a speaker in the Spotify app (SettingsSpotifyConnect.kt).
+            Block { SpotifyConnectBlock(client) { info = it } }
         }
         info?.let { InfoTip(it, Modifier.parity("settings-service.info")) }
     }

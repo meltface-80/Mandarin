@@ -1,5 +1,9 @@
 # Mandarin OS changelog
 
+## v0.1.13
+
+- New - Spotify Connect (item 501): PulseAudio and libatomic are on the box, which Spotify's Soloist needs to play Spotify into Mandarin (Settings → Services → Spotify → Spotify Connect). Nothing else on the box uses them, and no sound server runs until a Soloist API key is saved
+
 ## v0.1.12
 
 Mandarin OS 0.1.12, since 0.1.6: one log of everything on the box, internal storage that formats and mounts from the system page, an upkeep that waits only for Mandarin's own music, and Mandarin Bridge on the box updating itself again. A box on 0.1.4 or later updates itself to it in place (the system page's Settings → Update and restart, or the weekly upkeep); 0.1.3 and earlier reinstall once from the USB stick.
