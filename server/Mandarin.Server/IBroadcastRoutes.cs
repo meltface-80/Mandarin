@@ -47,7 +47,7 @@ internal static partial class Library
                 case "/api/settings/ibroadcast" when get:
                     if (IB.IBroadcast.Connected() && IB.IBroadcast.Account()?["checked"] is var at
                         && (at is not JsonValue v || !v.TryGetValue<double>(out var ms) || IB.IBroadcastApi.Now() - ms > IBroadcastRecheckMs))
-                        _ = Task.Run(async () => { try { await ib.Describe(); } catch (ServiceError e) { Server.Log("[ibroadcast] the account couldn't be read: " + e.Message); } });
+                        _ = Task.Run(async () => { try { await ib.DescribeOnce(); } catch (ServiceError e) { Server.Log("[ibroadcast] the account couldn't be read: " + e.Message); } });
                     return await Http.Json(ctx, WithLibrary(ib.Status()));
                 case "/api/settings/ibroadcast" when HttpMethods.IsPost(m):
                     if (!IB.IBroadcast.Connected()) return await Http.Json(ctx, new JsonObject { ["error"] = "Not signed in to iBroadcast", ["connected"] = false }, 401);

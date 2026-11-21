@@ -115,15 +115,24 @@ internal sealed class IBroadcast
     {
         Save(new JsonObject { ["token"] = token, ["since"] = IBroadcastApi.Now() });
         CancelSignIn();
-        try { await Describe(); }
+        try { await DescribeOnce(); }
         catch (ServiceError e) { Server.Log("[ibroadcast] signed in; the account couldn't be read: " + e.Message); return; }
         Server.Log($"[ibroadcast] signed in as {new Personal(IBroadcastApi.Str(Account()?["user"]?["name"]) ?? "the account")}");
         // Its library read at once (item 444).
         if (Jobs.IBroadcastLibrary is { } lib) _ = Task.Run(async () => { try { await lib.Read(true); } catch (ServiceError e) { Server.Log("[ibroadcast] the library couldn't be read: " + e.Message); } });
     }
 
+    private Task<JsonObject>? describing;
+
+    /// <summary>The account read again, one read at a time: asked while one is under way, that one (item 495: a look at
+    /// the page while a slow read was out began another, which landed later over what came after, a newer token too).</summary>
+    public Task<JsonObject> DescribeOnce()
+    {
+        lock (gate) return describing is { IsCompleted: false } d ? d : describing = Describe();
+    }
+
     /// <summary>The account read again from iBroadcast: its name, whether it is Premium, the formats it takes; kept.</summary>
-    public async Task<JsonObject> Describe()
+    private async Task<JsonObject> Describe()
     {
         var j = await Api.Json("status", new JsonObject { ["supported_types"] = true });
         var user = j["user"] as JsonObject;
