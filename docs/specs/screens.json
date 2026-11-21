@@ -259,10 +259,10 @@
         "member-art": { "kind": "shows", "each": true, "when": "a band's members or a person's bands are known" },
         "member-name": { "kind": "shows", "each": true, "when": "a band's members or a person's bands are known" },
         "member-line": { "kind": "shows", "each": true, "when": "what they played, or when, is known" },
-        "similar": { "kind": "action", "label": "{artist}", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them (bug list item 137)" },
-        "similar-art": { "kind": "shows", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them" },
-        "similar-name": { "kind": "shows", "each": true, "when": "Last.fm (with a key) or Deezer knows acts like them" },
-        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "similar albums the library has: Last.fm's with a key, else the library's by the acts Deezer relates (bug list item 140); none that leave the app" },
+        "similar": { "kind": "action", "label": "{artist}", "each": true, "when": "Deezer knows acts like them (bug list item 137)" },
+        "similar-art": { "kind": "shows", "each": true, "when": "Deezer knows acts like them" },
+        "similar-name": { "kind": "shows", "each": true, "when": "Deezer knows acts like them" },
+        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "similar albums the library has: its albums by the acts Deezer relates (bug list item 140); none that leave the app" },
         "similar-album-art": { "kind": "shows", "each": true, "when": "similar albums are known" },
         "similar-album-title": { "kind": "shows", "each": true, "when": "similar albums are known" },
         "similar-album-artist": { "kind": "shows", "each": true, "when": "similar albums are known" },
@@ -618,7 +618,7 @@
       }
     },
     "settings-setup": {
-      "page": "Settings' Setup: Back, Setup, a row a page (Smart Picks, Home Screen, UI Settings, Wall Display, Shelf, the app's Downloads, Away from home, API Keys)",
+      "page": "Settings' Setup: Back, Setup, a row a page (Smart Picks, Home Screen, UI Settings, Wall Display, Shelf, the app's Downloads, Away from home)",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScreen.kt"],
       "preview": false,
       "items": {
@@ -647,21 +647,6 @@
         "again": { "kind": "action", "label": "New password again", "when": "there is an account" },
         "change": { "kind": "action", "label": "Change password", "when": "there is an account" },
         "status": { "kind": "shows", "when": "a change tried" }
-      }
-    },
-    "settings-keys": {
-      "page": "Settings' API Keys (in Setup): Back, API Keys; Last.fm's key (AcoustID's and FanArt.tv's are Mandarin's own, item 491; scrobbling gone, item 493), with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsPanes.kt"],
-      "preview": false,
-      "items": {
-        "back": { "kind": "action", "label": "Back to settings" },
-        "heading": { "kind": "shows" },
-        "name": { "kind": "shows", "each": true },
-        "info": { "kind": "action", "label": "About {key}", "each": true },
-        "field": { "kind": "action", "label": "{key}", "each": true },
-        "check": { "kind": "shows", "each": true, "when": "the key checked by its service" },
-        "save": { "kind": "action", "label": "Save", "each": true },
-        "status": { "kind": "shows", "each": true }
       }
     },
     "settings-picks": {
@@ -1245,12 +1230,11 @@
         "appears-on": { "kind": "shows", "when": "the artist appears on other albums here" },
         "appears-on-album": { "kind": "action", "label": "{album}", "each": true, "when": "the artist appears on other albums here" },
         "appears-on-more": { "kind": "action", "label": ["More", "Less"], "when": "more than three" },
-        "similar-artists": { "kind": "shows", "when": "Last.fm knows the artist (a key in Settings)" },
-        "similar-artist": { "kind": "action", "label": "{artist}", "each": true, "when": "Last.fm knows the artist" },
+        "similar-artists": { "kind": "shows", "when": "Deezer knows acts like the lead artist (item 494)" },
+        "similar-artist": { "kind": "action", "label": "{artist}", "each": true, "when": "Deezer knows acts like the lead artist: their page here, in the library or not" },
         "similar-artists-more": { "kind": "action", "label": ["More", "Less"], "when": "more than three" },
-        "similar-artists-site": { "kind": "action", "label": "Last.fm ↗", "when": "Last.fm knows the artist" },
-        "similar-albums": { "kind": "shows", "when": "Last.fm knows the album (a key in Settings) and the library has albums like it; none that leave the app" },
-        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "Last.fm knows the album and the library has it" },
+        "similar-albums": { "kind": "shows", "when": "the library has albums by the acts Deezer relates; none that leave the app" },
+        "similar-album": { "kind": "action", "label": "{album}", "each": true, "when": "the library has albums by the acts Deezer relates" },
         "similar-albums-more": { "kind": "action", "label": ["More", "Less"], "when": "more than three" }
       }
     },

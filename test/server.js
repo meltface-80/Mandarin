@@ -111,7 +111,7 @@ const ENV = {
   include: "INCLUDE_ZONES", exclude: "EXCLUDE_ZONES", scanHours: "SCAN_INTERVAL_HOURS", tailscaleBin: "MUSICDNET_BIN",
   mbBaseUrl: "MUSICBRAINZ_URL", mbRestMs: "MUSICBRAINZ_REST_MS", itunesBaseUrl: "ITUNES_URL", acoustidBaseUrl: "ACOUSTID_URL", mbpackUrl: "MBPACK_URL", mbpackDir: "MBPACK_DIR", autoeqBaseUrl: "AUTOEQ_URL",
   fanartBaseUrl: "FANART_URL", deezerBaseUrl: "DEEZER_URL", wikipediaBaseUrl: "WIKIPEDIA_URL",
-  pitchforkBaseUrl: "PITCHFORK_URL", qobuzWebUrl: "QOBUZ_WEB_URL", lastfmBaseUrl: "LASTFM_URL", lastfmKey: "LASTFM_KEY",
+  pitchforkBaseUrl: "PITCHFORK_URL", qobuzWebUrl: "QOBUZ_WEB_URL",
   identifyTickMs: "IDENTIFY_TICK_MS", loudnessTickMs: "LOUDNESS_TICK_MS", qobuzBaseUrl: "QOBUZ_URL", tidalBaseUrl: "TIDAL_URL",
   tidalAuthUrl: "TIDAL_AUTH_URL", tidalImagesUrl: "TIDAL_IMAGES_URL", ibroadcastBaseUrl: "IBROADCAST_URL",
   // A pause between a making's turn and its start (Upsample/MadeAsPlayed.cs, items 246, 259).

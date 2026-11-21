@@ -489,8 +489,8 @@
             <div class="artist-bio-src" id="album-artist-bio-source"></div>
           </div>
           <!-- Below the review: the library's other albums by this album's
-               artist and the ones they appear on, then Last.fm's similar
-               artists and similar albums (with a Last.fm key). Each is hidden
+               artist and the ones they appear on, then the artist's similar
+               artists and similar albums (Deezer's, item 494). Each is hidden
                until it has something to show; three at first, More shows the
                rest. -->
           <div class="more-section hidden" id="album-more-by" data-parity="album.more-by" data-parity-item="album.more-by-album">
@@ -503,13 +503,12 @@
             <div class="more-grid"></div>
             <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.appears-on-more">More</button>
           </div>
-          <div class="more-section hidden" id="album-lastfm-artists" data-parity="album.similar-artists" data-parity-item="album.similar-artist">
-            <h3 class="section-label"><span class="more-title">Similar artists</span>
-              <a class="more-site hidden" target="_blank" rel="noopener noreferrer" data-parity="album.similar-artists-site">Last.fm ↗</a></h3>
+          <div class="more-section hidden" id="album-similar-artists" data-parity="album.similar-artists" data-parity-item="album.similar-artist">
+            <h3 class="section-label"><span class="more-title">Similar artists</span></h3>
             <div class="more-grid more-grid-artists"></div>
             <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.similar-artists-more">More</button>
           </div>
-          <div class="more-section hidden" id="album-lastfm-albums" data-parity="album.similar-albums" data-parity-item="album.similar-album">
+          <div class="more-section hidden" id="album-similar-albums" data-parity="album.similar-albums" data-parity-item="album.similar-album">
             <h3 class="section-label"><span class="more-title">Similar albums</span></h3>
             <div class="more-grid"></div>
             <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.similar-albums-more">More</button>
@@ -1304,14 +1303,6 @@
               <span class="settings-nav-title">Away from home</span>
             </span>
           </button>
-          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="metadata">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2"/><path d="M16 7l3 3"/><path d="M19 4l2 2"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">API Keys</span>
-            </span>
-          </button>
         </nav>
       </div>
 
@@ -1377,7 +1368,6 @@
       </div>
 
 
-      <!-- Artwork & metadata -->
       <!-- Account: who is signed in, on which devices, and the password -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="account">
         <div class="settings-pane-head">
@@ -1421,26 +1411,6 @@
         </div>
       </div>
 
-      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="metadata" data-parent="setup">
-        <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-keys.back">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h2 data-parity="settings-keys.heading">API Keys</h2>
-        </div>
-
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-keys.name">Last.fm key <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A free API key from last.fm/api/account/create (any application name will do). Artist and album pages then show similar artists and albums from Last.fm." aria-label="Info">ⓘ</button></span>
-          </div>
-          <div class="settings-token-row">
-            <span class="token-field"><input id="lastfm-key-input" type="text" aria-label="Last.fm key" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste Last.fm API key…" autocomplete="off" spellcheck="false"><span id="lastfm-key-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
-            <button id="lastfm-key-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
-          </div>
-          <div id="lastfm-key-status" class="settings-token-status" data-parity="settings-keys.status"></div>
-        </div>
-      </div>
 
       <!-- Streaming accounts -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="streaming">

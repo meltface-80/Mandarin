@@ -232,7 +232,6 @@ internal object ContractLabels2 {
         "album.appears-on-more" to listOf("More", "Less"),
         "album.similar-artist" to listOf("{artist}"),
         "album.similar-artists-more" to listOf("More", "Less"),
-        "album.similar-artists-site" to listOf("Last.fm ↗"),
         "album.similar-album" to listOf("{album}"),
         "album.similar-albums-more" to listOf("More", "Less"),
         "shelf.back" to listOf("Back to Mandarin"),

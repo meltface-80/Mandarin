@@ -23,7 +23,7 @@
   /** @type {[string, string[]][]} */
   const COLUMNS = [
     ["aw-left", [".modal-art", ".modal-head", "#modal-genres", "#modal-actions", "#album-credits", "#album-more-by",
-      "#album-more-appears", "#album-lastfm-artists", "#album-lastfm-albums"]],
+      "#album-more-appears", "#album-similar-artists", "#album-similar-albums"]],
     ["aw-mid", ["#album-bio-section", "#album-artist-bio"]],
     ["aw-right", [".track-list-wrap"]],
   ];

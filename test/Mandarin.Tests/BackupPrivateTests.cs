@@ -1,7 +1,7 @@
 namespace Mandarin.Tests;
 
 /// <summary>
-/// A backup kept on the server holds the services' sign-ins, Last.fm's included, and the Tailscale node's state: its
+/// A backup kept on the server holds the services' sign-ins and the Tailscale node's state: its
 /// file is the server's own user's alone (0600), never readable by everyone else on the machine as a file made with
 /// the usual 0644 was (AdminRoutes.cs Private). A backup uploaded to restore from is kept the same way while it's read.
 /// </summary>

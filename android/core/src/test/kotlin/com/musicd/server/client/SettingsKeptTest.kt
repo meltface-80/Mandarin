@@ -39,7 +39,7 @@ class SettingsKeptTest {
     @Test fun `only Settings' reads are kept, never the API keys, the browser of folders, or anything else`() {
         for (p in listOf("/api/auth/status", "/api/library/folders", "/api/settings/smart-picks", "/api/settings/qobuz", "/api/audio-devices",
                 "/api/audio-devices/alsa%3Ahw%3A1", "/api/identify?lists=0", "/api/album-scanner", "/api/tailscale")) assertTrue(p, SettingsKept.keeps(p))
-        for (p in listOf("/api/settings/lastfm-key", "/api/settings/fanart", "/api/library/browse?path=%2Fmusic", "/api/audio-devices/x/dsp",
+        for (p in listOf("/api/settings/fanart", "/api/library/browse?path=%2Fmusic", "/api/audio-devices/x/dsp",
                 "/api/identify?lists=60", "/api/shortcut/zones", "/api/cpu", "/api/health")) assertFalse(p, SettingsKept.keeps(p))
     }
 

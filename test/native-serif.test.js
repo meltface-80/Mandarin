@@ -13,7 +13,7 @@ const contract = require("../docs/specs/screens.json");
 
 // The keys whose words the page sets in Young Serif, each on a Text of its own in the app.
 const SERIF = ["home.greeting", "library.title", "album-edit.heading", "settings.heading", "settings-setup.heading", "settings-account.heading",
-  "settings-keys.heading", "pitchfork.title", "service-browser.title"];
+  "pitchfork.title", "service-browser.title"];
 
 const APP_DIR = path.join(__dirname, "..", "android/app/src/main/java/com/musicd/server/android");
 const APP = fs.readdirSync(APP_DIR).filter(f => f.endsWith(".kt"));

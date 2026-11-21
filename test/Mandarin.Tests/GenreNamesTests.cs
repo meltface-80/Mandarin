@@ -25,7 +25,7 @@ public sealed class GenreNamesTests
             });
         await using var s = await Session.Started(new Dictionary<string, object?>
         {
-            ["mbBaseUrl"] = none.Base, ["deezerBaseUrl"] = none.Base, ["wikidataBaseUrl"] = none.Base, ["lastfmBaseUrl"] = none.Base,
+            ["mbBaseUrl"] = none.Base, ["deezerBaseUrl"] = none.Base, ["wikidataBaseUrl"] = none.Base,
         }, lib);
         async Task<JsonNode> Get(string path) => JsonNode.Parse((await s.Api(path)).Text)!;
 

@@ -170,7 +170,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             launch { more = withContext(Dispatchers.IO) { runCatching { loadMore(lib, a) }.getOrNull() } }
         }
     }
-    // A page of Last.fm's, or a write-up's: the phone's browser.
+    // A write-up's page: the phone's browser.
     fun openUrl(url: String) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }
     val cover = if (phone != null) rememberTileCover(album?.album?.imageKey, 640, client) else rememberCover(album?.album?.imageKey, 640, client)
     val glow by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, cover) { value = cover?.let { albumGlowOf(it) } }

@@ -38,38 +38,11 @@ class SettingsTest {
         assertNull(AccountDevices.passwordProblem("old", "longenough", "longenough"))
     }
 
-    @Test fun `an API key as the server has it, and what the box and the line under it say`() {
-        val none = ApiKey.parse(JSONObject("""{"set":false,"check":null}"""))
-        assertEquals("Paste FanArt.tv API key…", none.placeholder("Paste FanArt.tv API key…"))
-        assertEquals("Not set", none.status)
-        assertNull(none.badge)
-        val ok = ApiKey.parse(JSONObject("""{"set":true,"masked":"ab…yz","check":"ok"}"""))
-        assertEquals("✓", ok.badge)
-        assertEquals("Checked and working — ab…yz", ok.placeholder(""))
-        assertEquals("✓ Checked and working: ab…yz", ok.status)
-        val bad = ok.copy(check = "invalid")
-        assertEquals("✕", bad.badge)
-        assertTrue(bad.bad)
-        assertEquals("Not accepted — paste a new one", bad.placeholder(""))
-        assertEquals("The service refused this key (ab…yz). Check it was copied in full.", bad.status)
-        val unasked = ok.copy(check = null)
-        assertFalse(unasked.ok)
-        assertEquals("Saved — ab…yz", unasked.placeholder(""))
-        assertEquals("Current: ab…yz — couldn’t reach the service to check it.", unasked.status)
-        // The page's rows, in its order: AcoustID's and FanArt.tv's keys Mandarin's own since item 491, Discogs gone with the labels
-        // (item 492), no row of theirs.
-        assertEquals(listOf("lastfm-key"), ApiKeySpec.ALL.map { it.route })
-        val lastfm = ApiKeySpec.ALL[0]
-        assertEquals("Last.fm key saved — checked and working", lastfm.saved(ok))
-        assertEquals("Saved, but Last.fm refused this key", lastfm.saved(bad))
-        assertEquals("Last.fm key saved", lastfm.saved(unasked))
-    }
-
     @Test fun `the lists in the page's order, and Settings' address`() {
         assertEquals(listOf("account", "folders", "streaming", "playback", "identify", "setup", "backup", "sqtool", "system"), SettingsLists.HOME.map { it.pane })
         assertEquals("Downloads", SettingsLists.SETUP[5].title)
         assertEquals("no Share Card page (item 336)", false, SettingsLists.SETUP.any { it.pane == "sharecard" })
-        assertEquals("API Keys", SettingsLists.SETUP.last().title)
+        assertEquals("no API Keys page (item 494)", "Away from home", SettingsLists.SETUP.last().title)
         assertEquals("settings/home", ShellRoute.settings())
         assertEquals("settings/metadata", ShellRoute.settings("metadata"))
     }

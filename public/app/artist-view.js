@@ -208,7 +208,7 @@
 
       if (!total) {
         if (failed) throw failed;
-        // As text (item 176): the name comes from tags, MusicBrainz, Last.fm and credits, never this page's markup.
+        // As text (item 176): the name comes from tags, MusicBrainz, Deezer and credits, never this page's markup.
         const none = document.createElement("div");
         none.className = "artist-view-empty"; none.dataset.parity = "artist.empty";
         none.textContent = `No albums found for "${artistName}"`;

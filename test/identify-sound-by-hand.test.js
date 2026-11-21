@@ -7,7 +7,7 @@
  *   - a fingerprint kept for a file is used, not made again; the rest made now;
  *   - one album at a time: another asked meanwhile is told which album is being matched;
  *   - a rip no search by name can place is offered its release by sound ("matched by sound: 4 of 4 tracks"), and
- *     applying it writes the names and the reason, as yours; Settings → API Keys' tally counts it;
+ *     applying it writes the names and the reason, as yours; the Album Scanner's tally counts it;
  *   - AcoustID knowing none of the tracks: "no-match"; AcoustID busy: "limited".
  */
 const ports = require("./ports");

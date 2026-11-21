@@ -1,7 +1,7 @@
 "use strict";
 /*
  * Names and errors from elsewhere are shown as text, never read as the page's own markup (bug list item 176). An
- * artist's name comes from the tags, MusicBrainz, Last.fm and the credits; the artist page put it into its "No albums
+ * artist's name comes from the tags, MusicBrainz, Deezer and the credits; the artist page put it into its "No albums
  * found" line as markup, and its error line the same with the error's words, so a name such as <img src=x onerror=…>
  * ran in the page. In a real browser against the real
  * server, at a phone's size. Skipped where no Chromium or Chrome is found (test/browser-harness.js).

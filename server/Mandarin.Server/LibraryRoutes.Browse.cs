@@ -214,7 +214,7 @@ internal static partial class Library
         return Send(ctx, new JsonObject { ["artist"] = artist, ["by"] = AlbumList(s, others), ["appears"] = AlbumList(s, featured) });
     }
 
-    /* library.artistAlbums(name): the albums credited to the act first, then those it is on (Last.fm's tiles too, LastfmRoutes.cs). */
+    /* library.artistAlbums(name): the albums credited to the act first, then those it is on (an album's similar albums too, Credits/SimilarRoute.cs). */
     private static (List<Album> Primary, List<Album> Featured) ArtistAlbumsOf(Snapshot s, string artist, (bool Given, long? Id) act = default)
     {
         var q = Names.ArtistKey(artist);

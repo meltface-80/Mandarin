@@ -109,7 +109,7 @@ public sealed class ArtistEnrichmentTests
             });
         await using var s = await Session.Started(new Dictionary<string, object?>
         {
-            ["mbBaseUrl"] = mb.Base, ["deezerBaseUrl"] = none.Base, ["wikidataBaseUrl"] = none.Base, ["lastfmBaseUrl"] = none.Base,
+            ["mbBaseUrl"] = mb.Base, ["deezerBaseUrl"] = none.Base, ["wikidataBaseUrl"] = none.Base,
         }, lib);
         async Task<JsonNode> Artist(string name) => JsonNode.Parse((await s.Api("artist?name=" + Uri.EscapeDataString(name))).Text)!;
         string[] Names(JsonNode? list) => [.. list.Items().Select(m => m.Str("name") ?? "")];

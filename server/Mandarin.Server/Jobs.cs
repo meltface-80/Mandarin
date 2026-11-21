@@ -37,11 +37,6 @@ internal static partial class Jobs
     // The wall display's artist photos (v0.8.48, HousekeepingRoutes.cs): MusicBrainz for the act, FanArt.tv for its pictures, where each is asked.
     public static MusicBrainz? Mb { get; private set; }
     public static string FanartBase { get; private set; } = Fanart.Base;
-    // Last.fm (v0.8.26, LastfmRoutes.cs): where it is asked (LASTFM_URL), and the key from the environment (LASTFM_KEY).
-    private static Lastfm? lastfm;
-    public static Lastfm Lastfm => lastfm ??= NewLastfm(Environment.GetEnvironmentVariable("LASTFM_URL"));
-    public static string? LastfmEnvKey { get; private set; } = Environment.GetEnvironmentVariable("LASTFM_KEY") is { Length: > 0 } ek ? ek : null;
-    private static Lastfm NewLastfm(string? url) => new(url is { Length: > 0 } ? url : null, Library.LastfmKey, "Mandarin/" + Server.Version + " (+https://github.com/meltface-80/Mandarin)") { KeptInDb = true };
     // Headphone profiles (v0.8.26, DspRoutes.cs): where AutoEq is.
     public static AutoEq? AutoEq { get; private set; }
     // Qobuz's and Tidal's catalogue (v0.8.39, ServiceRoutes.cs): where each is asked.
@@ -115,9 +110,8 @@ internal static partial class Jobs
         FanartBase = (Text(cfg["fanart_url"]) ?? Fanart.Base).TrimEnd('/');
         Days = new ReleaseDays(Text(cfg["musicbrainz_url"]), version, Log) { Ready = () => Holds("days") };
         Taste = new Taste(Text(cfg["deezer_url"]), Log) { Ready = () => Holds("taste") };
-        // Headphone profiles and Last.fm (v0.8.26): where AutoEq and Last.fm are, and the environment's Last.fm key.
+        // Headphone profiles (v0.8.26): where AutoEq is.
         AutoEq = new AutoEq(Text(cfg["autoeq_url"]), Log);
-        LastfmEnvKey = Text(cfg["lastfm_key"]);
         BuiltInKeys.Configure(Text(cfg["acoustid_built_in"]), Text(cfg["fanart_built_in"]));
         // Qobuz's and Tidal's catalogue (v0.8.39): their addresses as set up (the tests' fakes).
         // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database. Tidal's sign-in (v0.8.47): where it is asked.
@@ -144,8 +138,6 @@ internal static partial class Jobs
         if (Services.Leftovers.Remove(dataDir, Log)) _ = Library.Tell(new JsonObject { ["services"] = "changed" });
         // The playlists' settings and the albums they held, gone with the playlists.
         Services.Leftovers.RemovePlaylists(Log);
-        // Kept (its answers and its spacing with it) unless Last.fm is asked elsewhere.
-        if (NewLastfm(Text(cfg["lastfm_url"])) is var said && said.BaseUrl != Lastfm.BaseUrl) lastfm = said;
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the configuration says.
         WriteUps = new WriteUpSources(Text(cfg["musicbrainz_url"]), Text(cfg["wikipedia_url"]), Text(cfg["pitchfork_url"]), Text(cfg["qobuz_web_url"]), version);
         // The albums' credits and the acts behind them (bug list item 129): MusicBrainz, Wikidata, FanArt.tv and Deezer where the configuration says.

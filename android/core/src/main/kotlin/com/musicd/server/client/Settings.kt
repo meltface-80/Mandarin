@@ -6,7 +6,7 @@ import org.json.JSONObject
 /*
  * Settings, typed (the group T of old/plan-android-native.md, T1; bug list item 76): the list and Setup's list
  * as the page has them, the server's version at the list's foot (settings.js's loadVersion), the devices signed in to the
- * account (settings-account.js) and the API keys with what the server says of each (settings.js's wireKey).
+ * account (settings-account.js). The API keys' page went in item 494: Mandarin carries its own, and Last.fm's went.
  */
 
 /** A row of a Settings list: the page it opens ([pane], the page's own name for it) and its title. */
@@ -24,9 +24,9 @@ object SettingsLists {
     /** Setup's list, the app's Downloads before Away from home, as the page puts it in the app. */
     val SETUP = listOf(SettingsRow("smartpicks", "Smart Picks"), SettingsRow("homescreen", "Home Screen"),
         SettingsRow("ui", "UI Settings"), SettingsRow("display", "Wall Display"), SettingsRow("shelfset", "Shelf"),
-        SettingsRow("downloads", "Downloads"), SettingsRow("away", "Away from home"), SettingsRow("metadata", "API Keys"))
+        SettingsRow("downloads", "Downloads"), SettingsRow("away", "Away from home"))
 
-    const val SETUP_DESC = "Smart Picks, the Home screen, the look, the wall display and Shelf, away from home, API keys"
+    const val SETUP_DESC = "Smart Picks, the Home screen, the look, the wall display and Shelf, away from home"
     const val REPO = "https://github.com/meltface-80/Mandarin"
 
     /** The version at the list's foot, from /api/update/status: "Mandarin v1.0 (Build 17)"; null when there is none to say. */
@@ -81,51 +81,6 @@ data class AccountDevices(val username: String, val devices: List<SignedInDevice
             new != again -> "The two new passwords don't match."
             else -> null
         }
-    }
-}
-
-/**
- * One of the API keys: whether one is saved, its first and last letters, and what its service said of it ("ok", "invalid",
- * or not asked); AcoustID's with the Album Scanner's matching by sound ([sound], item 419).
- */
-data class ApiKey(val set: Boolean, val masked: String, val check: String?, val sound: SoundTally? = null) {
-    val ok: Boolean get() = set && check == "ok"
-    val bad: Boolean get() = set && check == "invalid"
-    /** The ✓ or ✕ in the box, once checked. */
-    val badge: String? get() = if (ok) "✓" else if (bad) "✕" else null
-
-    /** What the empty box says. */
-    fun placeholder(emptyHint: String): String = when {
-        !set -> emptyHint
-        ok -> "Checked and working — $masked"
-        bad -> "Not accepted — paste a new one"
-        else -> "Saved — $masked"
-    }
-
-    /** The line under the box. */
-    val status: String get() = when {
-        !set -> "Not set"
-        ok -> "✓ Checked and working: $masked"
-        bad -> "The service refused this key ($masked). Check it was copied in full."
-        else -> "Current: $masked — couldn’t reach the service to check it."
-    }
-
-    companion object {
-        fun parse(j: JSONObject): ApiKey = ApiKey(j.optBoolean("set"), j.optString("masked"), j.optString("check").takeIf { it.isNotEmpty() && !j.isNull("check") },
-            SoundTally.parse(j.optJSONObject("sound")))
-    }
-}
-
-/** A key the page asks for: its route and field, its name, the empty box's words, its service and what it is called, its ⓘ. */
-data class ApiKeySpec(val route: String, val field: String, val name: String, val emptyHint: String, val service: String, val noun: String, val info: String) {
-    /** What is said once it is saved ([k]: the server's answer): refused, or saved (and checked). */
-    fun saved(k: ApiKey): String = if (k.bad) "Saved, but $service refused this $noun" else "$service $noun saved" + if (k.ok) " — checked and working" else ""
-
-    companion object {
-        const val DESC = "Last.fm key — similar artists and albums. Optional."
-        val ALL = listOf(
-            ApiKeySpec("lastfm-key", "key", "Last.fm key", "Paste Last.fm API key…", "Last.fm", "key", LASTFM_KEY_INFO))
-        const val LASTFM_KEY_INFO = "A free API key from last.fm/api/account/create (any application name will do). Artist and album pages then show similar artists and albums from Last.fm."
     }
 }
 

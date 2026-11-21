@@ -39,12 +39,6 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     /** The album's booklets, the PDFs in its folder (only an album of your own files has any). */
     fun booklets(offset: Long): List<Booklet> = Booklet.list(get("/api/album/booklets?offset=$offset"))
 
-    /** Last.fm's artists like [artist], for the row under an album's tracks (not enabled without a key). */
-    fun similarArtists(artist: String): SimilarArtists = SimilarArtists.parse(get("/api/lastfm/similar-artists?artist=" + enc(artist)))
-
-    /** Last.fm's albums like [artist]'s, likewise. */
-    fun similarAlbums(artist: String): SimilarAlbums = SimilarAlbums.parse(get("/api/lastfm/similar-albums?artist=" + enc(artist)))
-
     fun search(query: String): SearchResults = SearchResults.parse(get("/api/search?q=" + enc(query)))
 
     /** The search beyond the library (item 61): one [part] of it ("qobuz", "tidal", "pitchfork"), each asked on its own as the page asks. */
@@ -79,9 +73,9 @@ class LibraryClient(private val get: (String) -> JSONObject) {
         val (name, act) = ArtistAct.parse(artist)
         return ArtistAbout.parse(get("/api/artist?name=" + enc(name) + (if (act != null) "&artist_id=$act" else "")))
     }
-    /** An act's similar acts for its page (bug list item 137). */
+    /** An act's similar acts for its page (bug list item 137), and for an album's page, its lead artist's (item 494). */
     fun artistSimilar(artist: String): ArtistSimilar = ArtistSimilar.parse(get("/api/artist/similar?name=" + enc(artist)))
-    /** An act's similar albums for the foot of its page (item 140): Last.fm's with a key, else the library's by the acts Deezer relates. */
+    /** An act's similar albums for the foot of its page (item 140) and an album's: the library's by the acts Deezer relates. */
     fun artistSimilarAlbums(artist: String): SimilarAlbums = SimilarAlbums.parse(get("/api/artist/similar-albums?name=" + enc(artist)))
     /** Who played, sang, wrote and made an album (bug list item 132), by its offset. */
     fun albumCredits(offset: Long): AlbumCredits = AlbumCredits.parse(get("/api/album/credits?offset=$offset"))

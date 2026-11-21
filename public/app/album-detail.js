@@ -78,7 +78,7 @@ async function fetchAlbumDetail(album, opts) {
   setClassicalHead(j);
   if (!version) {
     // Below the review: more by the album's lead artist (the name its first
-    // artist link shows), what they appear on, and Last.fm's suggestions.
+    // artist link shows), what they appear on, and similar artists and albums.
     fetchAlbumMore(album, (Array.isArray(j.artists) && j.artists[0]) || album.subtitle || "")
       .catch(() => { /* extras: the album page stands without them */ });
     // Over them, who played, wrote and made it (item 132).
