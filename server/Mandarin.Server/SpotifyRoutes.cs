@@ -8,11 +8,19 @@
 // The rest of Settings → Services → Spotify is Qobuz's and Tidal's (ServiceRoutes.cs): GET the state, POST { import },
 // …/import (Update library now), …/signin/cancel, …/signout.
 using Mandarin.Server.Services;
+using Mandarin.Server.Tags;
 
 namespace Mandarin.Server;
 
 internal static partial class Library
 {
+    /* Spotify's new from the artists you follow, still being gathered (item 499): said, so the page shows it; the others' answers as they were. */
+    private static JsObj Gathering(Catalogue svc, JsObj o)
+    {
+        if (svc is SpotifyCatalogue s) o["building"] = s.Gathering;
+        return o;
+    }
+
     /* Spotify's sign-in: true when answered here. */
     private static async Task<bool> SpotifyRoute(HttpContext ctx)
     {

@@ -16,9 +16,9 @@ internal sealed partial class SpotifyCatalogue : Catalogue
 {
     public SpotifyApi Api { get; }
 
-    public SpotifyCatalogue(string? baseUrl, string? accountsUrl) : base("spotify", "Spotify")
+    public SpotifyCatalogue(string? baseUrl, string? accountsUrl, int busyWaitMs = 5000) : base("spotify", "Spotify")
     {
-        Api = new SpotifyApi(baseUrl, accountsUrl, Account, OnToken);
+        Api = new SpotifyApi(baseUrl, accountsUrl, Account, OnToken) { BusyWaitMs = busyWaitMs };
     }
 
     /* In use: signed in, or with albums here. Clean up and the prune count Spotify only then (their answers as before for everyone else). */
@@ -84,12 +84,12 @@ internal sealed partial class SpotifyCatalogue : Catalogue
     private readonly object savedGate = new();
     private (double At, Task<List<object?>> Task)? saved;
     /* The saved albums, one reading shared by everyone asking within the minute; [fresh] (the import) read anew. */
-    internal Task<List<object?>> Saved(bool fresh = false)
+    internal Task<List<object?>> Saved(bool fresh = false, bool patient = false)
     {
         lock (savedGate)
         {
             if (!fresh && saved is { } s && NowMs() - s.At < 60_000 && !s.Task.IsFaulted) return s.Task;
-            var t = Api.SavedAlbums();
+            var t = Api.SavedAlbums(patient);
             saved = (NowMs(), t);
             return t;
         }
@@ -99,12 +99,19 @@ internal sealed partial class SpotifyCatalogue : Catalogue
 
     // ------------------------------------------------------------ rows in the library
 
-    /* The album and its tracks; the cover (the largest Spotify has) kept beside the database, side by side with the tracks. */
+    /* The albums the import's listing gave, whole (each with its tracks' first page), as Spotify sent them (item 499). */
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, object?> listed = new(StringComparer.Ordinal);
+
+    /*
+     * The album and its tracks; the cover (the largest Spotify has) kept beside the database, side by side with the
+     * tracks. An album the import's listing gave is taken as given (item 499: asking Spotify for each of six hundred
+     * saved albums again ran into its limit); only tracks past its first page are asked for.
+     */
     protected override async Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id, object? hint)
     {
-        var a = await Api.Album(id);
+        var a = listed.TryRemove(id, out var given) && Js.Truthy(AndP(given, "tracks")) ? given : await Api.Album(id, patient: true);
         var album = NormAlbum(a) ?? throw new ServiceError("Spotify has no such album", 404);
-        var tracks = Api.AlbumTracks(a);
+        var tracks = Api.AlbumTracks(a, patient: true);
         var art = FetchArt(id, album["image"]);
         var list = await tracks;
         try { await art; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* asked again by EnsureAlbum */ }
@@ -123,9 +130,11 @@ internal sealed partial class SpotifyCatalogue : Catalogue
     {
         var order = new List<string>();
         var want = new Dictionary<string, JsObj>(StringComparer.Ordinal);
-        foreach (var x in await Saved(fresh: true))
+        listed.Clear();
+        foreach (var x in await Saved(fresh: true, patient: true))
         {
             if (SpotifyApi.Inner(x, "album") is not JsObj a || Js.IsNullish(a["id"])) continue;
+            listed[Js.Str(a["id"])] = a;
             var hint = NormAlbum(a)!;
             hint["kept_as"] = "favourite";
             var ms = DateMs(Js.Str(Or(P(x, "added_at"), "")));

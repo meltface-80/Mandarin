@@ -24,6 +24,10 @@ class ServiceBrowseTest {
         assertEquals("/api/spotify/featured?type=your-albums", ServiceBrowse.tabPath("spotify", spotify[1]))
         assertEquals("Spotify", ServiceBrowse.name("spotify"))
         assertEquals("Sign in to Spotify in Settings → Services to browse Spotify.", ServiceBrowse.failure("spotify", "not connected"))
+        // Still being gathered (item 499): said, not "none".
+        val gathering = ServicePage.parse("spotify", JSONObject("""{"albums":[],"days":90,"building":true}"""))
+        assertEquals("Gathering new albums from the artists you follow… Look again in a minute.", ServiceBrowse.tabStatus(spotify[0], gathering))
+        assertEquals("No new releases found in the last 90 days.", ServiceBrowse.tabStatus(spotify[0], ServicePage.parse("spotify", JSONObject("""{"albums":[],"days":90}"""))))
     }
 
     @Test fun `a page of albums, its artists and its head, and the status line`() {

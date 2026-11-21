@@ -33,7 +33,10 @@ internal sealed partial class Scanner
             foreach (var r in rows)
             {
                 var key = Js.Str(r["key"]);
-                if (key.Split('\u0001').Length >= 3) continue;
+                // A streamed album (Qobuz, Tidal, Spotify, iBroadcast: its dir an address) has no folder to be told
+                // apart by, and its service finds it by its own key (item 499: an import before a new library's
+                // first scan had its albums renamed, then added again over their own tracks).
+                if (key.Split('\u0001').Length >= 3 || Js.Str(r["dir"]).Contains("://", StringComparison.Ordinal)) continue;
                 Rekey(key, key + "\u0001" + RelFolder(Js.Truthy(r["dir"]) ? Js.Str(r["dir"]) : ""));
             }
         });

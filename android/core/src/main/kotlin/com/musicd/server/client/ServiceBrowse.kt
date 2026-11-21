@@ -14,13 +14,14 @@ data class ServiceTab(val id: String, val label: String, val kind: String)
 
 /** A page of a service's albums: the albums, the artists a search found, how many in all, whether more follow and how many a page holds; an artist's head. */
 data class ServicePage(val albums: List<ServiceAlbum>, val artists: List<ServiceArtist>, val total: Int, val hasMore: Boolean, val limit: Int,
-                       val days: Int, val artistName: String, val artistImage: String?, val biography: String) {
+                       val days: Int, val artistName: String, val artistImage: String?, val biography: String, val building: Boolean = false) {
     companion object {
         fun parse(service: String, j: JSONObject): ServicePage {
             val ar = j.optJSONObject("artist")
             return ServicePage(ServiceBrowse.albums(service, j.optJSONArray("albums")), ServiceBrowse.artists(service, j.optJSONArray("artists")),
                 j.optInt("total", 0), j.optBoolean("has_more"), j.optInt("limit", ServiceBrowse.PAGE_SIZE).takeIf { it > 0 } ?: ServiceBrowse.PAGE_SIZE,
-                j.optInt("days", 30), ar?.optString("name").orEmpty(), ar?.optString("image")?.takeIf { it.isNotEmpty() && it != "null" }, j.optString("biography"))
+                j.optInt("days", 30), ar?.optString("name").orEmpty(), ar?.optString("image")?.takeIf { it.isNotEmpty() && it != "null" }, j.optString("biography"),
+                j.optBoolean("building"))
         }
     }
 }
@@ -54,7 +55,9 @@ object ServiceBrowse {
 
     /** What the status line says of a page: a tab's, a search's for [q], an artist's. */
     fun tabStatus(tab: ServiceTab, p: ServicePage): String = if (tab.kind == "new-releases") {
-        if (p.albums.isNotEmpty()) "${p.albums.size} releases in the last ${p.days} days" else "No new releases found in the last ${p.days} days."
+        // Spotify's, gathered from the artists you follow the first time (item 499): said, not "none".
+        if (p.building) "Gathering new albums from the artists you follow… " + (if (p.albums.isNotEmpty()) "${p.albums.size} so far. " else "") + "Look again in a minute."
+        else if (p.albums.isNotEmpty()) "${p.albums.size} releases in the last ${p.days} days" else "No new releases found in the last ${p.days} days."
     } else if (p.albums.isNotEmpty()) "${p.albums.size} albums" else "No albums found."
 
     fun searchStatus(q: String, p: ServicePage): String = when {
