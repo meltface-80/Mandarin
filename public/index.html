@@ -1439,6 +1439,14 @@
               <span class="settings-nav-title">Tidal</span>
             </span>
           </button>
+          <button data-parity="settings-services.spotify" class="settings-nav-item" type="button" data-pane="spotify">
+            <span class="settings-nav-ico" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            </span>
+            <span class="settings-nav-txt">
+              <span class="settings-nav-title">Spotify</span>
+            </span>
+          </button>
           <button data-parity="settings-services.ibroadcast" class="settings-nav-item" type="button" data-pane="ibroadcast">
             <span class="settings-nav-ico" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1 0 8.5z"/><path d="M12 11v6"/><path d="M9.5 13.5L12 11l2.5 2.5"/></svg>
@@ -1525,7 +1533,43 @@
         </div>
       </div>
 
-<!-- iBroadcast's page (item 443): one of Services' (app/settings-ibroadcast.js). -->
+<!-- Spotify's page (item 497): one of Services' (app/settings-spotify.js). -->
+      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="spotify" data-parent="streaming">
+        <div class="settings-pane-head">
+          <button class="settings-back" type="button" data-settings-back aria-label="Back to Services" data-parity="settings-service.back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h2 data-parity="settings-service.heading">Spotify</h2>
+        </div>
+        <div class="settings-block">
+          <div class="settings-block-title" data-parity="settings-service.title">Account <button data-parity="settings-service.info" class="settings-info-btn" data-info="Sign in with your Spotify account: you approve Mandarin on Spotify's own page, and Mandarin keeps the sign-in token — never a password. Your saved Spotify albums become albums in the library. Playing them through Mandarin comes with the next Spotify update." aria-label="Info">&#9432;</button></div>
+          <div id="spotify-signin-form">
+            <div class="settings-token-row">
+              <button id="spotify-signin" data-parity="settings-service.signin" class="settings-update-btn" type="button">Sign in on Spotify</button>
+            </div>
+            <div id="spotify-pending" hidden>
+              <div class="settings-note" data-parity="settings-service.spotify-note">Approve Mandarin on Spotify's page. Spotify then sends you to an address beginning http://127.0.0.1:43143 that won't open: copy that whole address and paste it here.</div>
+              <input id="spotify-paste" data-parity="settings-service.spotify-paste" class="settings-token-input" type="url" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:43143/mandarin-spotify?code=…" aria-label="The address Spotify sent you to">
+              <div class="settings-token-row">
+                <button id="spotify-finish" data-parity="settings-service.spotify-finish" class="settings-update-btn" type="button">Finish sign-in</button>
+                <button id="spotify-signin-cancel" data-parity="settings-service.spotify-cancel" class="settings-update-btn" type="button">Cancel</button>
+              </div>
+            </div>
+          </div>
+          <div id="spotify-status" data-parity="settings-service.status" class="settings-token-status"></div>
+          <div id="spotify-signed" hidden>
+            <div class="settings-row"><span class="settings-label" data-parity="settings-service.name">Saved albums in the library <button data-parity="settings-service.info" class="settings-info-btn" data-info="Every album you've saved on Spotify, however many, as an album here: on the walls, in search, in Smart Picks and Listen later. Brought up to date every six hours, and when you tap Update library now. Off until you switch it on. Off: none of them are in the library; switched on again, they are back at once." aria-label="Info">&#9432;</button></span>
+              <label class="switch" data-parity="settings-service.import"><input type="checkbox" id="spotify-import" aria-label="Saved albums in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
+            <div class="settings-token-row">
+              <button id="spotify-import-now" data-parity="settings-service.update" class="settings-update-btn" type="button">Update library now</button>
+              <button id="spotify-disconnect" data-parity="settings-service.signout" class="settings-update-btn" type="button">Sign out</button>
+            </div>
+            <div id="spotify-import-status" data-parity="settings-service.import-status" class="settings-token-status"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- iBroadcast's page (item 443): one of Services' (app/settings-ibroadcast.js). -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="ibroadcast" data-parent="streaming">
         <div class="settings-pane-head">
           <button class="settings-back" type="button" data-settings-back aria-label="Back to Services" data-parity="settings-ibroadcast.back">

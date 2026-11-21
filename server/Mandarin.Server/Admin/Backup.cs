@@ -36,7 +36,7 @@ internal static partial class Backup
         "shareCardReview", "shareReviews", "shareServices", "shelfEnabled", "smartPicksEnabled", "smartPicksHour", "waveformEnabled"];
     public static readonly string[] CollectionTables = ["favourites", "listen_later", "album_edits", "track_edits", "album_matches", "album_splits", "album_joins"];
     // The Qobuz and Tidal sign-ins travel with the keys: tokens, never a password. AcoustID's key since item 414c.
-    public static readonly string[] KeyKeys = ["acoustidKey", "fanartKey", "qobuz", "qobuzSettings", "tidal", "tidalSettings"];
+    public static readonly string[] KeyKeys = ["acoustidKey", "fanartKey", "qobuz", "qobuzSettings", "tidal", "tidalSettings", "spotify", "spotifySettings"];
     // Kept from the server being restored, whatever the database brought.
     private static readonly string[] KeepTables = ["account", "devices"];
     // Whether a sign-in is asked for (openAccess) is today's too: a restore never opens the server (item 172).

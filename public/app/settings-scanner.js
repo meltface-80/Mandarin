@@ -203,7 +203,7 @@ scanBody.addEventListener("click", (e) => {
     const n = (cleanup[kind] || {}).albums || 0;
     (async () => {
       const q = kind === "files" ? "Remove " + num(n) + " album" + (n === 1 ? "" : "s") + " whose files are gone from the server?\n\nPlays stay in history; their edits, hearts and Listen later go. If the files come back, a scan adds the albums afresh."
-        : "Remove " + num(n) + " " + (kind === "tidal" ? "Tidal" : "Qobuz") + " album" + (n === 1 ? "" : "s") + " from the database?\n\nPlays stay in history. Signing in and favouriting again brings an album back.";
+        : "Remove " + num(n) + " " + (kind === "tidal" ? "Tidal" : kind === "spotify" ? "Spotify" : "Qobuz") + " album" + (n === 1 ? "" : "s") + " from the database?\n\nPlays stay in history. Signing in and favouriting again brings an album back.";
       if (!(await (window.__confirmDialog ? window.__confirmDialog(q) : Promise.resolve(confirm(q))))) return;
       cleanUp(kind);
     })();

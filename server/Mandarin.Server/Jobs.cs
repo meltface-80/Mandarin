@@ -42,6 +42,8 @@ internal static partial class Jobs
     // Qobuz's and Tidal's catalogue (v0.8.39, ServiceRoutes.cs): where each is asked.
     public static Services.QobuzCatalogue? Qobuz { get; private set; }
     public static Services.TidalCatalogue? Tidal { get; private set; }
+    // Spotify (item 497): its account and saved albums, as Tidal's; where it is asked as set up (the tests' fakes).
+    public static Services.SpotifyCatalogue? Spotify { get; private set; }
     // iBroadcast (item 443, Services/IBroadcast/): where it is asked (the tests' stand-in).
     public static Services.IBroadcast.IBroadcast? IBroadcast { get; private set; }
     // Its library in Mandarin's (item 444): read when iBroadcast says it changed.
@@ -117,6 +119,7 @@ internal static partial class Jobs
         // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database. Tidal's sign-in (v0.8.47): where it is asked.
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
+        Spotify = new Services.SpotifyCatalogue(Text(cfg["spotify_url"]), Text(cfg["spotify_auth_url"])) { DataDir = dataDir };
         IBroadcast = new Services.IBroadcast.IBroadcast(Text(cfg["ibroadcast_url"]));
         IBroadcastLibrary = new Services.IBroadcast.IBroadcastLibrary(IBroadcast, dataDir)
             { WatchMs = cfg["ibroadcast_watch_ms"] is JsonValue ibw && ibw.TryGetValue<double>(out var ibms) && ibms > 0 ? ibms : 10 * 60 * 1000 };

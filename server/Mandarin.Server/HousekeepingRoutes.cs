@@ -27,7 +27,7 @@ using TJs = Mandarin.Server.Tags.Js;
 
 internal static partial class Library
 {
-    private static readonly string[] ServiceIds = ["qobuz", "tidal"];
+    private static readonly string[] ServiceIds = ["qobuz", "tidal", "spotify"];
     private static readonly string[] AlbumMarkTables = ["album_edits", "favourites", "listen_later", "track_edits"];
     private const double SevenDays = 7.0 * 86400000;
 

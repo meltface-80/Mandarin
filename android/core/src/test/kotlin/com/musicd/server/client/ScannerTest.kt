@@ -117,6 +117,7 @@ class ScannerTest {
         val clean = j("""{"files":{"albums":23,"tracks":240,"folders":3},"qobuz":{"albums":1,"signed_in":false},"tidal":{"albums":0}}""")
         assertEquals(listOf(CleanupRow("files", "23 albums whose files are gone", 23), CleanupRow("qobuz", "1 Qobuz album (signed out of Qobuz)", 1)), Scanner.cleanupRows(clean, us))
         assertEquals("2 Tidal albums no longer wanted", Scanner.cleanupRows(j("""{"tidal":{"albums":2}}"""), us).single().words)
+        assertEquals("1 Spotify album no longer wanted", Scanner.cleanupRows(j("""{"spotify":{"albums":1}}"""), us).single().words)
         assertEquals(emptyList<CleanupRow>(), Scanner.cleanupRows(j("""{"files":{"albums":0},"qobuz":{"albums":0,"signed_in":true}}"""), us))
         assertTrue(Scanner.cleanupQuestion("tidal", 2, us).startsWith("Remove 2 Tidal albums from the database?"))
         assertTrue(Scanner.cleanupQuestion("files", 1, us).startsWith("Remove 1 album whose files are gone from the server?"))

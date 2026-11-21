@@ -1,0 +1,156 @@
+// SpotifyCatalogue.cs — Spotify as a service of Mandarin's, beside Qobuz and Tidal (bug list item 497): the account,
+// the saved albums brought into the library by the import those two use (Import.cs, Rows.cs), each album and its
+// tracks in the plain shape those rows are written from. Signing in is SpotifySignIn.cs.
+//
+// What Spotify serves is decided by the account, up to lossless (FLAC, 24-bit/44.1 kHz): the rows say that ceiling, as
+// Spotify's own apps do. Playing is item 499 (Soloist on the server); until then a Spotify track says so when asked.
+// Browsing (the side menu's page) is item 498: until then these lists are empty, and no route reaches them.
+using Mandarin.Server.Tags;
+
+namespace Mandarin.Server.Services;
+
+using static ServiceHttp;
+using Js = Mandarin.Server.Tags.Js;
+
+internal sealed partial class SpotifyCatalogue : Catalogue
+{
+    public SpotifyApi Api { get; }
+
+    public SpotifyCatalogue(string? baseUrl, string? accountsUrl) : base("spotify", "Spotify")
+    {
+        Api = new SpotifyApi(baseUrl, accountsUrl, Account, OnToken);
+    }
+
+    /* A refreshed token kept at once (Spotify's old refresh token stops working), the rest of the account as it was. */
+    private void OnToken(JsObj t)
+    {
+        if (Account() is not JsObj a) return;
+        a["token"] = t;
+        Extras.SavedSettings.SetSetting(Id, a);
+    }
+
+    // ------------------------------------------------------------ Spotify's shapes, as the rows want them
+
+    private static object? Largest(object? images) =>
+        Items(images).OrderByDescending(i => NumOr(P(i, "width"), 0)).Select(i => P(i, "url")).FirstOrDefault(u => Js.Truthy(u));
+
+    private static object? FirstArtist(object? x) => Items(P(x, "artists")).FirstOrDefault();
+
+    public static JsObj? NormAlbum(object? a)
+    {
+        if (!Js.Truthy(a) || Js.IsNullish(P(a, "id"))) return null;
+        var date = Js.Str(Or(P(a, "release_date"), ""));
+        var art = FirstArtist(a);
+        var genres = Items(P(a, "genres"));
+        return Obj(
+            ("id", Js.Str(P(a, "id"))), ("title", Or(P(a, "name"), "")), ("version", ""), ("artist", Or(P(art, "name"), "")),
+            ("artist_id", Js.Str(Or(P(art, "id"), ""))), ("image", Largest(P(a, "images"))), ("year", Slice(date, 4)), ("date", date),
+            ("label", Or(P(a, "label"), "")), ("genre", genres.Count > 0 ? genres[0] : ""), ("genres", genres), ("upc", Or(P(P(a, "external_ids"), "upc"), null)),
+            ("rate", 44100.0), ("bits", 24.0), ("tracks_count", NumOr(P(a, "total_tracks"), 0)), ("duration", 0.0),
+            ("hires", false), ("quality", "24/44.1"), ("streamable", !(P(a, "is_playable") is false)), ("kept", false), ("favourited", false),
+            ("release_date", date), ("in_library", false));
+    }
+
+    public static JsObj NormTrack(object? t, object? al)
+    {
+        var art = FirstArtist(t) ?? FirstArtist(al);
+        return Obj(
+            ("id", Js.Str(P(t, "id"))), ("title", Or(P(t, "name"), "")), ("artist", Or(P(art, "name"), "")),
+            ("duration", Math.Round(NumOr(P(t, "duration_ms"), 0) / 1000)),
+            ("track_no", NumOr(P(t, "track_number"), double.NaN) is var n && !double.IsNaN(n) ? n : null),
+            ("disc_no", NumOr(P(t, "disc_number"), 1)), ("rate", 44100.0), ("bits", 24.0),
+            ("streamable", !(P(t, "is_playable") is false)), ("isrc", Or(P(P(t, "external_ids"), "isrc"), null)));
+    }
+
+    // ------------------------------------------------------------ the catalogue (item 498 browses it)
+
+    /* The saved albums' ids, kept a minute. */
+    public override async Task<HashSet<string>> FavouriteIdSet(Ask ask, bool fresh = false)
+    {
+        if (fresh) Api.Cache.Clear();
+        return (await Saved()).Select(x => Js.Str(P(SpotifyApi.Inner(x, "album"), "id"))).Where(id => id.Length > 0).ToHashSet(StringComparer.Ordinal);
+    }
+
+    private readonly object savedGate = new();
+    private (double At, Task<List<object?>> Task)? saved;
+    /* The saved albums, one reading shared by everyone asking within the minute; [fresh] (the import) read anew. */
+    private Task<List<object?>> Saved(bool fresh = false)
+    {
+        lock (savedGate)
+        {
+            if (!fresh && saved is { } s && NowMs() - s.At < 60_000 && !s.Task.IsFaulted) return s.Task;
+            var t = Api.SavedAlbums();
+            saved = (NowMs(), t);
+            return t;
+        }
+    }
+
+    public override Task<List<object?>> NewReleases(double days, Ask ask) => Task.FromResult(new List<object?>());
+    public override Task<List<object?>> Featured(string type, Ask ask) => throw new ServiceError("Spotify doesn't feature that list", 404);
+    public override Task<JsObj> Search(string query, double offset, Ask ask, double limit = 50) =>
+        Task.FromResult(Obj(("albums", new List<object?>()), ("artists", new List<object?>()), ("total", 0.0), ("has_more", false), ("limit", limit)));
+    public override Task<JsObj> ArtistAlbums(string artistId, double offset, Ask ask, double limit = 50) => throw new ServiceError("Not yet", 404);
+    public override Task<JsObj> AlbumDetail(string id, Ask ask) => throw new ServiceError("Not yet", 404);
+
+    // ------------------------------------------------------------ rows in the library
+
+    /* The album and its tracks; the cover (the largest Spotify has) kept beside the database, side by side with the tracks. */
+    protected override async Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id, object? hint)
+    {
+        var a = await Api.Album(id);
+        var album = NormAlbum(a) ?? throw new ServiceError("Spotify has no such album", 404);
+        var tracks = Api.AlbumTracks(a);
+        var art = FetchArt(id, album["image"]);
+        var list = await tracks;
+        try { await art; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* asked again by EnsureAlbum */ }
+        album["duration"] = list.Sum(t => Math.Round(NumOr(P(t, "duration_ms"), 0) / 1000));
+        return (album, list.Where(t => Js.Truthy(t) && !(P(t, "is_playable") is false)).Select(t => NormTrack(t, a)).ToList());
+    }
+
+    /* Saving or unsaving on Spotify itself is item 498's (Spotify's library call changed in February 2026). */
+    protected override Task ApiFavourite(string id, bool on) => throw new ServiceError("Not yet", 404);
+
+    // ------------------------------------------------------------ the import
+
+    protected override string[] Qualities { get; } = ["lossless", "high"];
+    protected override string DefaultQuality => "lossless";
+
+    /* Your saved albums, every one, each since when you saved it. */
+    protected override async Task<List<(string Id, JsObj Hint)>> Wanted()
+    {
+        var order = new List<string>();
+        var want = new Dictionary<string, JsObj>(StringComparer.Ordinal);
+        foreach (var x in await Saved(fresh: true))
+        {
+            if (SpotifyApi.Inner(x, "album") is not JsObj a || Js.IsNullish(a["id"])) continue;
+            var hint = NormAlbum(a)!;
+            hint["kept_as"] = "favourite";
+            var ms = DateMs(Js.Str(Or(P(x, "added_at"), "")));
+            hint["kept_at"] = ms == 0 || double.IsNaN(ms) ? null : ms;
+            var id = Js.Str(hint["id"]);
+            if (!want.ContainsKey(id)) order.Add(id);
+            want[id] = hint;
+        }
+        return order.Select(id => (id, want[id])).ToList();
+    }
+
+    protected override void Describe(JsObj o)
+    {
+        var a = Or(Account(), new JsObj());
+        var u = Or(P(a, "user"), new JsObj());
+        o["user"] = Obj(("login", Or(P(u, "id"), "")), ("name", Or(Or(P(u, "display_name"), P(u, "id")), "")), ("id", P(a, "userId")), ("country", ""));
+        o["lossless"] = true;
+        o["hires"] = false;
+    }
+
+    protected override void ForgetAnswers()
+    {
+        Api.Cache.Clear();
+        lock (savedGate) saved = null;
+    }
+
+    // ------------------------------------------------------------ playing (item 499)
+
+    public override Task<Resolved> Resolve(StreamTrack t, JsObj p) =>
+        throw new ServiceError("Playing Spotify comes with Mandarin's next Spotify update", 409);
+}

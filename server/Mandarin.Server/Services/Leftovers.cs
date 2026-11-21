@@ -15,7 +15,7 @@ namespace Mandarin.Server.Services;
 
 internal static class Leftovers
 {
-    private static readonly string[] Gone = ["spotify"];
+    private static readonly string[] Gone = [];
 
     /* Each gone service's leftovers taken away from the database and [dataDir]; true when any albums went. */
     public static bool Remove(string dataDir, Action<string> log)
