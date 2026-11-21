@@ -30,7 +30,8 @@ class FakeSpotify {
     this.grants = [];                  // { grant_type, ... } every /api/token call
     this.calls = [];                   // { path, auth } every /v1 call
     this.tokenDelayMs = 0;
-    this.busyOnce = false;             // the next /v1 call answered 429
+    this.busyOnce = false;             // the next /v1 call answered 429, Retry-After: 1
+    this.busyFor = 0;                  // every /v1 call answered 429 with this Retry-After (seconds) until it is 0 again
     this.nextElsewhere = null;         // an address the saved albums' next page points to instead
     this.server = null;
     this.base = "";
@@ -81,9 +82,10 @@ class FakeSpotify {
       next: a.tracks.length > this.trackPage ? this.apiUrl + "albums/" + a.id + "/tracks?offset=" + this.trackPage + "&limit=" + this.trackPage : null };
     return o;
   }
+  /* A track as an album's list of them gives it: Spotify's simplified track, without its ISRC (no external_ids). */
   trackJson(a, t, i) {
     return { id: t.id, name: t.name, duration_ms: t.ms || 180000, track_number: i + 1, disc_number: 1, artists: [{ id: "ar", name: a.artist }],
-      external_ids: { isrc: "GB" + t.id }, is_playable: t.playable !== false };
+      is_playable: t.playable !== false };
   }
 
   send(res, status, body) { res.writeHead(status, { "Content-Type": "application/json" }); res.end(body == null ? "" : JSON.stringify(body)); }
@@ -117,7 +119,12 @@ class FakeSpotify {
     const path = u.pathname.slice(4);
     this.calls.push({ path: path + u.search, auth });
     if (!this.access.has(auth)) return this.send(res, 401, { error: { status: 401, message: "The access token expired" } });
-    if (this.busyOnce) { this.busyOnce = false; return this.send(res, 429, { error: { status: 429, message: "API rate limit exceeded" } }); }
+    if (this.busyOnce || this.busyFor) {
+      const wait = this.busyFor || 1;
+      this.busyOnce = false;
+      res.writeHead(429, { "Content-Type": "application/json", "Retry-After": String(wait) });
+      return res.end(JSON.stringify({ error: { status: 429, message: "API rate limit exceeded" } }));
+    }
     if (path === "me") return this.send(res, 200, this.user);
     if (path === "me/albums") {
       const offset = Number(u.searchParams.get("offset") || 0), limit = this.page;

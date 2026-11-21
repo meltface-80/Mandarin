@@ -9,7 +9,9 @@
 // The access token lasts an hour: one due within the minute is refreshed before the call, and a call refused (401) is
 // made once more with a refreshed one. Spotify sends a new refresh token each time and the old one stops working, so
 // one refresh runs at a time and its token is kept at once; a call waiting on it takes the new one. Too many calls
-// (429): waited out and made again, three times at most. Lists are read a page at a time, following Spotify's "next",
+// (429): waited out as long as Spotify's Retry-After says, a minute at most, and made again, three times at most
+// (item 499); a longer wait is kept, and every call until then is answered at once that Spotify is busy, without asking
+// it, so a run of calls (an import) stops rather than asking again and again. Lists are read a page at a time, following Spotify's "next",
 // and only ever on Spotify's own address: the token goes nowhere else. A failure is said in Spotify's words.
 using System.Security.Cryptography;
 using System.Text;
@@ -37,8 +39,10 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
     public string AccountsUrl { get; } = accountsUrl is { Length: > 0 } a ? a.TrimEnd('/') + "/" : Accounts;
     public readonly AnswerCache Cache = new();
     private readonly SemaphoreSlim refreshGate = new(1, 1);
-    /* How long a 429 is waited out, each time (the tests make it short). */
-    public int BusyWaitMs { get; init; } = 2000;
+    /* How long a 429 without a Retry-After is waited out, each time (the tests make it short); the most waited at once. */
+    public int BusyWaitMs { get; init; } = 5000;
+    public double MostWaitS { get; init; } = 60;
+    private double busyUntil;
 
     // ------------------------------------------------------------ signing in (PKCE)
 
@@ -119,11 +123,18 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
         string? refused = null;
         for (int attempt = 0; ; attempt++)
         {
+            if (Busy() is { } waiting) throw new ServiceError(waiting, 503);
             var access = await Access(refused);
             (string, string)[] headers = [("Authorization", "Bearer " + access), ("Accept", "application/json")];
-            var (status, text) = method == "GET" ? await Get(url, headers, Timeout) : await Send(method, url, headers, body ?? "", "application/json", Timeout);
+            var (status, text, retryAfter) = await SendTimed(method, url, headers, method == "GET" ? null : body ?? "", "application/json", Timeout);
             if (status == 401 && refused == null) { refused = access; continue; }
-            if (status == 429 && attempt < 3) { await Task.Delay(BusyWaitMs * (attempt + 1)); continue; }
+            if (status == 429)
+            {
+                var wait = retryAfter ?? BusyWaitMs * (attempt + 1) / 1000.0;
+                if (wait > MostWaitS) { busyUntil = NowMs() + wait * 1000; Server.Log($"[spotify] Spotify asks Mandarin to wait {Math.Ceiling(wait / 60)} min"); }
+                else if (attempt < 3) { await Task.Delay(TimeSpan.FromSeconds(wait)); continue; }
+                throw new ServiceError(Busy() ?? "Spotify is busy: try again in a minute", 503);
+            }
             if (status is >= 200 and <= 299)
             {
                 var j = text.Length > 0 ? ParseOrNull(text) : null;
@@ -136,6 +147,9 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
     }
 
     public Task<object?> GetJson(string path, double ttl = 0) => Call("GET", path, null, ttl);
+
+    /* While Spotify has asked Mandarin to wait: what is said; null when it may be asked. */
+    public string? Busy() => NowMs() < busyUntil ? $"Spotify asked Mandarin to wait: it is asked again in {Math.Ceiling((busyUntil - NowMs()) / 60_000)} min" : null;
 
     /* Every item of a paged list, in order, Spotify's "next" followed. [inner]: the key the page sits under ("artists" for those followed). */
     public async Task<List<object?>> All(string path, string? inner = null)

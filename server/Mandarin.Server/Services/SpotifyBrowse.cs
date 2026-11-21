@@ -4,8 +4,9 @@
 //
 //   - New from artists you follow (the new-releases list): Spotify took its own New Releases away from apps like this
 //     one in February 2026, so this is built here: the artists you follow, then each one's latest albums and singles,
-//     one artist at a time, a quarter of a second apart (Development Mode's quota is small). Kept in the database, so
-//     the page opens on what was found; read again in the background once it is twelve hours old. The first time,
+//     one artist at a time (Development Mode's quota is small). Kept in the database, so
+//     the page opens on what was found; read again in the background once it is twelve hours old (a second apart, item
+//     499: four a second ran into Spotify's limit). The first time,
 //     the page waits for it a while and is given what has been found so far.
 //   - Your albums: your saved albums, as the import reads them.
 //   - Search: albums and artists, ten a page (Spotify's most since February 2026).
@@ -22,7 +23,7 @@ internal sealed partial class SpotifyCatalogue
     private const double FollowedFreshMs = 12 * 3600e3, FollowedKeptMs = 30 * 86400e3, FollowedWithinDays = 120;
     private const int Page = 10;
     /* The gap between two artists' asks while the followed list is read (the tests make it short). */
-    public int PaceMs { get; init; } = 250;
+    public int PaceMs { get; init; } = 1000;
     /* How long the page waits the first time, before it is given what has been found so far. */
     public int FirstWaitMs { get; init; } = 25_000;
     private readonly object followedGate = new();
