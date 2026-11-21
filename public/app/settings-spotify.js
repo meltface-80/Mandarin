@@ -10,6 +10,7 @@
   const signed = $("spotify-signed"), status = $("spotify-status");
   const importBox = /** @type {HTMLInputElement|null} */ ($("spotify-import")), importNow = $("spotify-import-now"), importSt = $("spotify-import-status");
   const signout = $("spotify-disconnect");
+  const topbarBtn = $("spotify-toggle"), menuItem = $("menu-item-spotify");
   if (!signin || !signed) return;
   let poll = 0, asked = 0;
 
@@ -34,6 +35,9 @@
         : li ? (li.albums + " Spotify album" + (li.albums === 1 ? "" : "s") + " in the library · updated " + new Date(li.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }))
         : "The library is brought up to date shortly.";
     }
+    // Spotify's page in the side menu (item 498) once signed in.
+    if (topbarBtn) topbarBtn.classList.toggle("hidden", !on);
+    if (menuItem) menuItem.classList.toggle("hidden", !on);
     clearTimeout(poll);
     if (on && j.importing) poll = window.setTimeout(look, 2000);
   }
@@ -100,6 +104,7 @@
     catch (e) { settingsToast(/** @type {Error} */ (e).message, "error"); }
     finally { signout.removeAttribute("disabled"); }
   });
-  // Looked at as the page opens.
+  // Looked at as the page opens, and once as the app starts (the side menu's row; not in the Shelf's frame).
   document.querySelectorAll('.settings-nav-item[data-pane="spotify"]').forEach(b => b.addEventListener("click", look));
+  if (!EMBED) look();
 })();

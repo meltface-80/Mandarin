@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New - Spotify in the side menu, on the page and in the app, once signed in: New from artists you follow (the albums and singles of the last three months from the artists you follow on Spotify, gathered by Mandarin, as Spotify no longer gives apps its own New Releases), Your albums, search, artists' and albums' pages, and saving an album to your Spotify library or taking it out
 - New - Spotify, in Settings → Services, on the page and in the app: sign in on Spotify's own page (the app finishes by itself; on the page, paste the address Spotify sends you to), and your saved Spotify albums become albums in the library with a Spotify badge, kept up to date every six hours or when you tap Update library now. Playing them through Mandarin comes with the next Spotify update
 - Fixed - The Android app's Now playing no longer shows a song from the phone's own queue, without its cover, when the app is opened again after the Wi-Fi dropped for a moment: it shows the room's own track, and asks Mandarin again the moment it answers
 - Fixed - An album's cover no longer fails to draw now and then when many covers are asked for at once, as on a wall of new albums

@@ -56,7 +56,7 @@ using SH = Mandarin.Server.Services.ServiceHttp;
 
 internal static partial class Library
 {
-    [GeneratedRegex(@"^/api/(qobuz|tidal)/(lists|new-releases|featured|search|artist-albums|album|state)$")]
+    [GeneratedRegex(@"^/api/(qobuz|tidal|spotify)/(lists|new-releases|featured|search|artist-albums|album|state)$")]
     private static partial Regex ServicePath();
 
     private static Catalogue? CatalogueOf(string id) => !Jobs.Held ? null : id == "qobuz" ? Jobs.Qobuz : id == "tidal" ? Jobs.Tidal : id == "spotify" ? Jobs.Spotify : null;
@@ -136,7 +136,7 @@ internal static partial class Library
 
     // ------------------------------------------------------------ the library's rows (v0.8.44)
 
-    [GeneratedRegex(@"^/api/(qobuz|tidal)/(open|favorite|unfavorite|play)$")]
+    [GeneratedRegex(@"^/api/(qobuz|tidal|spotify)/(open|favorite|unfavorite|play)$")]
     private static partial Regex ServiceWritePath();
 
     [GeneratedRegex(@"^SQLite Error \d+: '(.*)'\.$", RegexOptions.Singleline)]

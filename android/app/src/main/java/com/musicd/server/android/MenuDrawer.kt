@@ -104,7 +104,7 @@ internal fun MenuOver(nav: NavHostController, client: () -> ServerClient?) {
 
 /**
  * An item of the menu chosen ([what], its key in the contract): the menu closes and, as the row's buttons do, every native
- * screen over Home with it; Listen later, Pitchfork, Labels, Qobuz, Tidal and Settings open natively over Home;
+ * screen over Home with it; Listen later, Pitchfork, Labels, Qobuz, Tidal, Spotify and Settings open natively over Home;
  * Restart and Shut down ask and show the server's time away natively (PowerOver.kt, item 96); Shelf opens natively
  * too (item 207: it was the server's page in the phone's browser from item 111).
  */
@@ -118,7 +118,7 @@ internal fun menuTap(nav: NavHostController, what: String, context: android.cont
     when (what) {
         "later" -> overHome(nav, ShellRoute.wall("later", z, ""))
         "pitchfork" -> overHome(nav, ShellRoute.pitchfork("", z))
-        "qobuz", "tidal" -> overHome(nav, ShellRoute.serviceBrowser(what, z))
+        "qobuz", "tidal", "spotify" -> overHome(nav, ShellRoute.serviceBrowser(what, z))
         "settings" -> overHome(nav, ShellRoute.settings())
         "shelf" -> overHome(nav, ShellRoute.shelf(z))
     }
@@ -162,8 +162,8 @@ private fun MenuDrawer(zoom: Double, client: () -> ServerClient?, scope: Corouti
         val (status, shown) = withContext(Dispatchers.IO) {
             fun ask(path: String) = async { runCatching { c.getJson(path) }.getOrNull() }
             val st = ask("/api/status"); val q = ask("/api/settings/qobuz")
-            val t = ask("/api/settings/tidal"); val sh = ask("/api/settings/shelf")
-            st.await() to Menu.items(q.await(), t.await(), sh.await(), items)
+            val t = ask("/api/settings/tidal"); val sh = ask("/api/settings/shelf"); val sp = ask("/api/settings/spotify")
+            st.await() to Menu.items(q.await(), t.await(), sh.await(), items, sp.await())
         }
         if (shown != items) AppLog.line("MENU", "its rows changed as the server answered: $items, then $shown", anomaly = kept != null)
         sub = Menu.rescanSub(status ?: Menu.keptStatus(kept), System.currentTimeMillis()); items = shown
@@ -252,6 +252,7 @@ private fun MenuList(items: Menu.Items, offline: Boolean, sub: String, onOffline
         MenuItem(Modifier.parity("menu.pitchfork", Contract.label("menu.pitchfork")).clip(ITEM).clickable { onItem("pitchfork") }, R.drawable.mn_pitchfork, Contract.label("menu.pitchfork"))
         if (items.qobuz) MenuItem(Modifier.parity("menu.qobuz", Contract.label("menu.qobuz")).clip(ITEM).clickable { onItem("qobuz") }, R.drawable.mn_qobuz, Contract.label("menu.qobuz"))
         if (items.tidal) MenuItem(Modifier.parity("menu.tidal", Contract.label("menu.tidal")).clip(ITEM).clickable { onItem("tidal") }, R.drawable.src_tidal, Contract.label("menu.tidal"))
+        if (items.spotify) MenuItem(Modifier.parity("menu.spotify", Contract.label("menu.spotify")).clip(ITEM).clickable { onItem("spotify") }, R.drawable.src_spotify, Contract.label("menu.spotify"))
         // Shelf is the server's whole library, a page of its own: not offline.
         if (items.shelf && !offline) MenuItem(Modifier.parity("menu.shelf", Contract.label("menu.shelf")).clip(ITEM).clickable { onItem("shelf") }, R.drawable.mn_shelf, Contract.label("menu.shelf"))
         MenuItem(Modifier.parity("menu.later", Contract.label("menu.later")).clip(ITEM).clickable { onItem("later") }, R.drawable.mn_later, Contract.label("menu.later"))

@@ -21,7 +21,7 @@
   if (!home) return;
   const shown = el => !!el && !el.classList.contains("hidden") && el.getClientRects().length > 0;
   // The page's own dialogs too (the "move the music?" a room change asks): over Home they need the page in front (item 63).
-  const OVER = ["menu-overlay", "settings-overlay", "qobuz-overlay", "tidal-overlay", "pitchfork-overlay", "filter-overlay", "offline-overlay", "album-modal",
+  const OVER = ["menu-overlay", "settings-overlay", "qobuz-overlay", "tidal-overlay", "spotify-overlay", "pitchfork-overlay", "filter-overlay", "offline-overlay", "album-modal",
     "confirm-overlay"];
   // Offline the page's Home is the one in front: its rows come from the phone (the app's OfflineApi), which the native Home doesn't ask yet.
   const front = () => !window.__musicdOffline && !home.classList.contains("hidden") && !(sections && sections.classList.contains("hidden")) &&

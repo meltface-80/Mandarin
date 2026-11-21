@@ -10,8 +10,8 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
 | GET | `/` | signed in | `Pages.cs` |
-|  | `/api/(qobuz\|tidal)/(lists\|new-releases\|featured\|search\|artist-albums\|album\|state)` | signed in | `ServiceRoutes.cs` |
-|  | `/api/(qobuz\|tidal)/(open\|favorite\|unfavorite\|play)` | signed in | `ServiceRoutes.cs` |
+|  | `/api/(qobuz\|tidal\|spotify)/(lists\|new-releases\|featured\|search\|artist-albums\|album\|state)` | signed in | `ServiceRoutes.cs` |
+|  | `/api/(qobuz\|tidal\|spotify)/(open\|favorite\|unfavorite\|play)` | signed in | `ServiceRoutes.cs` |
 | GET | `/api/album` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/album-scanner` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/album-scanner` | signed in | `LibraryRoutes.cs` |
