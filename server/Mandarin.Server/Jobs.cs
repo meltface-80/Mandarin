@@ -136,9 +136,8 @@ internal static partial class Jobs
         };
         IBroadcastSchedule = new Services.IBroadcast.IBroadcastSchedule(IBroadcastUpload)
             { TickMs = cfg["ibroadcast_schedule_tick_ms"] is JsonValue ibt && ibt.TryGetValue<double>(out var tick) && tick > 0 ? (int)tick : 30_000 };
-        // What a service no longer here left behind (item 152), and gone albums and tracks (item 179): gone before the library is read.
+        // Gone albums and tracks (item 179): gone before the library is read.
         Orphans.Sweep(Log);
-        if (Services.Leftovers.Remove(dataDir, Log)) _ = Library.Tell(new JsonObject { ["services"] = "changed" });
         // The playlists' settings and the albums they held, gone with the playlists.
         Services.Leftovers.RemovePlaylists(Log);
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the configuration says.
