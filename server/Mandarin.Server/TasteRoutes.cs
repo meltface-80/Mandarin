@@ -31,7 +31,8 @@ internal static partial class Library
         if (HeldTaste == null) return false;
         var b = await Auth.Body(ctx);
         if (b == null) return true;
-        var artist = TJs.Trim(LabelText((FromNode(b) as JsObj ?? new JsObj())["artist"]));
+        var given = (FromNode(b) as JsObj ?? new JsObj())["artist"];
+        var artist = TJs.Trim(TJs.Truthy(given) ? TJs.Str(given) : "");
         if (artist.Length == 0) return await JsError(ctx, 400, "artist required");
         try { Taste.Block(s, artist); }
         catch (Exception e) { return await JsError(ctx, 400, e.Message); }

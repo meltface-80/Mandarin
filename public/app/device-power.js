@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 17 of 33: a device's power, the Library wall shown, and Home's genres and cache. */
+/* The page's core (app.js until v1.0.5), 17 of 31: a device's power, the Library wall shown, and Home's genres and cache. */
 // ----- Device power (Roon standby / convenience switch) -------------------
 //
 // Roon can power the amp or DAC behind an output, but only through a SOURCE
@@ -156,7 +156,7 @@ window.__openDevicePowerSheet = openDevicePowerSheet;
 // room; the page stays where it is for their Back. True when the app took it.
 function nativePrefsJson() {
   const p = window.__uiPrefs;
-  return JSON.stringify(p ? { layout: p.get("layout"), tile: p.get("tile"), text: p.get("text"), title: p.get("title"), greeting: p.get("greeting"), random: p.get("random"), aotd: p.get("aotd"), menu: p.get("menu"), labelOrder: labelOrder(), labelMin: String(labelMin()) } : {});
+  return JSON.stringify(p ? { layout: p.get("layout"), tile: p.get("tile"), text: p.get("text"), title: p.get("title"), greeting: p.get("greeting"), random: p.get("random"), aotd: p.get("aotd"), menu: p.get("menu") } : {});
 }
 function nativeWallOpened(kind) {
   const app = window.MusicdApp;
@@ -200,13 +200,12 @@ async function showLibraryWall() {
 }
 
 // Infinite scroll: <main> is the shared scroll container for every grid view;
-// only act while the library wall owns it (labelsActive double-checks — the
-// labels browser paints the same grid without touching the wall flags).
+// only act while the library wall owns it.
 {
   const mainEl = document.querySelector("main");
   if (mainEl) {
     mainEl.addEventListener("scroll", () => {
-      if (!libraryWallActive || labelsActive || libWall.loading || libWall.done) return;
+      if (!libraryWallActive || libWall.loading || libWall.done) return;
       if (mainEl.scrollTop + mainEl.clientHeight >= mainEl.scrollHeight - 600) {
         fetchLibraryPage(libWall.seq, false);
       }
@@ -226,7 +225,7 @@ function wireSectionHeader(id, handler) {
 }
 
 // Header taps: Not played → full unplayed grid; Random albums → full random
-// wall; Library → full A-Z wall; Label of the week → label view.
+// wall; Library → full A-Z wall.
 {
   wireSectionHeader("home-unplayed-title", showUnplayedWall);
   wireSectionHeader("home-favourites-title", showFavouritesWall);
@@ -234,10 +233,6 @@ function wireSectionHeader(id, handler) {
   wireSectionHeader("home-later-title", showLaterWall);
   wireSectionHeader("home-random-title", () => { if (window.__applyFilter) window.__applyFilter(null); });
   wireSectionHeader("home-library-title", showLibraryWall);
-  wireSectionHeader("home-lotw-title", () => {
-    const name = homeLotw && homeLotw.dataset.label;
-    if (name && window.__showLabelAlbums) window.__showLabelAlbums(name);
-  });
   wireSectionHeader("home-picks-title", showSmartPicks);
 }
 
@@ -378,7 +373,6 @@ function hydrateHomeFromCache() {
   if (c.library && homeLibrary && c.librarySort === libSortKey()) {
     renderHomeLibrary(c.library);
   }
-  if (c.lotw     && homeLotw)     { renderHomeLotw(c.lotw.label, c.lotw.albums); }
   if (c.history  && homeHistory)  { renderHomeHistory(c.history); }
   if (c.genres   && homeGenres)   { renderHomeGenres(c.genres); }
   if (!painted) return false;

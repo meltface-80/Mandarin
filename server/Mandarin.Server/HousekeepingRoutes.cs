@@ -169,12 +169,12 @@ internal static partial class Library
 
     /*
      * artistPhotos(name): FanArt.tv's pictures of the act (four at most), the
-     * act found on MusicBrainz by name; kept a week, a miss too. Nothing
-     * without a FanArt.tv key (Settings → Record labels).
+     * act found on MusicBrainz by name; kept a week, a miss too. Asked with
+     * Mandarin's own FanArt.tv key (Extras/Fanart.cs).
      */
     private static async Task<List<object?>> ArtistPhotos(string name)
     {
-        var key = LabelLogos.FanartKey();
+        var key = Fanart.Key();
         if (key.Length == 0 || name.Length == 0) return [];
         var ck = Names.Fold(name);
         if (Taste.CacheGet("fanart", ck, SevenDays) is List<object?> hit) return hit;

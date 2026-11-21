@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 26 of 33: an album's tracks selected and played, and what is below the review. */
+/* The page's core (app.js until v1.0.5), 26 of 31: an album's tracks selected and played, and what is below the review. */
 // ----- Track multi-select (album view) ------------------------------------
 // Scoped to one album: every selected track shares `currentAlbum`, so the
 // album identity travels once rather than per track.

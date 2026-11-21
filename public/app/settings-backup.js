@@ -20,7 +20,7 @@
   const toast = (m, kind) => { if (window.__showToast) window.__showToast(m, kind); };
   // This device's screen settings: what a person sets, never caches.
   const PAGE_KEYS = ["rra-ui-text", "rra-ui-title", "rra-ui-menu", "rra-ui-cols", "rra-ui-tile", "rra-ui-greeting", "rra-ui-random", "rra-zone", "rra-library-view",
-    "rra-label-order", "rra-labels-reversed", "rra-label-min", "rra-album-view", "rra-filter", "rra-np-reduced"];
+    "rra-album-view", "rra-filter", "rra-np-reduced"];
   const NAMES = {
     settings: "Settings", devices: "Players", collection: "Your collection", keys: "API keys",
     database: "The whole database", page: "This device's screen settings", app: "This app's settings"
@@ -29,7 +29,7 @@
     settings: "Only the ones you changed",
     devices: "Sonos rooms, renderers and phones: names, output, DSP, levelling",
     collection: "Favourites, Listen later, album edits",
-    keys: "Discogs, FanArt.tv, AcoustID, the Qobuz and Tidal sign-ins, and the server's Tailscale identity",
+    keys: "FanArt.tv, AcoustID, the Qobuz and Tidal sign-ins, and the server's Tailscale identity",
     database: "Everything Mandarin knows, play history included",
     page: "Text sizes, layout, the chosen room",
     app: "Downloads, USB DAC, this phone's DSP and levelling"

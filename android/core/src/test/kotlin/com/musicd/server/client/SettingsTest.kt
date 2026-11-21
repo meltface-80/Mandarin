@@ -56,20 +56,18 @@ class SettingsTest {
         assertFalse(unasked.ok)
         assertEquals("Saved — ab…yz", unasked.placeholder(""))
         assertEquals("Current: ab…yz — couldn’t reach the service to check it.", unasked.status)
-        // The page's rows, in its order: AcoustID's and FanArt.tv's keys Mandarin's own since item 491, no row of theirs.
-        assertEquals(listOf("discogs-token", "lastfm-key", "lastfm-secret"), ApiKeySpec.ALL.map { it.route })
-        val lastfm = ApiKeySpec.ALL[1]
+        // The page's rows, in its order: AcoustID's and FanArt.tv's keys Mandarin's own since item 491, Discogs gone with the labels
+        // (item 492), no row of theirs.
+        assertEquals(listOf("lastfm-key", "lastfm-secret"), ApiKeySpec.ALL.map { it.route })
+        val lastfm = ApiKeySpec.ALL[0]
         assertEquals("Last.fm key saved — checked and working", lastfm.saved(ok))
         assertEquals("Saved, but Last.fm refused this key", lastfm.saved(bad))
-        val discogs = ApiKeySpec.ALL[0]
-        assertEquals("Discogs token saved — checked and working", discogs.saved(ok))
-        assertEquals("Saved, but Discogs refused this token", discogs.saved(bad))
-        assertEquals("Discogs token saved", discogs.saved(unasked))
+        assertEquals("Last.fm key saved", lastfm.saved(unasked))
     }
 
     @Test fun `the lists in the page's order, and Settings' address`() {
         assertEquals(listOf("account", "folders", "streaming", "playback", "identify", "setup", "backup", "sqtool", "system"), SettingsLists.HOME.map { it.pane })
-        assertEquals("Downloads", SettingsLists.SETUP[6].title)
+        assertEquals("Downloads", SettingsLists.SETUP[5].title)
         assertEquals("no Share Card page (item 336)", false, SettingsLists.SETUP.any { it.pane == "sharecard" })
         assertEquals("API Keys", SettingsLists.SETUP.last().title)
         assertEquals("settings/home", ShellRoute.settings())

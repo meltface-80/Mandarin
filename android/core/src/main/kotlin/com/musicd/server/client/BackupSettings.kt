@@ -38,7 +38,7 @@ object BackupSettings {
         "settings" to "Only the ones you changed",
         "devices" to "Sonos rooms, renderers and phones: names, output, DSP, levelling",
         "collection" to "Favourites, Listen later, album edits",
-        "keys" to "Discogs, FanArt.tv, AcoustID, the Qobuz and Tidal sign-ins, and the server's Tailscale identity",
+        "keys" to "FanArt.tv, AcoustID, the Qobuz and Tidal sign-ins, and the server's Tailscale identity",
         "database" to "Everything Mandarin knows, play history included",
         "page" to "Text sizes, layout, the chosen room",
         "app" to "Downloads, USB DAC, this phone's DSP and levelling")

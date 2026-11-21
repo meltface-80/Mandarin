@@ -3,7 +3,7 @@
  * Names and errors from elsewhere are shown as text, never read as the page's own markup (bug list item 176). An
  * artist's name comes from the tags, MusicBrainz, Last.fm and the credits; the artist page put it into its "No albums
  * found" line as markup, and its error line the same with the error's words, so a name such as <img src=x onerror=…>
- * ran in the page. A label's logo search did the same with the server's error. In a real browser against the real
+ * ran in the page. In a real browser against the real
  * server, at a phone's size. Skipped where no Chromium or Chrome is found (test/browser-harness.js).
  */
 const ports = require("./ports");
@@ -19,7 +19,6 @@ const B = "http://127.0.0.1:" + PORT;
 
 const NAME = "<img id=x src=x onerror=\"window.__ran = 'name'\">";
 const ERROR = "<img id=y src=y onerror=\"window.__ran = 'error'\">";
-const LOGO = "<img id=z src=z onerror=\"window.__ran = 'logo'\">";
 
 const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -47,17 +46,6 @@ const DRIVER = `(async () => {
   $("topbar-back").click();
   await sleep(300);
 
-  // A label's logo search that failed, the server's error said.
-  const fetch0 = window.fetch;
-  window.fetch = (u, o) => String(u).startsWith("/api/labels/logo-candidates")
-    ? Promise.resolve(new Response(JSON.stringify({ error: ${JSON.stringify(LOGO)} }), { status: 502, headers: { "Content-Type": "application/json" } }))
-    : fetch0(u, o);
-  $("labels-logo-btn").click();
-  await until(() => /onerror/.test($("logo-candidates").textContent) || $("z"));
-  await sleep(300);
-  out.logo = { text: $("logo-candidates").textContent, z: !!$("z") };
-  window.fetch = fetch0;
-
   out.ran = window.__ran || null;
   return out;
 })()`;
@@ -84,8 +72,6 @@ test("an artist's name and the errors said beside it are shown as text, never ru
     assert.equal(r.empty.text, `No albums found for "${NAME}"`, "the name shown as it is");
     assert.equal(r.error.y, false, "the error made no element of its own");
     assert.equal(r.error.text, "Error: " + ERROR);
-    assert.equal(r.logo.z, false, "the logo search's error made no element of its own");
-    assert.equal(r.logo.text, LOGO);
     assert.equal(r.ran, null, "nothing from the name or the errors ran");
   } finally { await srv.stop(); }
 });

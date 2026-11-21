@@ -1,132 +1,14 @@
-/* The page's core (app.js until v1.0.5), 33 of 33: a label's albums, the album multi-select's actions, and the select menu wired. */
-// Where ‹ goes from one label's albums when they were opened from an
-// album's page: back to that page, not to the list of all labels (v0.6.24).
-let _labelsReturn = null;
-async function showLabelAlbums(name, fromLabelsList = false, returnTo = null) {
-  if (window.__leaveSmartPicks) window.__leaveSmartPicks();
-  if (window.__exitArtists) window.__exitArtists();
-  if (window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
-  _labelsReturn = returnTo && returnTo.album ? returnTo : null;
-  if (fromLabelsList) {
-    // Came from a tap on the Labels grid — remember the grid scroll position.
-    _labelsScrollSaved = mainEl ? mainEl.scrollTop : 0;
-    _labelsScrollTarget = null;
-  } else {
-    // Deep-linked from an album view or search chip — there's no Labels-grid
-    // scroll position to restore, so remember which label to scroll to on back.
-    _labelsScrollSaved = 0;
-    _labelsScrollTarget = name;
-  }
+/* The page's core (app.js until v1.0.5), 31 of 31: the album multi-select's actions, the select menu wired, and the page's hooks. */
+// Leaving whatever browse view was open for another (home, search, a filter, the
+// artists): the album selection let go. What the labels browser's exit did for
+// every view, kept when the labels were taken out (item 492).
+function exitBrowse() {
   exitAlbumSelectMode();
-  closeLabelLogoSheet();
-  currentLabelName = name;
-  mode = "albums";
-  labelsActive = true;
-  leaveLibraryWall();   // label albums own the shared grid now — stop the wall's infinite scroll
-  { const _hv = document.getElementById("home-view"); if (_hv) _hv.classList.add("hidden"); }
-  grid.classList.remove("hidden");
-  if (window.__setTopbarNav) window.__setTopbarNav(true, false, false);   // Back (to Home), no Refresh, no search
-  labelsBtn.classList.add("is-active");
-  // The name is the top bar's title and its ‹ goes back to all labels.
-  if (labelsBar)   labelsBar.classList.add("hidden");
-  if (labelsTitle) labelsTitle.textContent = name;
-  paintTools();
-  setBanner(null);
-  setCountText(name);
-  renderSkeletons(computeAlbumCount());
-  try {
-    const r = await fetch("/api/label-albums?label=" + encodeURIComponent(name) +
-                          "&order=" + encodeURIComponent(labelOrder()));
-    const j = await r.json();
-    // ‹ (or Home) while this was on its way: it no longer belongs on screen.
-    if (!stillOnLabel()) return;
-    if (!r.ok) throw new Error(j.error || ("HTTP " + r.status));
-    currentLabelLogoUrl = j.logo_url || null; // expose to logo picker
-    const albums = j.albums || [];
-    if (!albums.length) {
-      grid.innerHTML = "";
-      setBanner("No albums found for this label.", false);
-      return;
-    }
-    setCountText(name);
-    grid.innerHTML = "";
-    const frag = document.createDocumentFragment();
-    for (const a of albums) {
-      // Label albums carry FULL-LIBRARY offsets; without the explicit
-      // filter:null override a lingering genre/tag filter would resolve
-      // them against the wrong (filtered) list — the offset misses, and
-      // the stale-offset defense correctly refuses with "library changed"
-      // even though nothing did. (Same override Home rows use.)
-      frag.appendChild(keyWallTile(buildAlbumTile(a, () => openAlbum(a, { filter: null }))));   // a wall of the screens contract's (`wall`)
-    }
-    grid.appendChild(frag);
-  } catch (e) {
-    if (!stillOnLabel()) return;
-    grid.innerHTML = "";
-    setBanner("Couldn't load albums: " + e.message, true);
-  }
-  function stillOnLabel() { return labelsActive && mode === "albums" && currentLabelName === name; }
 }
-
-if (labelsBack) labelsBack.addEventListener("click", () => showLabelsList());
-// The top bar's ‹ on one label's albums goes back to all labels, ahead of
-// its usual "go Home" (v0.6.5; the "‹ All labels" pill it replaces is gone).
-{
-  const tb = document.getElementById("topbar-back");
-  if (tb) tb.addEventListener("click", (e) => {
-    if (!(labelsActive && mode === "albums")) return;
-    if (window.__artistViewActive && window.__artistViewActive()) return;
-    // Opened from an album's page: the usual ‹ (Home) runs, and the album's
-    // page comes back over it.
-    if (_labelsReturn) {
-      const r = _labelsReturn; _labelsReturn = null;
-      if (window.__openAlbum) setTimeout(() => window.__openAlbum(r.album, r.opts), 0);
-      return;
-    }
-    e.stopImmediatePropagation();
-    showLabelsList();
-  }, true);
-}
-
-if (labelMergeBtn) {
-  labelMergeBtn.addEventListener("click", async () => {
-    if (labelsSelected.length < 2) return;
-    labelMergeBtn.disabled = true;
-    try {
-      const r = await fetch("/api/labels/merge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: labelsSelected.map(s => ({ key: s.key, display: s.display })) })
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "Merge failed");
-      exitLabelSelectMode();
-      _lastLabelCount = -1;
-      showLabelsList(false);
-    } catch(e) {
-      labelMergeBtn.disabled = false;
-      if (window.__showToast) window.__showToast("Merge failed: " + e.message, "error");
-    }
-  });
-}
-
-if (labelMergeCancelBtn) labelMergeCancelBtn.addEventListener("click", exitLabelSelectMode);
-
-if (labelUnmergeClose) {
-  labelUnmergeClose.addEventListener("click", () => {
-    if (labelUnmergeSheet) labelUnmergeSheet.classList.add("hidden");
-  });
-}
-
-labelsBtn.addEventListener("click", () => {
-  if (mode) { exitLabels(); loadRandom(); }
-  else      { showLabelsList(); }
-});
+window.__exitBrowse = exitBrowse;
 
 // Refresh always returns to the random wall.
-if (refreshBtn) refreshBtn.addEventListener("click", exitLabels);
-
-
+if (refreshBtn) refreshBtn.addEventListener("click", exitBrowse);
 
 // A selection of albums from anywhere (v0.7.4): the server's — your files,
 // Qobuz, Tidal — go to the zone in one ask; the phone's own go to the
@@ -262,37 +144,6 @@ window.__applyHomeLayout = (rows) => {
   }
 };
 
-// Reflect the opt-in features into the side menu.
-//
-// A menu entry for a feature that is switched off leads to a screen that can
-// only ever be empty — the Labels browser with no scan behind it. Hiding the
-// entry is part of "off", not decoration.
-//
-// Exported because the settings pane flips the switch and the menu lives
-// elsewhere; both call this rather than reaching into each other's DOM.
-// A key absent from `state` leaves the entry alone.
-window.__applyFeatureMenu = (state) => {
-  const labelsItem = document.getElementById("menu-item-labels");
-  if (labelsItem && typeof state.labels === "boolean") {
-    labelsItem.classList.toggle("hidden", !state.labels);
-    // The same switch decides whether the Library Focus vocabulary still
-    // contains "Record label", and the count badge has to agree with the
-    // sheet from the first paint, not from the first time it is opened.
-    if (window.__setLabelsFacetAvailable) window.__setLabelsFacetAvailable(state.labels);
-  }
-};
-
-// Asked at boot.
-async function applyFeatureMenuFromServer() {
-  const state = {};
-  try {
-    const r = await fetch("/api/settings/labels");
-    // A failed lookup leaves the entry as the markup has it.
-    if (r.ok) state.labels = !!(await r.json()).enabled;
-  } catch (e) { /* as the markup has it */ }
-  window.__applyFeatureMenu(state);
-}
-
 window.__buildAlbumTile = (a) => buildAlbumTile(a);
 window.__loadRandom = loadRandom;
 window.__showLibraryWall = showLibraryWall;
@@ -312,7 +163,7 @@ window.__libraryChanged = (opts) => {
   if (opts && opts.live) {
     homeLibraryKey = "";
     if (homeView && !homeView.classList.contains("hidden")) { if (homeRowOn("library")) loadHomeLibrary(); return; }
-    if (libraryWallActive && !labelsActive && (!modal || modal.classList.contains("hidden"))) {
+    if (libraryWallActive && (!modal || modal.classList.contains("hidden"))) {
       const m = document.querySelector("main");
       if (m && m.scrollTop < m.clientHeight) showLibraryWall();
     }
@@ -326,7 +177,7 @@ window.__libraryChanged = (opts) => {
   if (homeView && !homeView.classList.contains("hidden")) { refreshHomeRows(); return; }
   if (window.__searchActive && window.__searchActive()) return;
   if (window.__artistViewActive && window.__artistViewActive()) return;
-  if (labelsActive || favouritesWallActive || laterWallActive || historyWallActive) return;
+  if (favouritesWallActive || laterWallActive || historyWallActive) return;
   if (libraryWallActive) { showLibraryWall(); return; }
   if (unplayedWallActive) return;   // a fixed wall: the tile is gone, the rest stands
   if (!grid.classList.contains("hidden") && !gone) loadRandom();

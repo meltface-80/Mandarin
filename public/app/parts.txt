@@ -46,9 +46,7 @@ app/album-credits.js
 app/search.js
 app/search-external.js
 app/filter-sheet.js
-app/labels.js
-app/labels-list.js
-app/labels-albums.js
+app/album-multi.js
 app.js
 app/mini-transport.js
 app/mini-transport-render.js

@@ -44,7 +44,6 @@ internal static partial class Library
             new("decade", "Decade", "numeric-desc", v => v + "s",
                 al => al.Year != null ? [((long)Math.Floor(al.Year.Value / 10.0) * 10).ToString(CultureInfo.InvariantCulture)] : []),
         };
-        if (s.LabelsOn) defs.Add(new("label", "Record label", null, null, al => s.LabelOf(al) is { } l ? [l] : []));
         // MQA (item 418) under Format (item 423): beside an album's container, MQA where its every track is, and MQA Studio too
         // where every one is that.
         var mqa = Mqa.MqaStore.Albums(s);
@@ -346,9 +345,8 @@ internal static partial class Library
         var album = AlbumJson(s, al);
         album["year"] = al.Year;
         album["genres"] = new JsonArray(al.Genres.Select(g => (JsonNode)g).ToArray());
-        // Object.assign(library.json(al), { year, genres }, the service's, label): in that order.
+        // Object.assign(library.json(al), { year, genres }, the service's): in that order.
         if (service != null) foreach (var k in service.Keys) album[k] = JsonNode.Parse(Tags.Js.Json(service[k])!);
-        if (s.LabelOf(al) is { } label) album["label"] = label;
         // A classical album (bug list item 48): its composers, conductors and performers for the head, and its tracks as works.
         // Only a classical album's (item 60): one set out as works, or whose genre says so. Any album may carry COMPOSER
         // tags (a rock album names its songwriters there), and those put the writers where the band's name goes.

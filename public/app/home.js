@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 2 of 33: the album filter, the look, the album count, and Home's rows: their elements, and the downloads row. */
+/* The page's core (app.js until v1.0.5), 2 of 31: the album filter, the look, the album count, and Home's rows: their elements, and the downloads row. */
 // ----- Album filter (genre / tag) -----
 // null, or { type: "genre"|"tag", value: "<title>" }. Offsets in album
 // picks are positions *within the filtered list*, so the same filter must
@@ -64,7 +64,7 @@ function computeAlbumCount() {
 // The random wall again, when UI Settings changes its columns: the same
 // guards as a resize, without the phone-only limit (every size has a count).
 window.__refreshWallCount = () => {
-  if (labelsActive || unplayedWallActive || libraryWallActive) return;
+  if (unplayedWallActive || libraryWallActive) return;
   if (window.__artistViewActive && window.__artistViewActive()) return;
   if (homeView && !homeView.classList.contains("hidden")) return;
   if (window.__searchActive && window.__searchActive()) return;
@@ -81,7 +81,7 @@ let _wallResizeTimer = null;
 window.addEventListener("resize", () => {
   clearTimeout(_wallResizeTimer);
   _wallResizeTimer = setTimeout(() => {
-    if (labelsActive || unplayedWallActive || libraryWallActive) return;
+    if (unplayedWallActive || libraryWallActive) return;
     // The artist view owns the grid too — without this, a phone rotation (or
     // Safari collapsing its toolbar mid-scroll) replaced the discography with
     // a random wall while the header still said the artist's name.
@@ -103,7 +103,6 @@ const homeUnplayed = document.getElementById("home-unplayed");
 const homeToday    = document.getElementById("home-today");
 const homeRandom   = document.getElementById("home-random");
 const homeLibrary  = document.getElementById("home-library");
-const homeLotw     = document.getElementById("home-lotw");
 const homePicks    = document.getElementById("home-picks");
 const homeHistory  = document.getElementById("home-history");
 const homeGenres   = document.getElementById("home-genres");
@@ -111,7 +110,6 @@ const topbarBack   = document.getElementById("topbar-back");
 const topbarRefresh = document.getElementById("topbar-refresh");
 const topbarSearch  = document.getElementById("topbar-search");
 let homeSectionsLoaded = false;
-let homeLotwLoaded = false;   // set once the label-of-the-week row populates
 // The ORDER the Library row currently holds, or "" for nothing loaded yet.
 //
 // This was a boolean — "the row has tiles, never load it again", on the

@@ -11,7 +11,7 @@
 /*  the foot of the screen taps the page's own Menu, Home, Library,      */
 /*  Search or Offline sign; the app's side menu, its items the page's.  */
 /*  An album's own (its Share card, Edit album) are asked by its        */
-/*  offset; a label by its name.                                        */
+/*  offset.                                                             */
 /*  True when done.                                                     */
 /* ------------------------------------------------------------------ */
 window.__musicdNative = function (what, arg) {
@@ -39,13 +39,11 @@ window.__musicdNative = function (what, arg) {
     return true;
   }
   // A setting the page keeps on this device, changed in the app's own Settings (item 78): kept where the page keeps it,
-  // so the page and the app's next screens follow it. [arg]: {"name", "value"}, a UI Setting or a label's order or minimum.
+  // so the page and the app's next screens follow it. [arg]: {"name", "value"}, a UI Setting.
   if (what === "page-pref") {
     let p;
     try { p = JSON.parse(arg); } catch (e) { return false; }
     if (!p || typeof p.name !== "string" || typeof p.value !== "string") return false;
-    const local = { labelOrder: "rra-label-order", labelMin: "rra-label-min" }[p.name];
-    if (local) { try { localStorage.setItem(local, p.value); } catch (e) { /* storage blocked: the app keeps it this visit */ } return true; }
     if (!window.__uiPrefs || !window.__uiPrefs.OPTS[p.name]) return false;
     window.__uiPrefs.set(p.name, p.value);
     return true;
@@ -76,11 +74,6 @@ window.__musicdNative = function (what, arg) {
   if (what === "artist") {
     if (!arg || !window.__showArtistAlbums) return false;
     window.__showArtistAlbums(arg, {});
-    return true;
-  }
-  if (what === "label") {
-    if (!arg || !window.__showLabelAlbums) return false;
-    window.__showLabelAlbums(arg, false, null);
     return true;
   }
   // A streamed album's favourite changed on its native page: the walls take it in, or, removed, drop it (as the page's own ⋯ does).
@@ -137,14 +130,14 @@ window.__musicdNative = function (what, arg) {
     return true;
   }
   // The app's own side menu (item 67): an item it leaves to the page, the page's own item in its menu, tapped (Pitchfork,
-  // Labels, Qobuz, Tidal, Shelf, Settings, Restart, Shut down); "reopen", the page's menu open again on the page the
+  // Qobuz, Tidal, Shelf, Settings, Restart, Shut down); "reopen", the page's menu open again on the page the
   // Offline switch loads (menu-drawer.js, its REOPEN_KEY), so only the switch is seen to move.
   if (what === "menu") {
     if (arg === "reopen") {
       try { localStorage.setItem("rra-menu-reopen", String(Date.now())); } catch (e) { /* storage refused: the menu stays shut */ }
       return true;
     }
-    const b = /^(pitchfork|labels|qobuz|tidal|shelf|settings|power-restart|power-shutdown)$/.test(arg || "") ? document.querySelector('[data-parity="menu.' + arg + '"]') : null;
+    const b = /^(pitchfork|qobuz|tidal|shelf|settings|power-restart|power-shutdown)$/.test(arg || "") ? document.querySelector('[data-parity="menu.' + arg + '"]') : null;
     if (!b) return false;
     b.click();
     return true;

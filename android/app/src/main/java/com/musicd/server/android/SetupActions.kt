@@ -61,12 +61,6 @@ internal fun setPagePref(context: Context, name: String, value: String): WallPre
 
 internal const val PICKS_INFO = "Five records from your own library each day, by acts next to the ones you have been playing (Deezer's related-artists lists), or from the least-played corners of the library when there is no history yet. Steady until tomorrow. Not for me keeps an artist out for good."
 internal const val HOUR_INFO = "The hour the daily build runs, in this server's local time (its time zone). If the server is off at that hour, the build runs the next time it starts."
-internal val LABELS_INFO = listOf(
-    "Off by default. When on, each album's record label comes from its files' LABEL tag (or, for a library filed by label, from the folder at the depth set below): a Labels screen in the side menu, a label on the album page and share card, labels in search, a Record label filter in Library Focus and a Label of the week row on Home. An album whose files carry no label tag is looked up on MusicBrainz, then Discogs (with your token); the files' own tag always wins.",
-    "When you open a record label, list its albums alphabetically or shuffle them.",
-    "Hide labels that have fewer albums than this threshold. Useful if the scanner picks up one-off compilations from unexpected labels.",
-    "Ask again about every album whose files carry no label tag, and look again for the logos not found before. The tags themselves are read by the library scan (Settings → Music folders).",
-    "For local libraries filed in label folders. 0 = off (use each file's own label tag, the default). Otherwise the label is taken from the folder at this depth under your music root — e.g. /music/Jazz/Blue Note Records/Album is depth 2. Fixes reissues being split off under their pressing label (e.g. an album in your Blue Note folder showing as EMI Finland). Saving applies it at once.")
 internal val UI_NAMES = listOf("Album & artist text", "Grid screen title", "Menu & Home Screen text", "Grid layout", "Tile size")
 internal val UI_INFO = listOf(
     "The size of the album name and artist name under every tile — on the Home carousels and on every grid screen.",

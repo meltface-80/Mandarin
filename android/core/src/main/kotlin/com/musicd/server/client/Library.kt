@@ -255,20 +255,19 @@ data class ArtistAlbums(val artist: String, val primary: List<AlbumSummary>, val
 }
 
 /**
- * The library searched (/api/search): the albums found, best first, and the artists and labels whose names match; while
+ * The library searched (/api/search): the albums found, best first, and the artists whose names match; while
  * the index is first being built, [building] with how far ([progress], 0 to 1) and nothing found yet (item 61).
  */
-data class SearchResults(val query: String, val albums: List<AlbumSummary>, val artists: List<String>, val labels: List<String>,
+data class SearchResults(val query: String, val albums: List<AlbumSummary>, val artists: List<String>,
                          val building: Boolean = false, val progress: Double = 0.0) {
     /** Nothing found of any kind. */
-    val empty: Boolean get() = albums.isEmpty() && artists.isEmpty() && labels.isEmpty()
+    val empty: Boolean get() = albums.isEmpty() && artists.isEmpty()
 
-    /** The count beside the field, as the page writes it: "3 artists, 1 label, 60+ albums" (the + where the 60 asked for came back). */
+    /** The count beside the field, as the page writes it: "3 artists, 60+ albums" (the + where the 60 asked for came back). */
     fun status(): String {
         if (building) return "Building index… " + Math.round(progress * 100) + "%"
         val parts = ArrayList<String>()
         if (artists.isNotEmpty()) parts += "${artists.size} artist" + (if (artists.size == 1) "" else "s")
-        if (labels.isNotEmpty()) parts += "${labels.size} label" + (if (labels.size == 1) "" else "s")
         if (albums.isNotEmpty()) parts += "${albums.size}" + (if (albums.size >= 60) "+" else "") + " album" + (if (albums.size == 1) "" else "s")
         return parts.joinToString(", ")
     }
@@ -276,11 +275,11 @@ data class SearchResults(val query: String, val albums: List<AlbumSummary>, val 
     companion object {
         fun parse(j: JSONObject) = SearchResults(
             j.optString("query", ""), j.optJSONArray("results").items(AlbumSummary::parse),
-            names(j.optJSONArray("artists")), names(j.optJSONArray("labels")),
+            names(j.optJSONArray("artists")),
             j.optBoolean("building", false), j.optDouble("progress", 0.0).let { if (it.isNaN()) 0.0 else it }
         )
 
-        // A name, or an object with one (an artist's "name", a label's "display").
+        // A name, or an object with one (an artist's "name").
         private fun names(a: JSONArray?): List<String> = if (a == null) emptyList() else (0 until a.length()).map { i ->
             a.optJSONObject(i)?.let { it.optString("name", it.optString("display", it.optString("title", ""))) } ?: a.optString(i)
         }

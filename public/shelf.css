@@ -242,7 +242,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
    even figures, never cut; on every screen since v1.9.69-t1 (the owner, from a phone: "Not showing catalogue
    numbers … not on the spine" — t6 had kept it off a screen narrower than a tablet) */
 .sp-cat { font-weight: 700; letter-spacing: .08em; }
-/* a divider card (v1.9.67): the label or decade where its run begins, wider than a letter's tab */
+/* a divider card (v1.9.67): the decade where its run begins, wider than a letter's tab */
 .sp-tab.w { font-family: var(--font-sans); font-weight: 800; font-size: 24cqw; letter-spacing: .04em; text-transform: uppercase; min-width: 0; max-width: 380cqw; padding: 18cqw 28cqw 12cqw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* two cards side by side are tiered, as a shop's dividers are, so neither hides the other */
 .sp-tab.w.up { bottom: calc(100% + 58cqw); }
@@ -254,7 +254,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .bk { position: absolute; inset: 0; container-type: inline-size; display: flex; flex-direction: column; padding: 6.5%; background: color-mix(in srgb, var(--sc, #3a3f46) 22%, #121315); color: #e9e6de; font-family: var(--font-sans); }
 .bk-ar { font-size: 3.8cqw; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #d4b06a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bk-ti { margin-top: 1.6cqw; font-family: var(--font-display); font-size: 6.4cqw; line-height: 1.08; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
-/* its label, catalogue number, kinds (v1.9.67) and year (t5) */
+/* its catalogue number, kinds (v1.9.67) and year (t5) */
 .bk-lab { margin-top: 1.2cqw; font-size: 3.2cqw; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(233,230,222,.62); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .bk-foot { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 4cqw; }
 .bk-bar { width: 20cqw; height: 7cqw; border: 1cqw solid #fff; }

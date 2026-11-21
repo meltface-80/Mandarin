@@ -199,19 +199,19 @@ a.action-btn:active,
   gap: 10px;
 }
 /* The right-hand cluster: Refresh in the corner (the grid ⇄ list button that
-   sat there went to Settings → UI Settings in v0.6.5), and the labels' tools
+   sat there went to Settings → UI Settings in v0.6.5), and a wall's tools
    where they show. */
 #topbar-refresh { margin-left: auto; }
-.labels-tools { margin-left: auto; display: flex; align-items: center; gap: 10px; min-width: 0; }
-.labels-tools.is-searching { flex: 1 1 auto; }
-.labels-tools .labels-search { flex: 1 1 auto; }
-.labels-tools .labels-search input {
+.wall-tools { margin-left: auto; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.wall-tools.is-searching { flex: 1 1 auto; }
+.wall-tools .wall-search { flex: 1 1 auto; }
+.wall-tools .wall-search input {
   flex: 1 1 auto; min-width: 0; appearance: none; background: transparent; color: var(--text);
   border: 0; outline: none; font-size: 16px; line-height: 1.2; padding: 2px 0;
 }
-.labels-tools .labels-search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
-.labels-tools > .icon-btn { flex: 0 0 auto; }
-.labels-order-txt { font-size: 13px; font-weight: 700; letter-spacing: .04em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wall-tools .wall-search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.wall-tools > .icon-btn { flex: 0 0 auto; }
+.wall-order-txt { font-size: 13px; font-weight: 700; letter-spacing: .04em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .album-count.is-hidden-by-search { display: none; }
 /* The Artists wall (artists-wall.js, bug list item 130): round pictures, the name under each, centred; a first letter where there is no picture. */
 .album.artist-tile .album-art-wrap.is-round { border-radius: 50%; }
@@ -239,19 +239,6 @@ a.action-btn:active,
 }
 .album-count.hidden { display: none; }
 
-.scan-progress-bar {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 2px;
-  background: var(--border);
-}
-.scan-progress-bar.hidden { display: none; }
-.scan-progress-fill {
-  height: 100%;
-  background: var(--accent);
-  transition: width .4s ease;
-  width: 0%;
-}
 
 .topbar-controls {
   display: flex; align-items: center; gap: 8px;
@@ -627,84 +614,6 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   font-size: 48px; color: var(--text-faint);
 }
 
-/* Record-label tiles reuse the album grid cell, with a tag glyph in place
-   of cover art (labels have no artwork). */
-.album-art-wrap.is-label {
-  display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, var(--bg-elev-2), var(--bg-elev));
-}
-.album-art-wrap.is-label svg { width: 38%; height: 38%; color: var(--text-faint); }
-
-/* Label logo tile — logo image centred with padding, not cropped */
-.album-art-wrap.is-label-logo {
-  display: flex; align-items: center; justify-content: center;
-  background: var(--bg-elev-2);
-}
-.album-art-wrap.is-label-logo img { width: 80%; height: 80%; object-fit: contain; display: block; }
-
-/* Label name text tile — shown when no logo is available.
-   Each word of the label name sits on its own line, centred.
-   font-size uses container query width (cqw) so it scales with the tile
-   and 16-letter words always fit with thin margins regardless of screen size. */
-.album-art-wrap.is-label-text {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; padding: 8px; box-sizing: border-box;
-  background: linear-gradient(135deg, var(--bg-elev-2), var(--bg-elev));
-  container-type: inline-size;
-}
-.album-art-wrap.is-label-text span {
-  display: block; text-align: center;
-  font-size: 9cqw;
-  font-weight: 700; line-height: 1.2;
-  color: var(--text); max-width: 100%;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* Back bar shown above the grid while viewing one label's albums */
-.labels-bar { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; }
-.labels-bar.hidden { display: none; }
-.labels-back {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--bg-elev); border: 1px solid var(--border);
-  color: var(--text-dim); border-radius: 999px; padding: 6px 14px 6px 10px;
-  font-size: 13px; cursor: pointer;
-  transition: background .15s ease, color .15s ease;
-}
-.labels-back:hover { color: var(--text); background: var(--bg-elev-2); }
-.labels-back:active { transform: scale(.97); }
-.labels-title {
-  font-size: 15px; font-weight: 600; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  min-width: 0; flex: 1;
-}
-.logo-url-sheet {
-  display: flex; flex-direction: column; gap: 8px;
-  padding: 6px 0 14px;
-}
-.logo-url-sheet.hidden { display: none; }
-.logo-candidates {
-  display: flex; gap: 8px; overflow-x: auto;
-  padding: 2px 0 2px; min-height: 104px;
-  align-items: center; scrollbar-width: none;
-}
-.logo-candidates::-webkit-scrollbar { display: none; }
-.logo-candidates-hint { font-size: 12px; color: var(--text); opacity: 0.5; }
-.logo-candidate-btn {
-  flex-shrink: 0; width: 104px; height: 104px; padding: 2px;
-  border-radius: 8px; overflow: hidden;
-  border: 2px solid var(--border); cursor: pointer;
-  background: var(--bg-elev-2);
-}
-.logo-candidate-btn img { width: 100%; height: 100%; object-fit: contain; border-radius: 4px; }
-.logo-candidate-btn:active { border-color: var(--accent); }
-.logo-manual-row { display: flex; align-items: center; gap: 8px; }
-.logo-url-input {
-  flex: 1; min-width: 0;
-  background: var(--bg-elev-2); border: 1px solid var(--border);
-  border-radius: 8px; padding: 8px 12px;
-  color: var(--text); font-size: 14px; font-family: inherit;
-}
-.logo-url-input:focus { outline: none; border-color: var(--accent); }
 .album-meta { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .album-title {
   font-size: calc(14px * var(--ui-text, 1)); font-weight: 500; color: var(--text); line-height: 1.3;
@@ -937,8 +846,8 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 }
 .modal:not(.np-mode) #modal-title { margin: 0 0 6px; font-size: 24px; }
 .modal:not(.np-mode) .modal-subtitle { margin: 0; }
-/* A line each under the artists (bug list item 28): the date (its label and
-   score after it), then the rate and the album's length. A line with nothing
+/* A line each under the artists (bug list item 28): the date (its score
+   after it), then the rate and the album's length. A line with nothing
    to say takes no room. */
 .modal-date { margin-top: 3px; font-size: 14px; color: var(--text-dim); }
 .modal-date:empty { display: none; }
@@ -1014,8 +923,8 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   flex: 1 1 0; min-width: 0;
   /*  ONE height for every .action-btn in the app. It used to render at 40px
-      in the album modal, 38px on a track row and 38px in the label merge
-      sheet — the same class, several heights, because each container
+      in the album modal, 38px on a track row and 38px in the select
+      bar — the same class, several heights, because each container
       re-declared its own padding.  */
   min-height: var(--ctl-h);
   padding: 0 8px;
@@ -1045,8 +954,8 @@ main { padding-top: calc(var(--topbar-h) + 14px); }
 .action-btn[disabled] { opacity: .55; cursor: not-allowed; }
 
 /* Album-view action row, Roon-styled. SCOPED to .modal-actions on purpose:
-   .action-btn is shared with the logo sheet, the label merge bar, the album
-   multi-select bar, the Library Focus sheet, the Settings rescan button and
+   .action-btn is shared with the album multi-select bar, the Library Focus
+   sheet, the Settings buttons and
    the per-track buttons — restyling the base class would move all of them.
    The layout is deliberately unchanged (same four buttons, same equal-width
    row); only the finish moves: Roon's secondary actions are outlined on the
@@ -3295,18 +3204,13 @@ input.vol-range::-moz-range-thumb {
 /*  Label select / merge UI                                            */
 /* ------------------------------------------------------------------ */
 
-/* Selected tile states — applies to both label tiles and regular album tiles */
-.album.is-selected .album-art-wrap,
-.album.label-tile.is-first-selected .album-art-wrap {
+/* Selected tile states */
+.album.is-selected .album-art-wrap {
   outline: 2.5px solid rgba(255,255,255,.35);
   outline-offset: -2px;
 }
-.album.label-tile.is-first-selected .album-art-wrap {
-  outline-color: var(--accent-text);
-}
 /* Checkmark badge */
-.album.is-selected .album-art-wrap::after,
-.album.label-tile.is-first-selected .album-art-wrap::after {
+.album.is-selected .album-art-wrap::after {
   content: "";
   position: absolute; top: 5px; right: 5px; z-index: 2;
   width: 20px; height: 20px; border-radius: 50%;
@@ -3314,21 +3218,9 @@ input.vol-range::-moz-range-thumb {
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E")
     center/13px no-repeat;
 }
-.album.label-tile.is-first-selected .album-art-wrap::after {
-  background-color: var(--accent-text);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b1418' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
-}
 
-/* "N merged" text under the label subtitle */
-.album-merged-info {
-  font-size: 10px; color: var(--accent-text);
-  margin-top: 1px; cursor: pointer; user-select: none;
-  letter-spacing: .02em;
-}
-.album-merged-info:hover { text-decoration: underline; }
-
-/* Bottom merge action bar */
-.label-merge-bar {
+/* Bottom action bar: the albums selected */
+.select-bar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 75;
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 12px 16px;
@@ -3338,50 +3230,17 @@ input.vol-range::-moz-range-thumb {
   border-top: 1px solid var(--border);
   box-shadow: 0 -4px 16px rgba(0,0,0,.22);
 }
-.label-merge-bar.hidden { display: none; }
-.label-merge-info {
+.select-bar.hidden { display: none; }
+.select-info {
   flex: 1; min-width: 0;
   font-size: 13px; color: var(--text-dim);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.label-merge-info strong { color: var(--text); }
-.label-merge-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
-.label-merge-actions .action-btn { flex: none; min-height: var(--ctl-h); padding: 0 var(--ctl-pad-x); }
+.select-info strong { color: var(--text); }
+.select-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.select-actions .action-btn { flex: none; min-height: var(--ctl-h); padding: 0 var(--ctl-pad-x); }
 
 /* Unmerge bottom sheet */
-.label-unmerge-sheet {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
-  background: var(--bg-elev); border-top: 1px solid var(--border);
-  border-radius: 14px 14px 0 0;
-  padding: 0 0 calc(8px + env(safe-area-inset-bottom));
-  box-shadow: 0 -8px 32px rgba(0,0,0,.4);
-  max-height: 55vh; overflow-y: auto;
-}
-.label-unmerge-sheet.hidden { display: none; }
-.label-unmerge-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px 10px;
-  border-bottom: 1px solid var(--border);
-  font-size: 14px; color: var(--text-dim);
-  position: sticky; top: 0; background: var(--bg-elev);
-}
-.label-unmerge-header strong { color: var(--text); }
-.label-unmerge-list { padding: 6px 0; }
-.label-unmerge-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 16px; gap: 12px;
-  border-bottom: 1px solid var(--border);
-}
-.label-unmerge-row:last-child { border-bottom: none; }
-.label-unmerge-source {
-  flex: 1; font-size: 14px; color: var(--text);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.label-unmerge-remove {
-  flex-shrink: 0; width: 32px; height: 32px;
-  color: var(--danger); border-color: var(--danger);
-}
-.label-unmerge-remove:hover { background: rgba(224,100,100,.12); }
 
 /* Qobuz browser overlay — full-screen, fixed-frame variant of the settings
    sheet. The sheet's height is viewport-driven, never content-driven, so the
@@ -3706,7 +3565,6 @@ input.vol-range::-moz-range-thumb {
 @supports not (aspect-ratio: 1 / 1) {
   .album-art-wrap::before { content: ""; display: block; padding-top: 100%; }
   .album-art-wrap img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-  .album-art-wrap.is-label-logo img { top: 10%; left: 10%; width: 80%; height: 80%; }
 
   /* Label text tile is a COLUMN flex of <span> words — the ::before
      spacer would become the first flex item and stack a square's worth
@@ -3715,12 +3573,7 @@ input.vol-range::-moz-range-thumb {
      stay flex-centred on the content box, which sits exactly at the
      vertical middle of the square. width:auto lets the grid stretch the
      border box to the track despite content-box sizing. */
-  .album-art-wrap.is-label-text::before { content: none; }
-  .album-art-wrap.is-label-text {
-    box-sizing: content-box; width: auto; height: 0; padding: 50% 8px;
-  }
   /* cqw units don't exist on old Safari — give the words a fixed size */
-  .album-art-wrap.is-label-text span { font-size: 12px; }
 
   /* Album modal artwork relies on aspect-ratio too */
   .modal-art { position: relative; }
@@ -3841,7 +3694,6 @@ input.vol-range::-moz-range-thumb {
    intrinsic size reserves roughly one carousel row so the scrollbar doesn't
    jump. (Older Safari ignores content-visibility — harmless.) */
 .home-section-library,
-.home-section-lotw,
 .home-section-genres {
   content-visibility: auto;
   contain-intrinsic-size: auto 320px;
@@ -5270,13 +5122,6 @@ button.cap-chip:active { transform: scale(.96); }
 }
 [data-palette="hifi"] .home-section-link::after { color: var(--text); font-size: 20px; }
 [data-palette="hifi"] .home-section-link:hover { color: var(--accent-text); }
-/* Label of the week: the label's own name, large, under the heading. */
-[data-palette="hifi"] .home-lotw-name {
-  display: block; margin-top: 5px; font-family: var(--font-display); font-size: 24px; font-weight: 400;
-  letter-spacing: 0; text-transform: none; color: var(--text); line-height: 1.15;
-}
-[data-palette="hifi"] .home-lotw-sep { display: none; }
-[data-palette="hifi"] .home-section-lotw .home-section-link { align-items: flex-end; }
 
 [data-palette="hifi"] .home-carousel { grid-auto-columns: calc(144px * var(--ui-tile, 1)); gap: 16px; padding-bottom: 18px; }
 
@@ -5617,9 +5462,9 @@ button.cap-chip:active { transform: scale(.96); }
 .album-versions { font-size: 12px; color: var(--text-faint, var(--text-dim)); margin-top: 1px; }
 .ae-folder-box { display: block; margin-top: 4px; color: var(--text); }
 
-/* The labels' #–Z / Z–# button: a pill wide enough for its text (v0.6.5),
+/* A wall's sort button (the Artists' #–Z / Z–#): a pill wide enough for its text (v0.6.5),
    after the palette's round discs so it keeps its shape. */
-html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 0 10px; border-radius: 999px; }
+html .topbar .icon-btn.wall-sort-btn { width: auto; min-width: 44px; padding: 0 10px; border-radius: 999px; }
 
 /* The Library wall's controls (v0.6.24): their own row under the top bar's,
    smaller than the bar's buttons — Focus on the left, Sort and the magnifier
@@ -6174,7 +6019,7 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
      up into the buttons' line, on the right. */
   #library-filter:not(.is-filtering) .lib-filter-btn { display: none; }
   /* The Labels list likewise: Search in the row finds a label; #–Z alone on the right. */
-  .topbar #labels-search-btn, .topbar #artists-search-btn { display: none; }
+  .topbar #artists-search-btn { display: none; }
   .topbar.lib-wall .library-controls {
     position: absolute; top: calc(12px + env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); z-index: 1;
     display: flex; align-items: center; gap: 8px; height: var(--ctl-h); margin: 0; padding: 0; background: none; border: 0;
@@ -6193,12 +6038,6 @@ html .topbar .icon-btn.labels-sort-btn { width: auto; min-width: 44px; padding: 
   .lib-ctl-sort .lib-ctl-text, .lib-ctl-sort .lib-ctl-arrow { display: none; }
   .lib-ctl-sort::before { content: "Sort"; }
 
-  /* The scan's progress: a thin brass line along the top of the screen. */
-  .scan-progress-bar {
-    position: fixed; top: env(safe-area-inset-top); bottom: auto; left: 0; right: 0; z-index: 75;
-    height: 3px; background: transparent;
-  }
-  .scan-progress-fill { background: var(--accent); }
 }
 
 /* A tablet, either way round (item 215, the owner's): the mini player as the Android app has it, docked on the row along

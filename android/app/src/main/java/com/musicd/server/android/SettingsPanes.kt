@@ -193,7 +193,7 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
 }
 
 /**
- * API Keys: what they are for; Discogs, Last.fm and Last.fm's shared secret (AcoustID's and FanArt.tv's are Mandarin's own since
+ * API Keys: what they are for; Last.fm and Last.fm's shared secret (AcoustID's and FanArt.tv's are Mandarin's own since
  * item 491), each with its ⓘ (its help along
  * the foot for as long as it takes to read), the box to paste the key into (its ✓ or ✕ once checked, what the box says),
  * Save, and what the server says of the key. Then Scrobbling (Scrobbling.kt; the page's settings-lastfm.js): what it is,

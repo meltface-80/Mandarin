@@ -49,13 +49,12 @@ internal sealed partial class Album
     public long? ScannedYear;
     public Box? Box;
     public bool Transient;
-    public string? LabelName, LabelKey, LabelSource;
     public long? ArtistId, ActId; public string? ActNote;   // its artist; the act, where acts share its name (item 330, Library.Artists.cs)
 }
 
 internal sealed record Box(string Name, long Disc, long Of, List<long> Ids);
 
-internal sealed record LibState(string Boot, long Version, long Marks, bool Building, JsonNode? Progress, bool LabelsOn, int Depth, List<string> Roots)
+internal sealed record LibState(string Boot, long Version, long Marks, bool Building, JsonNode? Progress, List<string> Roots)
 {
     // The day ("2026-10-7"), when it began, and the ISO week, on this clock.
     public string Day { get; init; } = "";
@@ -65,20 +64,12 @@ internal sealed record LibState(string Boot, long Version, long Marks, bool Buil
     public string Week { get; init; } = "";
     // The library scan running now (the identification scan waits for it).
     public bool Scanning { get; init; }
-    // When the library was last read (the label wall's builtAt).
+    // When the library was last read.
     public double? BuiltAt { get; init; }
 
-    public string Sig => Boot + "|" + Version + "|" + LabelsOn + "|" + Depth + "|" + string.Join("\n", Roots);
-    // The same but the version: what a copy answered from always matches (the label rules, the music folders).
-    public string Rest => Boot + "|" + LabelsOn + "|" + Depth + "|" + string.Join("\n", Roots);
-}
-
-internal sealed class LabelGroup
-{
-    public string Key = "", Title = "";
-    public Dictionary<string, int> Names = [], OwnNames = [];
-    public List<Album> Albums = [];
-    public List<(string Key, string Display)> MergedFrom = [];
+    public string Sig => Boot + "|" + Version + "|" + string.Join("\n", Roots);
+    // The same but the version: what a copy answered from always matches (the music folders).
+    public string Rest => Boot + "|" + string.Join("\n", Roots);
 }
 
 internal sealed class Marks(Dictionary<string, long> fav, Dictionary<string, long> later, long n)
@@ -94,24 +85,13 @@ internal sealed partial class Snapshot
     public List<Album> Albums = [];
     public Dictionary<long, Album> ById = [];
     public volatile Marks Marks = new([], [], 0);
-    public Dictionary<string, (string Target, string SourceName)> LabelMerges = [];
     public Dictionary<string, Dictionary<string, string>> TrackEdits = [];
-    public bool LabelsOn;
-    public Dictionary<string, LabelGroup> LabelGroups = [];
     public readonly Dictionary<string, List<Album>> ViewCache = [];
     /* Which albums the library holds, as one short mark: it moves when one comes or goes, not when one is edited (v0.8.43). */
     public string AlbumSet = "";
 
     public int Count => Albums.Count;
     public Album? Find(double id) => !double.IsNaN(id) && id == Math.Floor(id) && ById.TryGetValue((long)id, out var a) ? a : null;
-
-    public string? LabelOf(Album al)
-    {
-        if (!LabelsOn || al.LabelName == null) return null;
-        if (!LabelMerges.TryGetValue(al.LabelKey!, out var m)) return al.LabelName;
-        return LabelGroups.TryGetValue(m.Target, out var g) ? g.Title : al.LabelName;
-    }
-    public string MergedKey(string key) => LabelMerges.TryGetValue(key, out var m) ? m.Target : key;
 }
 
 internal static partial class Library
@@ -122,7 +102,6 @@ internal static partial class Library
     public static byte[] SortKey(string s) => Collation.GetSortKey(s, CompareOptions.None).KeyData;
     /* Lc, by sort keys. */
     public static int Kc(byte[] a, byte[] b) => Math.Sign(a.AsSpan().SequenceCompareTo(b));
-    private static int LcBase(string a, string b) => Math.Sign(Collation.Compare(a, b, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreKanaType | CompareOptions.IgnoreWidth));
 
     private static readonly string[] Services = ["qobuz", "tidal", "ibroadcast"];
     private static string? ServiceOf(string key) => Services.FirstOrDefault(s => key.StartsWith(s + ":", StringComparison.Ordinal));
@@ -378,25 +357,10 @@ internal static partial class Library
         {
             Sig = st.Sig, Rest = st.Rest, Version = st.Version,
             Albums = all.Where(a => !a.Transient).ToList(),
-            LabelsOn = st.LabelsOn,
         };
         foreach (var a in all) s.ById[a.Id] = a;
         s.Marks = ReadMarks(c, st.Marks);
 
-        // Merged labels, a chain followed to its end.
-        var merges = Rows(c, "SELECT source_key, source_name, target_key FROM label_merges");
-        var direct = new Dictionary<string, string>();
-        foreach (var r in merges) direct[(string)r[0]!] = (string)r[2]!;
-        foreach (var r in merges)
-        {
-            string src = (string)r[0]!, t = (string)r[2]!;
-            int hops = 0;
-            while (direct.TryGetValue(t, out var next) && hops++ < 20 && t != src) t = next;
-            s.LabelMerges[src] = (t, (string)r[1]!);
-        }
-        var lookups = new Dictionary<string, string>();
-        try { foreach (var r in Rows(c, "SELECT key, label FROM label_lookups WHERE label IS NOT NULL")) lookups[(string)r[0]!] = Convert.ToString(r[1], CultureInfo.InvariantCulture)!; }
-        catch (SqliteException) { /* an older database without the table */ }
         foreach (var r in Rows(c, "SELECT key, pos, title FROM track_edits WHERE title IS NOT NULL"))
         {
             var k = (string)r[0]!;
@@ -404,19 +368,7 @@ internal static partial class Library
             m[(string)r[1]!] = Convert.ToString(r[2], CultureInfo.InvariantCulture)!;
         }
 
-        // Each album's label under the rules.
-        foreach (var al in s.Albums)
-        {
-            string? name = st.Depth > 0 ? Names.LabelFromFolder(al.Dir, st.Roots, st.Depth) : null, source = "folder";
-            if (string.IsNullOrEmpty(name)) { name = al.Label; source = "tag"; }
-            if (Names.IsLikelyNotALabel(name)) name = null;
-            if (name == null && lookups.TryGetValue(al.Key, out var looked)) { name = looked; source = "lookup"; }
-            al.LabelName = !string.IsNullOrEmpty(name) ? Names.CanonicalLabelName(name) : null;
-            al.LabelKey = !string.IsNullOrEmpty(name) ? Names.LabelKey(name) : null;
-            al.LabelSource = !string.IsNullOrEmpty(name) ? source : null;
-        }
         Acts(c, s); Versions(c, s);   // acts that share a name, told apart (item 330); one album's versions (item 345)
-        s.LabelGroups = BuildLabelGroups(s);
         s.AlbumSet = AlbumSetOf(s.Albums);
         return s;
     }

@@ -209,21 +209,10 @@ class ServerClient(
     fun playingAlbum(zoneId: String): Boolean = RoomMove.playing(getJson("/api/album/now-playing?zone=" + enc(zoneId)))
     fun transferZone(from: String, to: String) { post("/api/transfer-zone", JSONObject().put("from", from).put("to", to)) }
 
-    /** Labels (item 71): a logo saved for one (the address the server kept), labels merged into the first, one taken out again, the scan run again, its log. */
-    fun saveLabelLogo(label: String, url: String): String {
-        val j = post("/api/labels/logo", JSONObject().put("label", label).put("url", url))
-        if (!j.optBoolean("ok")) throw IOException(j.optString("error").ifEmpty { "Failed to save logo" })
-        return j.optString("storedUrl").ifEmpty { url }
-    }
-    fun mergeLabels(items: List<MergedLabel>) { post("/api/labels/merge", JSONObject().put("items", org.json.JSONArray(items.map { JSONObject().put("key", it.key).put("display", it.display) }))) }
-    fun unmergeLabel(key: String) { send("DELETE", "/api/labels/merge/" + enc(key)) }
     /** One of the server's backups deleted (item 92). */
     fun deleteBackup(id: String) { send("DELETE", "/api/backup/" + enc(id)) }
-    fun rescanLabels() { post("/api/labels/rescan", JSONObject()) }
     /** The library's own files as a CSV for Mandarin Migration (item 436, [Export]): two minutes for a large library. */
     fun exportCsv(): ByteArray = transport.bytes(Export.PATH, 120_000)
-
-    fun labelsScanLog(): String = String(transport.bytes("/api/labels-scan-log", timeoutMs), Charsets.UTF_8)
 
     /**
      * The album editor (item 74): the editor's view of an album; the covers found on the web and the releases
@@ -253,7 +242,7 @@ class ServerClient(
 
     /**
      * Settings (item 76): the server's version; the devices signed in to the account, and one signed out; an API key as
-     * the server has it ([route]: "discogs-token", "fanart-key", "lastfm-key"), and a new one saved (checked by its service).
+     * the server has it ([route]: "lastfm-key", "lastfm-secret"), and a new one saved (checked by its service).
      */
     fun updateStatus(): JSONObject = getJson("/api/update/status")
     fun accountDevices(): AccountDevices = AccountDevices.parse(getJson(AccountDevices.PATH))
@@ -270,14 +259,12 @@ class ServerClient(
     }
 
     /**
-     * Setup's pages (item 78): one of the server's settings as it has it ([name]: "smart-picks", "labels", "display",
-     * "shelf", "label-folder-depth"), a change to it saved (its answer), today's picks built again, the labels looked
-     * for again.
+     * Setup's pages (item 78): one of the server's settings as it has it ([name]: "smart-picks", "display", "shelf"),
+     * a change to it saved (its answer), today's picks built again.
      */
     fun setting(name: String): JSONObject = getJson("/api/settings/$name")
     fun saveSetting(name: String, body: JSONObject): JSONObject = post("/api/settings/$name", body, 20_000)
     fun rebuildPicks(): JSONObject = post("/api/smart-picks/rebuild", JSONObject())
-    fun rescanLabelsNow(): JSONObject = post("/api/labels/rescan-force", JSONObject())
     /** The server's built-in Tailscale (item 80), and [what] done to it ("enable" with {on}, "login", "logout"): its state after. */
     fun tailscale(): AwayState = AwayState.parse(getJson(AwayState.PATH))
     fun tailscaleDo(what: String, body: JSONObject = JSONObject()): AwayState = AwayState.parse(post("/api/tailscale/$what", body, 30_000))

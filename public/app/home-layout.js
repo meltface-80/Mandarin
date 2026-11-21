@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 3 of 33: Music on device's Focus and Sort, and Home's layout: which rows show, in what order. */
+/* The page's core (app.js until v1.0.5), 3 of 31: Music on device's Focus and Sort, and Home's layout: which rows show, in what order. */
 // ----- Music on device: Focus and Sort (v0.7.4) --------------------------
 // The Library wall's controls, for the phone's own albums: the same row,
 // the same sheets and chips, with what the phone's index knows — the
@@ -237,8 +237,6 @@ const HOME_ROWS = [
     load: () => { loadHomeHistory(); }, isFresh: () => homeHistoryLoaded },
   { id: "picks",    title: "Smart Picks",
     load: () => { loadHomeSmartPicks(); }, isFresh: () => homePicksDay === localDayKey() },
-  { id: "lotw",     title: "Label of the week",
-    load: () => { loadHomeLabelOfWeek(); }, isFresh: () => homeLotwLoaded },
   { id: "random",   title: "Random albums",
     load: () => { loadHomeRandom(); }, isFresh: () => false },
   { id: "library",  title: "Library",
@@ -266,7 +264,7 @@ let homeLayout = HOME_ROWS.map(r => ({ id: r.id, on: true }));
 // fresh install has no history and no picks, and an empty labelled shelf
 // reads as a fault rather than an absence.
 function rowHidesWhenEmpty(id) {
-  return id === "unplayed" || id === "history" || id === "picks" || id === "lotw" || id === "favourites" || id === "later" || id === "phone";
+  return id === "unplayed" || id === "history" || id === "picks" || id === "favourites" || id === "later" || id === "phone";
 }
 function rowHasAnyContent(sectionEl) {
   return !!(sectionEl && sectionEl.querySelector(".album, .pick-card, .home-genre-tile"));
@@ -282,17 +280,17 @@ function applyHomeLayout() {
     // for the rest of the session: nothing removed the class, and the
     // renderers write into the carousel div rather than the section wrapper.
     //
-    // Rows that hide themselves when empty (History, Smart Picks, Label of
-    // the week) get their emptiness respected: re-showing a row the layout
+    // Rows that hide themselves when empty (History, Smart Picks) get their
+    // emptiness respected: re-showing a row the layout
     // enables must not un-hide one that simply has nothing in it.
     // `unavailable` beats the stored preference: the feature behind the row
     // is switched off, so there is nothing for it to show. Kept separate from
     // `on` so the user's own choice survives untouched until they turn the
     // feature back on.
     //
-    // Belt and braces, honestly labelled: the two rows that can currently be
-    // unavailable (picks, lotw) are also the two that hide themselves when
-    // empty, and with their feature off they ARE empty — so today this term
+    // Belt and braces, honestly labelled: the one row that can currently be
+    // unavailable (picks) also hides itself when empty, and with its feature
+    // off it IS empty — so today this term
     // changes nothing on its own. The gate that does the work is homeRowOn(),
     // which stops the row's loader running at all. This one states the intent
     // so a future unavailable row that does not hide-when-empty is covered.
@@ -351,7 +349,7 @@ function applyAlbumView() {
 // `view` (whether the screen shows album tiles) is kept for the callers'
 // sake; nothing in the bar depends on it since the list button went.
 // The menu button is Home's alone (v0.6.24): on every other screen — the
-// album grids, Labels, Listen later, Smart Picks, an artist — the brass ‹
+// album grids, Listen later, Smart Picks, an artist — the brass ‹
 // stands where it was. Followed from the ‹ itself, wherever it is toggled.
 {
   const menuBtn = document.getElementById("menu-toggle");

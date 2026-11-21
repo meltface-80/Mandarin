@@ -22,11 +22,11 @@ object SettingsLists {
     const val SQ_TOOL = "/sq-tool/"
 
     /** Setup's list, the app's Downloads before Away from home, as the page puts it in the app. */
-    val SETUP = listOf(SettingsRow("smartpicks", "Smart Picks"), SettingsRow("labels", "Record labels"), SettingsRow("homescreen", "Home Screen"),
+    val SETUP = listOf(SettingsRow("smartpicks", "Smart Picks"), SettingsRow("homescreen", "Home Screen"),
         SettingsRow("ui", "UI Settings"), SettingsRow("display", "Wall Display"), SettingsRow("shelfset", "Shelf"),
         SettingsRow("downloads", "Downloads"), SettingsRow("away", "Away from home"), SettingsRow("metadata", "API Keys"))
 
-    const val SETUP_DESC = "Smart Picks, record labels, the Home screen, the look, the wall display and Shelf, away from home, API keys"
+    const val SETUP_DESC = "Smart Picks, the Home screen, the look, the wall display and Shelf, away from home, API keys"
     const val REPO = "https://github.com/meltface-80/Mandarin"
 
     /** The version at the list's foot, from /api/update/status: "Mandarin v1.0 (Build 17)"; null when there is none to say. */
@@ -122,10 +122,8 @@ data class ApiKeySpec(val route: String, val field: String, val name: String, va
     fun saved(k: ApiKey): String = if (k.bad) "Saved, but $service refused this $noun" else "$service $noun saved" + if (k.ok) " — checked and working" else ""
 
     companion object {
-        const val DESC = "Discogs token — record label logos and label lookups; Last.fm key — similar artists and albums, and with its shared secret, scrobbling. All optional."
+        const val DESC = "Last.fm key — similar artists and albums, and with its shared secret, scrobbling. All optional."
         val ALL = listOf(
-            ApiKeySpec("discogs-token", "token", "Discogs token", "Paste personal access token…", "Discogs", "token",
-                "A personal access token from discogs.com/settings/developers. Finds record label logos, and the label of albums whose files carry none. Not required, but recommended."),
             ApiKeySpec("lastfm-key", "key", "Last.fm key", "Paste Last.fm API key…", "Last.fm", "key", LASTFM_KEY_INFO),
             ApiKeySpec("lastfm-secret", "secret", "Last.fm shared secret", "Paste Last.fm shared secret…", "Last.fm", "shared secret", LASTFM_SECRET_INFO))
         const val LASTFM_KEY_INFO = "A free API key from last.fm/api/account/create (any application name will do). Artist and album pages then show similar artists and albums from Last.fm. With its shared secret below and your account connected, what you play is scrobbled to Last.fm."

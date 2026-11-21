@@ -1,10 +1,10 @@
-/* The page's core: the album view on its own, for the Shelf (item 218); and the page opened at an artist, a label or a genre. */
+/* The page's core: the album view on its own, for the Shelf (item 218); and the page opened at an artist or a genre. */
 // The owner: the Shelf's album view and the library's are the same screen. So the Shelf (shelf.html) shows an
 // album in this page, held in a frame of its own over the shelf (/?embed=album): the album view alone, over the
 // whole frame, the rest of the page out of sight (its bar, its walls, its row, its mini player: the Shelf has its
 // own bar). The Shelf says which album, and the room it plays in (a message, { type: "musicd-album", album, zone });
 // the page says when it is ready, when the album is closed, and where the album asks to go that isn't an album —
-// an artist, a label, a genre ({ type: "musicd-go", what, arg }), which the Shelf opens as the whole page,
+// an artist or a genre ({ type: "musicd-go", what, arg }), which the Shelf opens as the whole page,
 // /?go=<what>&arg=<name>, read below. Messages only from and to this page's own address.
 (function albumEmbed() {
   "use strict";
@@ -18,13 +18,13 @@
     else window.addEventListener("musicd-ready", () => fn(), { once: true });
   }
 
-  // ---- The page opened at an artist, a label or a genre (/?go=…&arg=…) ----
+  // ---- The page opened at an artist or a genre (/?go=…&arg=…) ----
   const go = q.get("go"), arg = q.get("arg");
   if (!embedded && go && arg) {
     history.replaceState(null, "", location.pathname);
     whenReady(() => {
       if (go === "genre") { if (w.__applyFilter) w.__applyFilter({ type: "genre", value: arg }); }
-      else if (go === "artist" || go === "label") w.__musicdNative(go, arg);
+      else if (go === "artist") w.__musicdNative(go, arg);
     });
   }
   if (!embedded) return;
@@ -37,7 +37,6 @@
   // has run (a microtask), over what the parts after this one set.
   queueMicrotask(() => {
     w.__showArtistAlbums = (/** @type {string} */ name) => tell({ type: "musicd-go", what: "artist", arg: name });
-    w.__showLabelAlbums = (/** @type {string} */ name) => tell({ type: "musicd-go", what: "label", arg: name });
     w.__applyFilter = (/** @type {any} */ f) => { if (f && f.type === "genre") tell({ type: "musicd-go", what: "genre", arg: f.value }); };
   });
 

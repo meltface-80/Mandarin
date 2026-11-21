@@ -1,4 +1,4 @@
-// Images.cs — album covers and record labels' logos (v0.8.5), from the
+// Images.cs — album covers (v0.8.5), from the
 // /api/image route of lib/server/api-library.js.
 //
 // Every size of every cover is drawn once and kept in <data>/art, and sent
@@ -21,7 +21,7 @@ namespace Mandarin.Server;
 internal static class Images
 {
     private static readonly int[] Steps = [120, 200, 300, 400, 600, 800, 1200];
-    private static string artDir = "", labelDir = "";
+    private static string artDir = "";
     public static string ArtDir => artDir;
 
     // The covers missed, by image key: when. A few thousand at most, all forgotten past that.
@@ -49,7 +49,6 @@ internal static class Images
     public static void Use(WebApplication app, string dataDir)
     {
         artDir = Path.Combine(dataDir, "art");
-        labelDir = Path.Combine(dataDir, "labels");
         app.Use(async (ctx, next) =>
         {
             var p = ctx.Request.Path.Value ?? "";
@@ -90,26 +89,6 @@ internal static class Images
         bool may;
         using (var c = Db.Open()) may = Signed(ctx, c) || Auth.Through(ctx, c);
         if (!may && !await FromSpeaker(ctx)) return false;
-
-        // A record label's logo, as kept: its address changes with it.
-        if (key.StartsWith("label-", StringComparison.Ordinal))
-        {
-            var lk = new string(key[6..].Where(ch => ch is >= 'a' and <= 'z' or >= '0' and <= '9').ToArray());
-            string? file = null, type = null;
-            using (var c = Db.Open())
-            {
-                using var cmd = c.CreateCommand();
-                cmd.CommandText = "SELECT file, type FROM label_logos WHERE key = $k";
-                cmd.Parameters.AddWithValue("$k", lk);
-                using var r = cmd.ExecuteReader();
-                if (r.Read()) { file = r.GetString(0); type = r.GetString(1); }
-            }
-            if (file == null) return false;
-            var full = Path.GetFullPath(Path.Combine(labelDir, file));
-            if (!full.StartsWith(Path.GetFullPath(labelDir) + "/", StringComparison.Ordinal) || !File.Exists(full)) return false;
-            await SendFile(ctx, full, type!, "public, max-age=604800, immutable");
-            return true;
-        }
 
         // An album's address changes with its cover. One from before a change
         // is answered with the album's current cover, and not kept.

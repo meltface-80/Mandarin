@@ -19,7 +19,7 @@
  *   facets.tiles(tab)               a tab's tiles (null: not one of these)
  *   facets.counts(tab, albums, passes), facets.labelOf(cat, id), facets.note(tab, n)
  *   facets.have(cat)                the ids the library has now, to let go of one that has gone
- *   facets.fanOf(name, keys)        three covers for a tile, spread through its albums (a genre's and a label's too)
+ *   facets.fanOf(name, keys)        three covers for a tile, spread through its albums (a genre's too)
  *   facets.genreOrder(genres), facets.genreSorts(), facets.sortGenres(id)   the genres' order, its buttons, one tapped
  */
 (() => {

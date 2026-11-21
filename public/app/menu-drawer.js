@@ -234,7 +234,7 @@
         return;
       }
       if (action === "shuffle") {
-        // Clear any active filter/labels so "Random albums" is a fresh wall.
+        // Clear any active filter so "Random albums" is a fresh wall.
         // applyFilter(null) reveals the wall and loads it.
         if (window.__applyFilter) window.__applyFilter(null);
         else if (window.__loadRandom) window.__loadRandom();
@@ -254,7 +254,7 @@
       }
 
       // Everything else just triggers the original control; each one manages
-      // its own view — Filter/Labels reveal the wall when they render, Qobuz/
+      // its own view — Filter reveals the wall when it renders, Qobuz/
       // Tidal/Settings open an overlay over Home, Play-unheard just plays.
       if (target) {
         const btn = document.getElementById(target);

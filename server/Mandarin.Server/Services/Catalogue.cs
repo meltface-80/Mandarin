@@ -34,7 +34,7 @@ internal abstract partial class Catalogue(string id, string name)
     // ------------------------------------------------------------ the account, as the Node server kept it
 
     /* db.setting(<service>): the account (written here since v0.8.47, Accounts.cs), or undefined. */
-    public object? Account() => Extras.Labels.Setting(Id);
+    public object? Account() => Extras.SavedSettings.Setting(Id);
     /* streaming.js connected(): a token and a user. */
     public bool Connected()
     {
@@ -340,7 +340,7 @@ internal sealed partial class TidalCatalogue : Catalogue
         token["refresh"] = Or(t["refresh"], P(was, "refresh"));
         token["expires"] = t["expires"];
         a["token"] = token;
-        Extras.Labels.SetSetting(Id, a);
+        Extras.SavedSettings.SetSetting(Id, a);
     }
 
     private object? UserId() => Or(P(Or(Account(), new JsObj()), "userId"), null);

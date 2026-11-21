@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 6 of 33: Smart Picks, the label of the week, and an album's ⋯ menu. */
+/* The page's core (app.js until v1.0.5), 6 of 31: Smart Picks, the label of the week, and an album's ⋯ menu. */
 async function loadHomeSmartPicks() {
   if (!homePicks) return;
   try {
@@ -63,69 +63,6 @@ async function showSmartPicks() {
 }
 window.__showSmartPicks = showSmartPicks;   // the side menu's Smart Picks (menu-drawer.js)
 
-// Label of the week — one label featured for the whole ISO week (backend
-// picks deterministically). Retried each Home visit until it populates (the
-// labels scan runs in the background), then left alone. Tapping the header
-// opens the full label view.
-// Returns true when it painted a real row (a qualifying label with albums).
-function renderHomeLotw(label, albums) {
-  const titleEl = document.getElementById("home-lotw-title");
-  albums = albums || [];
-  const sec = homeLotw.closest(".home-section");
-  if (!label || !albums.length) {
-    // No qualifying label yet (labels still scanning / library too small):
-    // hide the whole section rather than show an empty row.
-    if (sec) sec.classList.add("hidden");
-    return false;
-  }
-  if (titleEl) {
-    // "Label of the week: Island" — the name in its own span, which the
-    // Late-Night Hi-Fi theme sets large on its own line under the heading.
-    titleEl.textContent = "Label of the week";
-    const name = document.createElement("span");
-    name.className = "home-lotw-name"; name.dataset.parity = "home.lotw-name";
-    const sep = document.createElement("span");
-    sep.className = "home-lotw-sep";
-    sep.textContent = ": ";
-    name.appendChild(sep);
-    name.appendChild(document.createTextNode(label));
-    titleEl.appendChild(name);
-  }
-  homeLotw.dataset.label = label;
-  if (sec) sec.classList.toggle("hidden", !homeRowOn("lotw"));   // never un-hide a row the layout switched off   // un-hide if a prior attempt hid it
-  homeLotw.innerHTML = "";
-  const frag = document.createDocumentFragment();
-  for (const a of albums) frag.appendChild(homeTile(a));   // full-hierarchy offsets → filter:null
-  homeLotw.appendChild(frag);
-  return true;
-}
-
-async function loadHomeLabelOfWeek() {
-  if (!homeLotw) return;
-  if (!rowHasContent(homeLotw)) homeLotw.innerHTML = emptyRow("Loading…");
-  try {
-    const r = await fetch("/api/home/label-of-the-week");
-    const j = await r.json();
-    const albums = (j && j.albums) || [];
-    if (j && j.label && albums.length) {
-      renderHomeLotw(j.label, albums);
-      homeLotwLoaded = true;   // populated — stop retrying on future visits
-      saveHomeCache({ lotw: { label: j.label, albums } });
-    } else if (!rowHasContent(homeLotw)) {
-      // Empty 200 (labels index still building after a restart returns
-      // {label:null} — not a 503). Only hide the section when nothing is
-      // cached; otherwise keep the hydrated row rather than blanking it.
-      renderHomeLotw(null, []);
-    }
-  } catch (e) {
-    // Transient failure: keep any cached row rather than blanking it. Only
-    // hide the section when there's nothing cached to fall back on.
-    if (!rowHasContent(homeLotw)) {
-      const sec = homeLotw.closest(".home-section");
-      if (sec) sec.classList.add("hidden");
-    }
-  }
-}
 // ---------------------------------------------------------------------
 // Overflow menu — Roon's three-dots-in-a-circle.
 //
@@ -378,7 +315,7 @@ function enterFullWall(title, albumWall) {
   // The library wall's sort/focus row belongs to that wall only.
   hideLibraryControls();
   exitAlbumSelectMode();   // a stale multi-select bar must not survive into a new wall
-  if (window.__exitLabels) window.__exitLabels();
+  if (window.__exitBrowse) window.__exitBrowse();
   if (window.__exitArtists) window.__exitArtists();
   if (activeFilter) {
     activeFilter = null;

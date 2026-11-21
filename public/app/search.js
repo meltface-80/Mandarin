@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 28 of 33: the library search. */
+/* The page's core (app.js until v1.0.5), 28 of 31: the library search. */
 // ----- Library search (instant, prefix-aware; collapsible) -----
 const input    = document.getElementById("search-input");
 const clear    = document.getElementById("search-clear");
@@ -77,9 +77,8 @@ async function run(q) {
     }
 
     const results = j.results || [];
-    const labels  = j.labels  || [];
     const artists = j.artists || [];
-    if (!results.length && !labels.length && !artists.length) {
+    if (!results.length && !artists.length) {
       grid.innerHTML = "";
       setStatus("");
       // Externals can still match \u2014 if some already landed, keep them and
@@ -93,7 +92,6 @@ async function run(q) {
     const more = results.length >= 60 ? "+" : "";
     const parts = [];
     if (artists.length) parts.push(`${artists.length} artist${artists.length === 1 ? "" : "s"}`);
-    if (labels.length)  parts.push(`${labels.length} label${labels.length === 1 ? "" : "s"}`);
     if (results.length) parts.push(`${results.length}${more} album${results.length === 1 ? "" : "s"}`);
     setStatus(parts.join(", "));
 
@@ -117,28 +115,9 @@ async function run(q) {
       frag.appendChild(row);
     }
 
-    // Labels section
-    if (labels.length) {
-      const hdr = document.createElement("div"); hdr.className = "search-section-header"; hdr.dataset.parity = "search.section"; hdr.textContent = "Labels";
-      frag.appendChild(hdr);
-      const row = document.createElement("div"); row.className = "search-chip-row";
-      for (const lb of labels) {
-        const btn = document.createElement("button"); btn.className = "search-chip"; btn.dataset.parity = "search.label";
-        btn.textContent = lb.display;
-        btn.addEventListener("click", () => {
-          stopSearch();
-          if (window.__exitLabels) window.__exitLabels();
-          if (window.__exitArtists) window.__exitArtists();
-          if (window.__showLabelAlbums) window.__showLabelAlbums(lb.display);
-        });
-        row.appendChild(btn);
-      }
-      frag.appendChild(row);
-    }
-
     // Albums section
     if (results.length) {
-      if (artists.length || labels.length) {
+      if (artists.length) {
         const hdr = document.createElement("div"); hdr.className = "search-section-header"; hdr.dataset.parity = "search.section"; hdr.textContent = "Albums";
         frag.appendChild(hdr);
       }

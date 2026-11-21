@@ -53,25 +53,25 @@ class MenuTest {
     }
 
     @Test fun `the rows that come and go, an answer missing leaving its row as it was`() {
-        assertEquals(Menu.Items(labels = true, qobuz = false, tidal = false, shelf = true), Menu.items(null, null, null, null))
-        assertEquals(Menu.Items(labels = false, qobuz = true, tidal = true, shelf = false),
-            Menu.items(JSONObject("""{"enabled":false}"""), JSONObject("""{"connected":true}"""), JSONObject("""{"connected":true}"""), JSONObject("""{"enabled":false}""")))
+        assertEquals(Menu.Items(qobuz = false, tidal = false, shelf = true), Menu.items(null, null, null))
+        assertEquals(Menu.Items(qobuz = true, tidal = true, shelf = false),
+            Menu.items(JSONObject("""{"connected":true}"""), JSONObject("""{"connected":true}"""), JSONObject("""{"enabled":false}""")))
     }
 
     @Test fun `the menu opens as it was last seen, not as the page's markup has it`() {
         // Item 122: opened, the menu drew Labels and Shelf (the markup's), then took them away as the server answered
         // they were off, and the rescan line came in under them; at 11:58 on 21 October, at each opening.
-        val seen = Menu.Items(labels = false, qobuz = false, tidal = false, shelf = false)
+        val seen = Menu.Items(qobuz = false, tidal = false, shelf = false)
         val status = JSONObject("""{"paired":true,"index_count":7,"index_built_at":1000}""")
         val kept = Menu.keep(seen, status)
         assertEquals(seen, Menu.keptItems(kept))
         assertEquals("7 albums · checked just now", Menu.rescanSub(Menu.keptStatus(kept), 2000))
         // Never opened: the rows that come and go not drawn until the server says (shown, not taken away).
-        assertEquals(Menu.Items(labels = false, qobuz = false, tidal = false, shelf = false), Menu.keptItems(null) ?: Menu.UNKNOWN)
+        assertEquals(Menu.Items(qobuz = false, tidal = false, shelf = false), Menu.keptItems(null) ?: Menu.UNKNOWN)
         assertNull(Menu.keptItems("not json"))
         assertNull(Menu.keptStatus(null))
         // An answer missing leaves the row as it was last seen, not as the markup has it.
-        assertEquals(seen, Menu.items(null, null, null, null, seen))
+        assertEquals(seen, Menu.items(null, null, null, seen))
     }
 
     @Test fun `offline's line, and Shut down only where the server can`() {

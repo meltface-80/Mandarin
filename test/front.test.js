@@ -10,7 +10,7 @@
  *   - v0.8.3: the page and its files (public/) are served by C#;
  *   - v0.8.4: the library's screens are read by C# (test/library-front.test.js
  *     checks they say what the Node server says);
- *   - v0.8.5: covers already drawn, and label logos, are sent by C# (the same test);
+ *   - v0.8.5: covers already drawn are sent by C# (the same test);
  *   - v0.8.6: Home's rows are read by C# (the same test);
  *   - v0.8.7: settings only kept and read, and dynamic playlists, by C# (the same test);
  *   - v0.8.8: your own playlists, made and changed by C# (the same test);
@@ -23,7 +23,7 @@
  *   - v0.8.14: the scan's tags read by C#, the library the same (test/Mandarin.Tests/TagsFrontTests.cs,
  *     test/tag-reader-switch.test.js);
  *   - v0.8.15: nothing new answered by C# (the tag check keeps its results across updates);
- *   - v0.8.16: hearts, Listen later, label merges and the label settings made by C#, the Node
+ *   - v0.8.16: hearts and Listen later made by C# (label merges too, until item 492), the Node
  *     server told (test/library-front.test.js);
  *   - v0.8.17: nothing new answered by C# (the Library Scanner page drawn at once);
  *   - v0.8.18: the library scans made by C#, the database the same (test/Mandarin.Tests/ScanCsharpTests.cs,
@@ -31,9 +31,9 @@
  *   - v0.8.19: the identification scan, the MusicBrainz pack, loudness measuring and waveforms
  *     made by C# (test/Mandarin.Tests/IdentifyCsharpTests.cs; every identify, pack, loudness and waveform test
  *     in this mode, which says so; and every test that loads index.js afresh);
- *   - v0.8.20: record labels whole (the wall, a label's albums, the lookups, the logos, the keys),
- *     the release days, Smart Picks and the share card's suggestions made by C#
- *     (test/Mandarin.Tests/ExtrasCsharpTests.cs; the label, release day, Smart Picks and similar tests in this mode);
+ *   - v0.8.20: the release days, Smart Picks and the share card's suggestions made by C# (record labels
+ *     too, until item 492 took them out) (test/Mandarin.Tests/ExtrasCsharpTests.cs; the release day, Smart
+ *     Picks and similar tests in this mode);
  *   - v0.8.21: an album's write-ups and links, an artist's story, Pitchfork's lists, the Qobuz app's
  *     link, the share card's settings and a playlist shared as text, made by C#
  *     (test/Mandarin.Tests/WriteupsCsharpTests.cs, test/Mandarin.Tests/ShareCsharpTests.cs; the write-up and playlist tests in this mode);
@@ -198,18 +198,12 @@ test("which server answers: sign-in, the gate, the page and the library in C#", 
       x = await by(p, { headers: H, redirect: "manual" });
       assert.deepEqual([x.status, x.by], [200, "C#"], p + ": answered by C#");
     }
-    // v0.8.16: hearts, Listen later and label changes made by C# (an album that isn't there, said by C#).
+    // v0.8.16: hearts and Listen later made by C# (an album that isn't there, said by C#).
     const J = Object.assign({ "Content-Type": "application/json" }, H);
     for (const p of ["/api/favourites", "/api/listen-later"]) {
       x = await by(p, { method: "POST", headers: J, body: JSON.stringify({ offset: -1, on: true }) });
       assert.deepEqual([x.status, x.by], [404, "C#"], p + ": made by C#");
     }
-    x = await by("/api/labels/merge", { method: "POST", headers: J, body: JSON.stringify({ items: [] }) });
-    assert.deepEqual([x.status, x.by], [400, "C#"], "a label merge, by C#");
-    x = await by("/api/labels/merge/nothing", { method: "DELETE", headers: H });
-    assert.deepEqual([x.status, x.by], [404, "C#"], "a merge let go, by C#");
-    x = await by("/api/settings/label-folder-depth", { method: "POST", headers: J, body: JSON.stringify({ depth: -1 }) });
-    assert.deepEqual([x.status, x.by], [400, "C#"], "the label folder depth, by C#");
     x = await by("/api/health");
     assert.deepEqual([x.status, x.by], [200, "C#"], "health, open, by C# since v0.8.48");
   } finally { await srv.stop(); }
@@ -233,7 +227,7 @@ test("v0.8.19: MusicBrainz asked on one timer: a turn each, 1.1 s apart", { skip
   } finally { await srv.stop(); }
 });
 
-test("v0.8.20: record labels, release days and the taste work answered by C#", { skip, timeout: 60000 }, async () => {
+test("v0.8.20: release days and the taste work answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const port = ports.port(), B = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -251,13 +245,8 @@ test("v0.8.20: record labels, release days and the taste work answered by C#", {
     // The routes, answered by C# once signed in.
     const token = await signIn(B);
     const H = { Authorization: "Bearer " + token };
-    for (const p of ["/api/filters/labels", "/api/label-albums?label=Parlophone", "/api/labels-scan-status", "/api/labels-scan-log", "/api/settings/labels",
-      "/api/settings/label-folder-depth", "/api/settings/fanart-key", "/api/settings/discogs-token", "/api/smart-picks"]) {
-      const r = await fetch(B + p, { headers: H });
-      assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], p);
-    }
-    const r = await fetch(B + "/api/labels/logo-candidates?label=Parlophone", { headers: H });
-    assert.deepEqual([r.status, r.headers.get("x-mandarin-answered"), (await r.json()).error], [400, "C#", "Discogs token needed (Settings → Setup → API Keys)"]);
+    const r = await fetch(B + "/api/smart-picks", { headers: H });
+    assert.deepEqual([r.status, r.headers.get("x-mandarin-answered")], [200, "C#"], "/api/smart-picks");
   } finally { await srv.stop(); }
 });
 

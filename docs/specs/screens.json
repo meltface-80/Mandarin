@@ -206,14 +206,13 @@
       }
     },
     "wall": {
-      "page": "a wall Home links to (its row's heading tapped): Listen later, Favourites, Recently played, Not played in 6 months, or Random albums with its reshuffle, or a genre's albums (a card of Browse by genre tapped, with the reshuffle too), or a record label's albums (a label tapped, with the logo button); in the Android app, Downloaded albums and Music on device (the latter with the Library wall's Focus and Sort); the heading, the bar's Back over the albums, the tiles in #album-grid; the mini player and the row are their own screens",
+      "page": "a wall Home links to (its row's heading tapped): Listen later, Favourites, Recently played, Not played in 6 months, or Random albums with its reshuffle, or a genre's albums (a card of Browse by genre tapped, with the reshuffle too); in the Android app, Downloaded albums and Music on device (the latter with the Library wall's Focus and Sort); the heading, the bar's Back over the albums, the tiles in #album-grid; the mini player and the row are their own screens",
       "native": ["android/app/src/main/java/com/musicd/server/android/WallScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": "Back to Home" },
         "title": { "kind": "shows" },
         "reshuffle": { "kind": "action", "label": "Shuffle new albums", "when": "the random wall, or a genre's" },
-        "logo": { "kind": "action", "label": "Set label logo", "when": "a record label's albums" },
         "banner": { "kind": "shows", "when": "the wall is empty, or the library can't be read yet" },
         "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true },
         "album-art": { "kind": "shows", "each": true },
@@ -287,7 +286,7 @@
       }
     },
     "home": {
-      "page": "Home (#home-view; the top bar is hidden in the touch layout: the row along the foot has its Menu and Search, item 296): the greeting, the strip under it (Random Album, Album of the day), then the rows in the owner's order, each a heading that opens its wall over its albums, Smart Picks' cards, the label of the week, the genre cards; in the Android app, Downloaded albums and Music on device too; the mini player and the row along the foot are their own screens; a phone held upright",
+      "page": "Home (#home-view; the top bar is hidden in the touch layout: the row along the foot has its Menu and Search, item 296): the greeting, the strip under it (Random Album, Album of the day), then the rows in the owner's order, each a heading that opens its wall over its albums, Smart Picks' cards, the genre cards; in the Android app, Downloaded albums and Music on device too; the mini player and the row along the foot are their own screens; a phone held upright",
       "native": ["android/app/src/main/java/com/musicd/server/android/HomeScreen.kt", "android/app/src/main/java/com/musicd/server/android/HomeRows.kt", "android/app/src/main/java/com/musicd/server/android/HomeTiles.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/NoticeBanners.kt"],
       "preview": false,
       "items": {
@@ -310,8 +309,6 @@
         "picks-title": { "kind": "action", "label": "Smart Picks", "when": "today's picks are made" },
         "random-title": { "kind": "action", "label": "Random albums" },
         "library-title": { "kind": "action", "label": "Library" },
-        "lotw-title": { "kind": "action", "label": "Label of the week: {label}", "when": "a label of the week" },
-        "lotw-name": { "kind": "shows", "when": "a label of the week: its name, large, under the heading" },
         "genres-title": { "kind": "shows" },
         "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true },
         "album-art": { "kind": "shows", "each": true },
@@ -363,7 +360,7 @@
       }
     },
     "search": {
-      "page": "the search (the row's Search on Home, or the glass): the field across the top bar with its ✕, the count under it (item 372); in Home's rows' place, the library's artists and labels as chips and its albums as tiles, each under its small heading, then Qobuz's and Tidal's artists and albums and Pitchfork's reviews as each answers, the last words' kept dim until replaced; the banner where nothing matches; the mini player and the row along the foot are their own screens",
+      "page": "the search (the row's Search on Home, or the glass): the field across the top bar with its ✕, the count under it (item 372); in Home's rows' place, the library's artists as chips and its albums as tiles, each under its small heading, then Qobuz's and Tidal's artists and albums and Pitchfork's reviews as each answers, the last words' kept dim until replaced; the banner where nothing matches; the mini player and the row along the foot are their own screens",
       "native": ["android/app/src/main/java/com/musicd/server/android/SearchScreen.kt", "android/app/src/main/java/com/musicd/server/android/SearchRows.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
       "preview": false,
       "items": {
@@ -373,9 +370,8 @@
         "clear": { "kind": "action", "label": "Clear search" },
         "status": { "kind": "shows", "when": "the library has answered: what it found, or how far the index is built" },
         "banner": { "kind": "shows", "when": "nothing matches anywhere, or the library is still being read" },
-        "section": { "kind": "shows", "each": true, "when": "a kind of result found (Artists, Labels, Albums, Qobuz, Tidal, Pitchfork reviews)" },
+        "section": { "kind": "shows", "each": true, "when": "a kind of result found (Artists, Albums, Qobuz, Tidal, Pitchfork reviews)" },
         "artist": { "kind": "action", "label": "{artist}", "each": true, "when": "an artist's name holds the words" },
-        "label": { "kind": "action", "label": "{label}", "each": true, "when": "record labels are on and a label's name holds the words" },
         "album": { "kind": "action", "label": ["{album} by {artist}", "{album}"], "each": true, "when": "the library has albums the words find" },
         "album-art": { "kind": "shows", "each": true, "when": "the library has albums the words find" },
         "album-title": { "kind": "shows", "each": true, "when": "the library has albums the words find" },
@@ -398,7 +394,7 @@
       }
     },
     "menu": {
-      "page": "the side menu (#menu-overlay, the row's Menu): the drawer from the left over a dimmed screen, Mandarin's mark and name with the power button (Restart, Shut down), the Offline mode switch in the app, then Pitchfork, Labels, Qobuz, Tidal, Shelf, Listen later, Rescan library with how old the library is, Export library (the library's own files as a CSV for Mandarin Migration, item 436), and Settings; a tap beside it closes it",
+      "page": "the side menu (#menu-overlay, the row's Menu): the drawer from the left over a dimmed screen, Mandarin's mark and name with the power button (Restart, Shut down), the Offline mode switch in the app, then Pitchfork, Qobuz, Tidal, Shelf, Listen later, Rescan library with how old the library is, Export library (the library's own files as a CSV for Mandarin Migration, item 436), and Settings; a tap beside it closes it",
       "native": ["android/app/src/main/java/com/musicd/server/android/MenuDrawer.kt"],
       "preview": false,
       "items": {
@@ -410,7 +406,6 @@
         "offline": { "kind": "action", "label": "Offline mode", "when": "in the Android app" },
         "offline-sub": { "kind": "shows", "when": "in the Android app" },
         "pitchfork": { "kind": "action", "label": "Pitchfork" },
-        "labels": { "kind": "action", "label": "Labels", "when": "Record labels is on in Settings" },
         "qobuz": { "kind": "action", "label": "Qobuz", "when": "signed in to Qobuz" },
         "tidal": { "kind": "action", "label": "Tidal", "when": "signed in to Tidal" },
         "shelf": { "kind": "action", "label": "Shelf", "when": "online" },
@@ -485,32 +480,6 @@
         "qobuz": { "kind": "action", "label": "Find on Qobuz" }
       }
     },
-    "labels": {
-      "page": "Labels (the side menu's Labels): the heading and the bar's Back, the order (# to Z, Z to #) at the top right (the row's Search finds a label), every record label as a tile (its logo, or its name in words), its name, how many albums and how many merged into it; while the scan runs its bar and what it says; a long press selects labels to merge, with the merge bar along the foot; with none, what the scan found and Rescan now, and the scan log",
-      "native": ["android/app/src/main/java/com/musicd/server/android/LabelsScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
-      "preview": false,
-      "items": {
-        "back": { "kind": "action", "label": "Back to Home" },
-        "title": { "kind": "shows" },
-        "find-field": { "kind": "action", "label": "Find a label", "when": "finding a label" },
-        "find-clear": { "kind": "action", "label": "Clear", "when": "finding a label" },
-        "order": { "kind": "action", "label": ["Order: # to Z — tap for Z to #", "Order: Z to # — tap for # to Z"] },
-        "banner": { "kind": "shows", "when": "no labels yet, the scan running, or the labels can't be read" },
-        "progress": { "kind": "shows", "when": "the label scan running" },
-        "label": { "kind": "action", "label": "{label}", "each": true },
-        "label-art": { "kind": "shows", "each": true },
-        "label-title": { "kind": "shows", "each": true },
-        "label-subtitle": { "kind": "shows", "each": true },
-        "label-merged": { "kind": "action", "label": "{n} merged", "each": true, "when": "labels merged into it" },
-        "none": { "kind": "shows", "when": "no label matches what is being found" },
-        "rescan": { "kind": "action", "label": "Rescan now", "when": "no labels, the lookups on" },
-        "log-download": { "kind": "action", "label": "Download scan log", "when": "the lookups on and the scan done" },
-        "log-copy": { "kind": "action", "label": "Copy log", "when": "the lookups on and the scan done" },
-        "merge-info": { "kind": "shows", "when": "selecting labels to merge" },
-        "merge": { "kind": "action", "label": "Merge", "when": "selecting labels to merge" },
-        "merge-cancel": { "kind": "action", "label": "Cancel selection", "when": "selecting labels to merge" }
-      }
-    },
     "artists": {
       "page": "Artists (the row's Artists, bug list item 130): the heading with how many and the bar's Back, the order (A to Z, most albums, at random) at the top right (the row's Search finds an artist by part of the name), every act an album of the library's is credited to as a round picture (their own once the server has found one, else their first album's cover), their name and how many albums, in the album wall's columns and sizes (UI Settings); a tap opens the artist's page",
       "native": ["android/app/src/main/java/com/musicd/server/android/ArtistsScreen.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt"],
@@ -527,29 +496,6 @@
         "artist-name": { "kind": "shows", "each": true },
         "artist-subtitle": { "kind": "shows", "each": true },
         "none": { "kind": "shows", "when": "no artist matches what is being found" }
-      }
-    },
-    "label-unmerge": {
-      "page": "the labels merged into one (its N merged tapped): the sheet with Merged into the label and ✕, each label merged into it with its ✕ to take it out again",
-      "native": ["android/app/src/main/java/com/musicd/server/android/LabelSheets.kt"],
-      "preview": false,
-      "items": {
-        "title": { "kind": "shows" },
-        "close": { "kind": "action", "label": "Close" },
-        "source": { "kind": "shows", "each": true },
-        "remove": { "kind": "action", "label": "Remove {label}", "each": true }
-      }
-    },
-    "label-logo": {
-      "page": "a label's logo (its albums' logo button): Discogs's logos for it to choose from, or an image's address pasted, Save, and ✕",
-      "native": ["android/app/src/main/java/com/musicd/server/android/LabelSheets.kt"],
-      "preview": false,
-      "items": {
-        "hint": { "kind": "shows", "when": "Discogs being asked, finding none, or not answering" },
-        "candidate": { "kind": "action", "label": "{logo}", "each": true, "when": "Discogs found logos" },
-        "url": { "kind": "action", "label": "Or paste any image URL…" },
-        "save": { "kind": "action", "label": "Save" },
-        "cancel": { "kind": "action", "label": "Cancel" }
       }
     },
     "service-browser": {
@@ -672,7 +618,7 @@
       }
     },
     "settings-setup": {
-      "page": "Settings' Setup: Back, Setup, a row a page (Smart Picks, Record labels, Home Screen, UI Settings, Wall Display, Shelf, the app's Downloads, Away from home, API Keys)",
+      "page": "Settings' Setup: Back, Setup, a row a page (Smart Picks, Home Screen, UI Settings, Wall Display, Shelf, the app's Downloads, Away from home, API Keys)",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsScreen.kt"],
       "preview": false,
       "items": {
@@ -704,7 +650,7 @@
       }
     },
     "settings-keys": {
-      "page": "Settings' API Keys (in Setup): Back, API Keys; Discogs, Last.fm and Last.fm's shared secret (AcoustID's and FanArt.tv's are Mandarin's own, item 491), each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key; then Scrobbling: what it is (the account connected, a sign-in waiting, plays waiting to go) and Connect to Last.fm or Disconnect",
+      "page": "Settings' API Keys (in Setup): Back, API Keys; Last.fm and Last.fm's shared secret (AcoustID's and FanArt.tv's are Mandarin's own, item 491), each with its ⓘ, the box to paste the key into (its ✓ or ✕ once checked), Save, and what the server says of the key; then Scrobbling: what it is (the account connected, a sign-in waiting, plays waiting to go) and Connect to Last.fm or Disconnect",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsPanes.kt"],
       "preview": false,
       "items": {
@@ -733,27 +679,6 @@
         "note": { "kind": "shows", "each": true },
         "hour": { "kind": "action", "label": "Smart Picks build hour" },
         "rebuild": { "kind": "action", "label": ["Rebuild", "…"] }
-      }
-    },
-    "settings-labels": {
-      "page": "Settings' Record labels (in Setup): Back, its title; Record labels on or off and what the server has of them; a label's albums in order or shuffled; the fewest albums a label needs; Force rescan and what came of it; the label from the folder at a depth, Save and what is used",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsSetup.kt"],
-      "preview": false,
-      "items": {
-        "back": { "kind": "action", "label": "Back to settings" },
-        "heading": { "kind": "shows" },
-        "name": { "kind": "shows", "each": true },
-        "info": { "kind": "action", "label": "About {setting}", "each": true },
-        "enabled": { "kind": "action", "label": "Record labels" },
-        "note": { "kind": "shows", "each": true },
-        "order": { "kind": "action", "label": "Label album order" },
-        "min": { "kind": "action", "label": "Minimum albums per label" },
-        "rescan": { "kind": "action", "label": ["Force rescan", "Starting…", "Done", "Rescan started"] },
-        "rescan-status": { "kind": "shows", "when": "a rescan asked for" },
-        "depth": { "kind": "action", "label": "Label from folder depth" },
-        "depth-save": { "kind": "action", "label": "Save" },
-        "caret": { "kind": "shows", "each": true },
-        "depth-status": { "kind": "shows" }
       }
     },
     "settings-ui": {
@@ -1254,7 +1179,6 @@
         "composer": { "kind": "action", "label": "{composer}", "each": true, "when": "the album names a composer: the composers' line in the artists' place, a tap opening their page" },
         "performers": { "kind": "shows", "when": "the album names a composer: who performs it, the conductor named as such, under the composers" },
         "date": { "kind": "shows", "when": "its release date is known: on the facts line, centred under the cover (item 349)" },
-        "label": { "kind": "action", "label": "{label}", "when": "its label is known: on the About tab (item 349)" },
         "facts": { "kind": "shows" },
         "names-note": { "kind": "shows", "when": "named from its folders" },
         "why-note": { "kind": "shows", "when": "a streamed album: why it is in the library" },
@@ -1262,7 +1186,7 @@
         "box-disc": { "kind": "action", "label": "Disc {…}", "each": true, "when": "a disc of a box set" },
         "tab": { "kind": "action", "label": ["Tracks", "Credits", "About", "Versions"], "each": true, "when": "a phone held upright: the tabs under the head, Versions only where it has some (item 349)" },
         "tab-empty": { "kind": "shows", "when": "a tab with nothing to show: no credits known yet" },
-        "about-facts": { "kind": "shows", "when": "the About tab's head: the album's genres, its label and its score (item 349)" },
+        "about-facts": { "kind": "shows", "when": "the About tab's head: the album's genres and its score (item 349)" },
         "versions": { "kind": "shows", "when": "the Versions tab: how many, and what the list is for (items 345, 349)" },
         "version": { "kind": "action", "label": "{version}", "each": true, "when": "the Versions tab: a row each, the main first; a tap shows it in the page's place" },
         "version-more": { "kind": "action", "label": "Version actions", "each": true, "when": "the Versions tab: each row's ⋯" },
@@ -1386,7 +1310,7 @@
       }
     },
     "shelf-choices": {
-      "page": "the Shelf's choices (its tab at the top tapped; item 207): over the whole screen on a phone, Shelf and Reset shelf at the head, how many albums the choices leave, a chip for each choice, the tabs Genres, Artists, Years, Labels, Types, Formats, Favourites and Order in two rows of four (each with how many are chosen; item 208 added Formats and Favourites), a line on the tab and Clear all, on Genres #N, A → Z and Z → A, the genres' order (item 213: the most albums first by default, kept per device), the tiles of the tab (a genre's name, a letter, a decade, a kind of release and a format each the same size, a label's and Favourites with a fan of covers (item 209), an order with a line on what it does; each with how many albums it would bring, ticked when chosen), Shuffle again and Spin the shelf on Order; and Show N albums at the foot, which takes them away",
+      "page": "the Shelf's choices (its tab at the top tapped; item 207): over the whole screen on a phone, Shelf and Reset shelf at the head, how many albums the choices leave, a chip for each choice, the tabs Genres, Artists, Years, Types, Formats, Favourites and Order in two rows, four then three (Labels gone in item 492) (each with how many are chosen; item 208 added Formats and Favourites), a line on the tab and Clear all, on Genres #N, A → Z and Z → A, the genres' order (item 213: the most albums first by default, kept per device), the tiles of the tab (a genre's name, a letter, a decade, a kind of release and a format each the same size, Favourites with a fan of covers (item 209), an order with a line on what it does; each with how many albums it would bring, ticked when chosen), Shuffle again and Spin the shelf on Order; and Show N albums at the foot, which takes them away",
       "native": ["android/app/src/main/java/com/musicd/server/android/ShelfPick.kt", "android/app/src/main/java/com/musicd/server/android/ShelfTiles.kt"],
       "preview": false,
       "items": {
@@ -1399,7 +1323,6 @@
         "tab-genre": { "kind": "action", "label": ["Genres", "Genres {count}"] },
         "tab-artist": { "kind": "action", "label": ["Artists", "Artists {count}"] },
         "tab-year": { "kind": "action", "label": ["Years", "Years {count}"] },
-        "tab-label": { "kind": "action", "label": ["Labels", "Labels {count}"] },
         "tab-type": { "kind": "action", "label": ["Types", "Types {count}"] },
         "tab-format": { "kind": "action", "label": ["Formats", "Formats {count}"] },
         "tab-favourite": { "kind": "action", "label": ["Favourites", "Favourites {count}"] },
@@ -1410,14 +1333,13 @@
         "genre": { "kind": "action", "label": "{genre}", "each": true, "when": "the library's albums carry genres" },
         "letter": { "kind": "action", "label": "Artists under {letter}", "each": true, "in": "tab-artist" },
         "decade": { "kind": "action", "label": ["The {decade}s", "Albums with no year"], "each": true, "in": "tab-year", "when": "the library's albums carry years" },
-        "label": { "kind": "action", "label": "{label}", "each": true, "in": "tab-label", "when": "the label scan has read some labels" },
         "type": { "kind": "action", "label": "{type}", "each": true, "in": "tab-type" },
         "format": { "kind": "action", "label": "{format}", "each": true, "in": "tab-format", "when": "something is known of the albums' files" },
         "favourite": { "kind": "action", "label": "Favourites", "in": "tab-favourite", "when": "an album hearted" },
         "order": { "kind": "action", "label": "{order}", "each": true, "in": "tab-order" },
         "reshuffle": { "kind": "action", "label": "Shuffle again", "in": "tab-order" },
         "spin": { "kind": "action", "label": "Spin the shelf", "in": "tab-order" },
-        "message": { "kind": "shows", "when": "a tab with nothing to choose: no genres, no years, no labels read, no formats known, no favourites" },
+        "message": { "kind": "shows", "when": "a tab with nothing to choose: no genres, no years, no formats known, no favourites" },
         "done": { "kind": "action", "label": ["Show {count} albums", "Show {count} album", "Show the shelf"] }
       }
     }

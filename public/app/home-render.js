@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 4 of 33: Home shown, its rows kept and drawn: tiles, Not played, Today and Random. */
+/* The page's core (app.js until v1.0.5), 4 of 31: Home shown, its rows kept and drawn: tiles, Not played, Today and Random. */
 // Where Home was scrolled to when a screen was opened from it (v1.0.7): a
 // genre, a row's wall. Coming back puts Home there again, rather than at its
 // top. Null: nothing kept, Home from its top.
@@ -20,7 +20,7 @@ function showHome(opts) {
   libraryWallActive = false;
   leaveSmartPicks();
   if (!searching && window.__clearSearchIfActive) window.__clearSearchIfActive();  // drop stale search results
-  if (window.__exitLabels) window.__exitLabels();   // leave the labels browser if active
+  if (window.__exitBrowse) window.__exitBrowse();
   if (window.__exitArtists) window.__exitArtists();
   // Discard, don't restore: this function is establishing its own screen and
   // has already reset the view flags above.
@@ -85,7 +85,7 @@ function rowsTtlFresh() {
 // Reveal the album wall. opts.loadIfEmpty loads a fresh wall only when it has
 // no content yet (so passive reveals — opening an overlay from the menu —
 // don't leave an empty grid behind, without racing actions that render their
-// own content, e.g. labels/search).
+// own content, e.g. search).
 function showWall(opts) {
   keepHomeScroll();
   leaveSmartPicks();   // this screen owns the grid now
@@ -104,12 +104,12 @@ function showWall(opts) {
   // below the fold) opens mid-page/at-the-bottom instead of at the top.
   const mainEl = document.querySelector("main");
   if (mainEl) mainEl.scrollTop = 0;
-  if (opts && opts.loadIfEmpty && !labelsActive && !grid.children.length) loadRandom();
+  if (opts && opts.loadIfEmpty && !grid.children.length) loadRandom();
 }
 window.__showHome = showHome;
 window.__showWall = showWall;
-// Labels/search reuse the shared grid but aren't the random-album wall, so
-// they show Back but not Refresh.
+// Search reuses the shared grid but isn't the random-album wall, so it shows
+// Back but not Refresh.
 window.__setTopbarNav = setTopbarNav;
 // The zone every "play this somewhere" action targets, for the modules that
 // live in their own IIFEs (the share sheet's suggestions). The SELECT wins

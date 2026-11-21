@@ -1,7 +1,7 @@
-/* The page's core (app.js until v1.0.5), 27 of 33: an album's extras drawn, and what plays where. */
+/* The page's core (app.js until v1.0.5), 27 of 31: an album's extras drawn, and what plays where. */
 function renderExtras(extras, album) {
   // 1. The release date on the album's facts line (bug list item 28; item 349: centred under the cover on a phone),
-  // and its label and score at the head of About (#album-about-facts). Asked again after an edit, the previous
+  // and its score at the head of About (#album-about-facts). Asked again after an edit, the previous
   // answer's go first, so it never reads "1997 · 1999". The date is the one the Release date sort orders this album
   // by, to the day wherever one is known; the year is the fallback.
   const dateLine = document.getElementById("modal-date");
@@ -22,19 +22,6 @@ function renderExtras(extras, album) {
     yearSpan.className = "modal-subtitle-year";
     yearSpan.textContent = yearToShow;
     dateLine.appendChild(yearSpan);
-  }
-  if (extras.album && extras.album.label) {
-    sepBefore();
-    const labelBtn = document.createElement("button");
-    labelBtn.className = "modal-artist-link"; labelBtn.dataset.parity = "album.label";
-    labelBtn.textContent = extras.album.label;
-    labelBtn.addEventListener("click", () => {
-      // Back from the label's albums returns to this page (v0.6.24).
-      const back = { album, opts: { source: currentSource, zoneId: currentSourceZoneId, filter: currentDetailFilter } };
-      closeModal();
-      if (window.__showLabelAlbums) window.__showLabelAlbums(extras.album.label, false, back);
-    });
-    aboutFacts.appendChild(labelBtn);
   }
   if (extras.album && typeof extras.album.score === "number" && !isNaN(extras.album.score)) {
     sepBefore();

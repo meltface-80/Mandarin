@@ -11,7 +11,7 @@
  * columns on a screen held sideways beyond a phone's. The frame is made the
  * first time an album is opened and kept, so the next opens at once; it plays
  * in the Shelf's room. Its Back (or ×, or Escape) turns the case back; an
- * artist, a label or a genre it asks for opens as the whole page. The back of
+ * artist or a genre it asks for opens as the whole page. The back of
  * the case itself keeps the album's name and its barcode — the moment of the
  * turn.
  * Copyright (c) 2026 Lewis Menzies (Music Duck / MusicD)
@@ -39,7 +39,7 @@
     let openA = null;
     /** @type {any} */
     let hideTimer = 0;
-    // its label, catalogue number and kinds (v1.9.67), and its year (t5)
+    // its catalogue number and kinds (v1.9.67), and its year (t5)
     const lineOf = (a) => [h.pick ? h.pick.lineOf(a) : "", a.y].filter(Boolean).join(" · ");
 
     // The back of the case: the album's name, its facts and a barcode — what
@@ -81,7 +81,7 @@
       const m = e.data || {};
       if (m.type === "musicd-album-ready") { ready = true; ov.classList.remove("loading"); send(); }
       else if (m.type === "musicd-album-closed") { if (openA) close(); }
-      // An artist, a label or a genre: the whole page, opened there (app/album-embed.js reads it).
+      // An artist or a genre: the whole page, opened there (app/album-embed.js reads it).
       else if (m.type === "musicd-go" && typeof m.what === "string" && typeof m.arg === "string") {
         location.href = "/?go=" + encodeURIComponent(m.what) + "&arg=" + encodeURIComponent(m.arg);
       }

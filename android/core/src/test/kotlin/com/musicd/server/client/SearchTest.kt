@@ -19,12 +19,11 @@ class SearchTest {
         val one = SearchResults.parse(JSONObject().put("query", "a").put("results", org.json.JSONArray().put(album("X")))
             .put("artists", org.json.JSONArray().put(JSONObject().put("name", "Artist A").put("count", 1)))
             .put("labels", org.json.JSONArray().put(JSONObject().put("display", "Parlophone").put("albumCount", 3))))
-        assertEquals(listOf("Parlophone"), one.labels)
-        assertEquals("1 artist, 1 label, 1 album", one.status())
-        val many = SearchResults(  "a", List(60) { AlbumSummary.parse(album("X$it")) }, listOf("A", "B"), emptyList())
+        assertEquals("a label an older server sends is passed over (item 492)", "1 artist, 1 album", one.status())
+        val many = SearchResults(  "a", List(60) { AlbumSummary.parse(album("X$it")) }, listOf("A", "B"))
         assertEquals("2 artists, 60+ albums", many.status())
-        assertEquals("", SearchResults("a", emptyList(), emptyList(), emptyList()).status())
-        assertTrue(SearchResults("a", emptyList(), emptyList(), emptyList()).empty)
+        assertEquals("", SearchResults("a", emptyList(), emptyList()).status())
+        assertTrue(SearchResults("a", emptyList(), emptyList()).empty)
     }
 
     @Test fun `the index still being built, how far, and nothing found yet`() {

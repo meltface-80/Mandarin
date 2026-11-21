@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 29 of 33: search beyond the library (Qobuz, Tidal, Pitchfork), opened and closed. */
+/* The page's core (app.js until v1.0.5), 29 of 31: search beyond the library (Qobuz, Tidal, Pitchfork), opened and closed. */
 // ---- Global search: external sources (Qobuz / Tidal / Pitchfork) ----
 // Best-effort and additive: sections are appended below the library results
 // when they arrive; any failure just means that section doesn't appear.
@@ -175,7 +175,7 @@ function onInput() {
   const q = input.value.trim();
   clearTimeout(debounceTimer);
   if (!q) { stopSearch(); return; }                  // emptied: back to Home sections
-  if (window.__exitLabels) window.__exitLabels();    // leave the label browser
+  if (window.__exitBrowse) window.__exitBrowse();
   if (window.__exitArtists) window.__exitArtists();
   exitAlbumSelectMode();
   active = true;

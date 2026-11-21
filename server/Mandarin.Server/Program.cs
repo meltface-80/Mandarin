@@ -215,7 +215,7 @@ SqTool.Use(app, appDir, dataDir);
 Pages.Use(app, Path.Combine(appDir, "public"));
 // The library (Library.cs): read from the copy held here (Library.State.cs).
 Library.Use(app);
-// Covers and label logos (Images.cs).
+// Covers (Images.cs).
 Images.Use(app, dataDir);
 // An album's booklets, their pages drawn in data/booklets (v0.8.33, Booklets.cs).
 Booklets.Init(dataDir);

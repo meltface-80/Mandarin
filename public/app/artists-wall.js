@@ -25,15 +25,15 @@
 
   const tools = document.createElement("div");
   tools.id = "artists-tools";
-  tools.className = "labels-tools artists-tools hidden";
+  tools.className = "wall-tools artists-tools hidden";
   tools.innerHTML =
-    '<div class="search-box labels-search artists-search hidden">' +
+    '<div class="search-box wall-search artists-search hidden">' +
       '<svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
       '<input id="artists-find-input" type="search" inputmode="search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" placeholder="Find an artist…" aria-label="Find an artist" data-parity="artists.find-field">' +
       '<button id="artists-find-clear" class="search-clear" type="button" aria-label="Clear" data-parity="artists.find-clear">' +
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
     '</div>' +
-    '<button id="artists-sort-btn" class="icon-btn labels-sort-btn artists-sort-btn" type="button" data-parity="artists.sort"></button>' +
+    '<button id="artists-sort-btn" class="icon-btn wall-sort-btn artists-sort-btn" type="button" data-parity="artists.sort"></button>' +
     '<button id="artists-search-btn" class="icon-btn" type="button" aria-label="Find an artist" title="Find an artist">' +
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>';
   {
@@ -50,7 +50,7 @@
 
   function paintSort() {
     const next = SORTS[(SORTS.indexOf(sort) + 1) % SORTS.length];
-    sortBtn.innerHTML = '<span class="labels-order-txt">' + WORD[sort] + "</span>";
+    sortBtn.innerHTML = '<span class="wall-order-txt">' + WORD[sort] + "</span>";
     sortBtn.setAttribute("aria-label", "Sort: " + SAY[sort] + " — tap for " + SAY[next]);
     sortBtn.setAttribute("title", "Sort: " + SAY[sort]);
   }
@@ -141,7 +141,7 @@
     if (w.__leaveSmartPicks) w.__leaveSmartPicks();
     if (w.__clearSearchIfActive) w.__clearSearchIfActive();
     if (w.__exitArtistView) w.__exitArtistView({ restore: false });
-    if (w.__exitLabels) w.__exitLabels();
+    if (w.__exitBrowse) w.__exitBrowse();
     exitAlbumSelectMode();
     leaveLibraryWall();
     const hv = document.getElementById("home-view");

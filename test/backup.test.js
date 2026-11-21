@@ -85,7 +85,7 @@ test("back up, change everything, restore: as it was, with a Before-restore back
     const db = ctx.db;
     db.setSetting("smartPicksHour", 7);
     db.setSetting("waveformEnabled", true);
-    db.setSetting("discogsToken", "secret-token");
+    db.setSetting("fanartKey", "secret-token");
     db.raw.prepare("INSERT INTO favourites(key, added_at) VALUES('album-a', 1)").run();
     db.raw.prepare(`INSERT INTO audio_devices(id, kind, network_name, name, settings, first_seen, last_seen)
       VALUES('uuid:wiim', 'upnp', 'WiiM Pro', 'Lounge', '{"mode":"x2"}', 1, 1)`).run();
@@ -103,7 +103,7 @@ test("back up, change everything, restore: as it was, with a Before-restore back
     // Everything changed afterwards.
     db.setSetting("smartPicksHour", 2);
     db.setSetting("displayEnabled", true);          // not in the backup: back to its default
-    db.setSetting("discogsToken", "other");
+    db.setSetting("fanartKey", "other");
     db.raw.prepare("DELETE FROM favourites").run();
     db.raw.prepare("UPDATE audio_devices SET name = 'Changed', settings = '{}' WHERE id = 'uuid:wiim'").run();
     fs.rmSync(path.join(lib.data, "tailscale"), { recursive: true, force: true });   // a rebuilt data folder: a new node, unless restored
@@ -119,7 +119,7 @@ test("back up, change everything, restore: as it was, with a Before-restore back
     assert.equal(j.restarting, true);
     assert.equal(db.setting("smartPicksHour"), 7);
     assert.equal(db.setting("displayEnabled", "default"), "default");
-    assert.equal(db.setting("discogsToken"), "secret-token");
+    assert.equal(db.setting("fanartKey"), "secret-token");
     assert.equal(db.raw.prepare("SELECT COUNT(*) AS n FROM favourites").get().n, 1);
     assert.deepEqual(db.raw.prepare("SELECT name, settings FROM audio_devices WHERE id = 'uuid:wiim'").get(), { name: "Lounge", settings: '{"mode":"x2"}' });
 

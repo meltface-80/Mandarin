@@ -188,7 +188,7 @@ internal sealed class CreditFinder(MusicBrainz mb, string? deezerBase, string? w
     /* A picture of the act: FanArt.tv's (with a key), Wikidata's ([wd], its entity when it has one), Deezer's; and where it came from. */
     private async Task<(string? Url, string? Source)> Photo(string name, string? mbid, (JsObj Data, string Q)? wd)
     {
-        var key = LabelLogos.FanartKey();
+        var key = Fanart.Key();
         if (mbid != null && key.Length > 0)
         {
             try

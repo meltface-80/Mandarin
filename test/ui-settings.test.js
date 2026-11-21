@@ -1,9 +1,7 @@
 "use strict";
 /*
  * v0.6.5 in a real browser, phone-sized, against the real server:
- *   - Labels: find a label from the top bar (× clears, then closes), # to Z
- *     turned round to Z to #, and a label's ‹ going back to all labels — no
- *     "‹ All labels" bar of its own;
+ *   - no labels browser (item 492: its find, its order and its ‹ were here);
  *   - the artist page's name and album count in the top bar, not above the grid;
  *   - the Library wall's Focus, Sort and search in the top bar, in brass; the
  *     field opens over Focus and Sort, × clears, then closes (as Rouen v1.8.78);
@@ -27,7 +25,6 @@ const DRIVER = `(async () => {
   const until = async (fn, ms = 8000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) return false; await sleep(50); } return true; };
   const $ = id => document.getElementById(id);
   const title = () => $("album-count").classList.contains("hidden") ? "" : $("album-count").textContent;
-  const names = () => [...document.querySelectorAll(".label-tile:not(.hidden)")].map(t => t.getAttribute("aria-label"));
   const shown = id => !$(id).classList.contains("hidden");
   const cols = () => getComputedStyle($("album-grid")).gridTemplateColumns.split(" ").length;
   // The side menu open and its drawer done sliding in, then a frame; and closed.
@@ -37,53 +34,8 @@ const DRIVER = `(async () => {
   await until(() => document.querySelector("#home-random .album, #home-today .album"));
   out.view_button = !!$("topbar-view");
 
-  $("labels-toggle").click();
-  await until(() => document.querySelectorAll(".label-tile").length >= 2);
-  out.labels = { title: title(), names: names(), sort: $("labels-sort-btn").textContent };
-  const sortSays = () => $("labels-sort-btn").textContent;
-  const searchOpen = () => !document.querySelector(".labels-search").classList.contains("hidden");
-  $("labels-sort-btn").click(); await until(() => sortSays() !== out.labels.sort);
-  out.reversed = { names: names(), sort: sortSays() };
-  $("labels-sort-btn").click(); await until(() => sortSays() === out.labels.sort);
-  $("labels-search-btn").click(); await until(searchOpen);
-  const input = $("labels-search-input");
-  input.value = "parlo"; input.dispatchEvent(new Event("input")); await until(() => names().length < out.labels.names.length);
-  out.found = names();
-  $("labels-search-clear").click(); await until(() => input.value === "" && names().length === out.labels.names.length);
-  out.cleared = { value: input.value, open: searchOpen(), names: names().length };
-  $("labels-search-clear").click(); await until(() => !searchOpen());
-  out.closed = !searchOpen();
-
-  [...document.querySelectorAll(".label-tile")].find(t => t.getAttribute("aria-label") === "Parlophone").click();
-  await until(() => title() === "Parlophone" && document.querySelector("#album-grid .album:not(.label-tile)"));
-  out.label = { title: title(), bar: !$("labels-bar").classList.contains("hidden"), logo: !$("labels-logo-btn").classList.contains("hidden"),
-    search: !$("labels-search-btn").classList.contains("hidden") };
-  $("topbar-back").click();
-  // The tiles can be back before the bar's title is (a busy machine): both.
-  await until(() => title() === "Labels" && document.querySelectorAll(".label-tile").length >= 2);
-  out.back = title();
-  $("topbar-back").click(); await until(() => shown("home-view"));
-  out.home = shown("home-view");
-
-  // ‹ on a label before its albums have come (a slow server): when they come,
-  // they stay off the Labels list. Held until the list is back, then let go.
-  const plainFetch = window.fetch;
-  let letGo, came = false;
-  const held = new Promise(r => { letGo = r; });
-  window.fetch = (u, o) => String(u).includes("/api/label-albums")
-    ? plainFetch(u, o).then(async res => { await held; came = true; return res; }) : plainFetch(u, o);
-  $("labels-toggle").click();
-  await until(() => document.querySelectorAll(".label-tile").length >= 2);
-  [...document.querySelectorAll(".label-tile")].find(t => t.getAttribute("aria-label") === "Parlophone").click();
-  await until(() => title() === "Parlophone");
-  $("topbar-back").click();
-  await until(() => title() === "Labels" && document.querySelectorAll(".label-tile").length >= 2);
-  letGo(); await until(() => came);
-  // A window: the late albums must not cover the Labels list in it.
-  await sleep(500);
-  window.fetch = plainFetch;
-  out.back_early = { title: title(), labels: document.querySelectorAll(".label-tile").length };
-  $("topbar-back").click(); await until(() => shown("home-view"));
+  // No labels browser (item 492): neither its button nor its bar.
+  out.labels_gone = !$("labels-toggle") && !$("labels-bar") && !document.querySelector('[data-target="labels-toggle"]');
 
   // The Library wall: Focus, Sort and the glass in the top bar, in brass. On a phone or a tablet
   // (the touch layout, v0.9.6) the glass gives way to Search in the row along the foot.
@@ -151,7 +103,7 @@ const DRIVER = `(async () => {
   return out;
 })()`;
 
-test("labels search and order, the artist title, and UI Settings, in a browser", { skip, timeout: 120000 }, async () => {
+test("no labels browser, the artist title, and UI Settings, in a browser", { skip, timeout: 120000 }, async () => {
   const lib = makeLibrary();
   const { createServer } = require("./server");
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -164,7 +116,6 @@ test("labels search and order, the artist title, and UI Settings, in a browser",
       if (s.index_count >= 3 && !s.library_importing) break;
       await new Promise(r => setTimeout(r, 100));
     }
-    assert.equal((await fetch(B + "/api/settings/labels", { method: "POST", headers: H, body: JSON.stringify({ enabled: true }) })).status, 200);
     const b = await Browser.launch({ width: 390, height: 844 });
     let r;
     try {
@@ -174,17 +125,7 @@ test("labels search and order, the artist title, and UI Settings, in a browser",
     } finally { await b.close(); }
 
     assert.equal(r.view_button, false, "the grid ⇄ list button is gone from the top bar");
-    assert.equal(r.labels.title, "Labels");
-    assert.deepEqual(r.labels.names, ["Blue Note", "Parlophone"]);
-    assert.equal(r.labels.sort, "#–Z");
-    assert.deepEqual(r.reversed, { names: ["Parlophone", "Blue Note"], sort: "Z–#" });
-    assert.deepEqual(r.found, ["Parlophone"]);
-    assert.deepEqual(r.cleared, { value: "", open: true, names: 2 }, "the first × clears the words");
-    assert.equal(r.closed, true, "the second × closes the field");
-    assert.deepEqual(r.label, { title: "Parlophone", bar: false, logo: true, search: false });
-    assert.equal(r.back, "Labels", "‹ on a label goes back to all labels");
-    assert.equal(r.home, true, "and ‹ there goes Home");
-    assert.deepEqual(r.back_early, { title: "Labels", labels: 2 }, "a label's albums that come after ‹ don't cover the Labels list");
+    assert.equal(r.labels_gone, true, "no labels browser");
     assert.equal(r.has_library, true, "Home has its Library row");
     assert.equal(r.touch, true, "a phone has the touch layout");
     assert.deepEqual(r.lib, { in_topbar: true, focus: true, sort: true, glass: false, brass: true, glass_last: true }, "the glass gives way to Search in the row");

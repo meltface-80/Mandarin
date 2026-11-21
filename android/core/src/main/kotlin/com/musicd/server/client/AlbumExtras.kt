@@ -10,10 +10,10 @@ import java.util.Locale
 /**
  * What an album's page shows under its artists once the extras come
  * (/api/album/extras, as the page asks: the day looked up when only the
- * year is known): its release date, its label, a Pitchfork score; and, under
+ * year is known): its release date, a Pitchfork score; and, under
  * the tracks, About this album ([review]).
  */
-data class AlbumExtras(val releaseDate: String?, val year: String?, val label: String?, val score: Double?, val bestNewMusic: Boolean, val review: Review? = null) {
+data class AlbumExtras(val releaseDate: String?, val year: String?, val score: Double?, val bestNewMusic: Boolean, val review: Review? = null) {
     /** The date line's date, as the page writes it: the day where it is known, else the month, else the year. */
     fun date(locale: Locale = Locale.getDefault()): String = ReleaseDate.format(releaseDate, locale).ifEmpty { year.orEmpty() }
 
@@ -32,7 +32,6 @@ data class AlbumExtras(val releaseDate: String?, val year: String?, val label: S
             return AlbumExtras(
                 releaseDate = j.str("release_date"),
                 year = year,
-                label = a?.str("label"),
                 score = a?.takeIf { it.has("score") && !it.isNull("score") }?.optDouble("score")?.takeIf { !it.isNaN() },
                 bestNewMusic = a?.optBoolean("isBestNewMusic", false) ?: false,
                 review = a?.let { Review.of(it.str("description"), it.str("description_source"), it.str("description_url"), it.str("source"), it.str("url")) }

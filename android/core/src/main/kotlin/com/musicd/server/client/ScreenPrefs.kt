@@ -13,13 +13,13 @@ object ScreenPrefs {
     /** Each setting's name in the JSON, and the page's key for it. */
     val KEYS = linkedMapOf(
         "text" to "rra-ui-text", "title" to "rra-ui-title", "menu" to "rra-ui-menu", "layout" to "rra-ui-cols", "tile" to "rra-ui-tile",
-        "greeting" to "rra-ui-greeting", "random" to "rra-ui-random", "labelOrder" to "rra-label-order", "labelMin" to "rra-label-min"
+        "greeting" to "rra-ui-greeting", "random" to "rra-ui-random"
     )
     const val VIEW = "view"
     const val ZONE = "rra-zone"
     const val VIEW_KEY = "rra-library-view"
     /** The page's keys the app doesn't use, kept in the JSON under their own names. */
-    val PAGE_ONLY = listOf("rra-labels-reversed", "rra-album-view", "rra-filter", "rra-np-reduced")
+    val PAGE_ONLY = listOf("rra-album-view", "rra-filter", "rra-np-reduced")
     /** The page's library view's own version (walls.js LIB_VIEW_VERSION). */
     private const val VIEW_VERSION = 2
 

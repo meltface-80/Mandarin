@@ -10,8 +10,8 @@
  *     where the panel clips it: reported from an iPad);
  *   - scrolled so the row is near the top, it still opens downwards;
  *   - the head a line each beside the sleeve (item 28): the title, the
- *     artists, the date, then the rate and the album's length; its label at
- *     the head of About (item 349);
+ *     artists, the date, then the rate and the album's length; no record
+ *     label at the head of About (item 349; the labels gone, item 492);
  *   - from 720px up About this album sits beside the tracks;
  *   - on a phone held upright (item 349): the cover centred on top, the date,
  *     rate and length centred under it, the title across the page, then the
@@ -84,8 +84,8 @@ const DRIVER = `(async () => {
   out.glow = { shown: getComputedStyle(glow).display !== "none" && glow.getBoundingClientRect().height > 0, src: glow.getAttribute("src") || "" };
   out.hscroll = body.scrollWidth > body.clientWidth;
   out.viewport = [innerWidth, innerHeight];
-  // The head, a line each beside the sleeve: the title, the artists, the date (the label after it),
-  // then the rate and the album's length. The fixture has no date or label: given one, as the server's extras would.
+  // The head, a line each beside the sleeve: the title, the artists, the date, then the rate and the
+  // album's length. The fixture has no date: given one, as the server's extras would (a label with it, never shown: item 492).
   renderExtras({ release_date: "2006-11-20", album: { label: "RCA" } }, al);
   $("modal-quality").className = "album-quality"; $("modal-quality").textContent = "16/44.1";
   await new Promise(r => requestAnimationFrame(r));
@@ -160,7 +160,7 @@ test("the album view on a tablet and a phone: a 160px sleeve, the title beside i
       // and it opens whichever way has the room, clear of the mini player: every item tapped either way (above).
       if (tablet) assert.equal(r.rest.down, true, size + ": at rest it opens downwards, the row near the top");
       assert.ok(r.rest.menu.t >= r.share.b, `${size}: the menu (${r.rest.menu.t}) stays clear of Share (${r.share.b})`);
-      assert.equal(r.label, "RCA", size + ": its label at the head of About (item 349)");
+      assert.equal(r.label, "", size + ": no record label at the head of About, though the extras name one (item 492)");
       if (!tablet) {
         // A phone held upright (item 349): the cover centred on top, two thirds of the page; the date, rate and length
         // centred under it; the title across the page under them; the tabs, the tracks the one open, the review About's.
@@ -200,7 +200,7 @@ test("the album view on a tablet and a phone: a 160px sleeve, the title beside i
       assert.match(r.total, /^\d+:\d\d$/, size + ": the album's total time is shown: " + r.total);
       const [title, artist, date, facts] = r.head;
       assert.equal(artist.text, "Artist A", size + ": the artists");
-      assert.match(date.text, /^\S.*2006$/, size + ": the date; its label About's (item 349)");
+      assert.match(date.text, /^\S.*2006$/, size + ": the date");
       assert.equal(facts.text, "16/44.1 " + r.total, size + ": the rate and the length");
       for (let i = 1; i < r.head.length; i++) assert.ok(r.head[i].t >= r.head[i - 1].b - 1, `${size}: a line each, in order (${JSON.stringify(r.head)})`);
       for (const line of r.head) assert.ok(line.l > r.headArt.r, `${size}: beside the sleeve (${JSON.stringify(line)})`);

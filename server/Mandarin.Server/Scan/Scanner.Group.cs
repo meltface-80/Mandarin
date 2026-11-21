@@ -19,7 +19,7 @@ internal sealed partial class Scanner
     private void Rekey(string from, string to)
     {
         if (from.Length == 0 || to.Length == 0 || from == to) return;
-        foreach (var t in new[] { "albums", "favourites", "listen_later", "label_lookups", "album_edits", "track_edits", "album_matches", "album_ids" }.Concat(Overlays() ? ["album_joins"] : []))
+        foreach (var t in new[] { "albums", "favourites", "listen_later", "album_edits", "track_edits", "album_matches", "album_ids" }.Concat(Overlays() ? ["album_joins"] : []))
             Exec($"UPDATE OR IGNORE {t} SET key = $to WHERE key = $from", ("$to", to), ("$from", from));
         Exec("UPDATE OR IGNORE cache SET key = $to WHERE ns = 'mbday' AND key = $from", ("$to", to), ("$from", from));
         if (Setting("album_of_the_day", null) is JsObj aotd && Js.StrictEq(aotd["key"], from))

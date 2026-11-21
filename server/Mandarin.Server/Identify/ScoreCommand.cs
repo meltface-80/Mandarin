@@ -11,7 +11,7 @@
 //      → { names: [{ tidy, bare, clean, cmp, edition_year, disc }] }
 //   { "fn": "pairs", "pairs": [[a, b], …] }
 //      → { pairs: [{ string, title, levenshtein, suspect }] }
-//   { "fn": "share" | "similar" | "days" | "labels", … } (v0.8.20): Extras/ExtrasCommand.cs
+//   { "fn": "share" | "similar" | "days", … } (v0.8.20): Extras/ExtrasCommand.cs
 //   { "fn": "writeups" | "blob", … } (v0.8.21), { "fn": "backup" | "artfind", … } (v0.8.22): Extras/ExtrasCommand.cs
 //   { "fn": "autoeq", "index"?: md, "profile"?: text } (v0.8.26): Extras/AutoEq.cs
 //   { "fn": "xml" | "didl" | "moves" | "topology" | "soap", … } (v0.8.37): Playback/SonosCommand.cs
@@ -114,7 +114,7 @@ internal static class ScoreCommand
                             catch (Extras.AutoEqError e) { o["error"] = e.Message; }
                         }
                         break;
-                    case "share" or "similar" or "days" or "labels" or "writeups" or "blob" or "backup" or "artfind":
+                    case "share" or "similar" or "days" or "writeups" or "blob" or "backup" or "artfind":
                         o = Extras.ExtrasCommand.Run(Js.Str(job["fn"]), job);
                         break;
                     // The Sonos ports of stage 2 (v0.8.37, Playback/SonosCommand.cs).

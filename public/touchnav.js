@@ -16,8 +16,8 @@
  * It also tells the layout, on <html>, what is on screen: tn-home (Home, so
  * no top bar), tn-search (the search open, so the top bar is back with the
  * field across it), tn-lib (the Library wall), tn-filter (the Library's
- * filter, or the Labels list's or the Artists wall's find, open: the top bar back for its
- * field), tn-labels (the Labels list), tn-artists (the Artists wall), tn-np (Now playing, which
+ * filter, or the Artists wall's find, open: the top bar back for its
+ * field), tn-artists (the Artists wall), tn-np (Now playing, which
  * has its own transport and keeps the row: item 296), tn-offline (offline: the pill at the
  * top of the screen, #offline-toast, bug list item 134).
  *
@@ -25,8 +25,8 @@
  * over the albums, which scroll up to the screen's edge, and the screen's
  * title (#album-count) is the page's heading, at the top of <main>, moved
  * there while the touch layout applies and back to the bar when it doesn't.
- * On the Library wall Search opens its filter ("starts with"), on the
- * Labels list its "Find a label" and on the Artists wall "Find an artist",
+ * On the Library wall Search opens its filter ("starts with") and on the
+ * Artists wall "Find an artist",
  * not Home's: their own glasses give way.
  */
 (function touchNav() {
@@ -41,7 +41,6 @@
   const search = byId("topbar-search");
   const offline = byId("offline-btn");
   const modal = byId("album-modal");
-  const labels = byId("labels-tools");
   const artists = byId("artists-tools");
   /** @param {Element | null} el @param {string} cls */
   const has = (el, cls) => !!el && el.classList.contains(cls);
@@ -52,10 +51,7 @@
     root.classList.toggle("tn-home", !!home && !has(home, "hidden"));
     root.classList.toggle("tn-search", has(search, "is-open"));
     root.classList.toggle("tn-lib", has(topbar, "lib-wall"));
-    root.classList.toggle("tn-filter", has(topbar, "lib-filtering") || has(labels, "is-searching") || has(artists, "is-searching"));
-    // The Labels list: its tools shown, with their order (#–Z), which one label's albums don't have.
-    const order = byId("labels-sort-btn");
-    root.classList.toggle("tn-labels", !!labels && !has(labels, "hidden") && !!order && !has(order, "hidden"));
+    root.classList.toggle("tn-filter", has(topbar, "lib-filtering") || has(artists, "is-searching"));
     root.classList.toggle("tn-artists", !!artists && !has(artists, "hidden"));
     // Now playing (the album tab of the player's own screen): as app.js's onNowPlayingScreen.
     root.classList.toggle("tn-np", modalOpen && has(modal, "np-mode") && has(modal, "tab-album"));
@@ -63,7 +59,7 @@
   }
   const watched = [home, topbar, search, offline, modal];
   for (const el of watched) if (el) new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ["class"] });
-  for (const el of [labels, artists]) if (el) new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ["class"], subtree: true });
+  for (const el of [artists]) if (el) new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ["class"], subtree: true });
   sync();
 
   /* An album's page over the screen closes, as its Back does. */
@@ -116,12 +112,6 @@
       const field = /** @type {HTMLElement | null} */ (document.querySelector("#library-filter .lib-filter-input"));
       const glass = /** @type {HTMLElement | null} */ (document.querySelector("#library-filter .lib-filter-btn"));
       if (field) field.focus(); else if (glass) glass.click();
-      return;
-    }
-    // The Labels list: "Find a label", opened or, open, its field.
-    if (root.classList.contains("tn-labels")) {
-      if (has(labels, "is-searching")) { const i = byId("labels-search-input"); if (i) i.focus(); }
-      else { const glass = byId("labels-search-btn"); if (glass) glass.click(); }
       return;
     }
     // The Artists wall: "Find an artist", opened or, open, its field.

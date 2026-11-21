@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 5 of 33: Home's Library, History, Favourites and Listen later rows, and the Smart Picks cards. */
+/* The page's core (app.js until v1.0.5), 5 of 31: Home's Library, History, Favourites and Listen later rows, and the Smart Picks cards. */
 async function loadHomeLibrary() {
   if (!homeLibrary) return;
   if (!rowHasContent(homeLibrary)) homeLibrary.innerHTML = emptyRow("Loading…");

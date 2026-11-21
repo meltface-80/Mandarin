@@ -33,9 +33,9 @@ class ShelfTest {
         assertEquals(listOf("Rock", "Jazz"), lib.genres.map { it.name })
         assertEquals("abc123", lib.sig)
         val d = lib.albums[3]
-        assertEquals(listOf("Discovery", "Deluxe Edition", "FLAC 16/44.1", "CL 99", "Columbia"), listOf(d.baseTitle, d.versionText, d.format, d.catno, lib.labelName(d)))
+        assertEquals(listOf("Discovery", "Deluxe Edition", "FLAC 16/44.1", "CL 99"), listOf(d.baseTitle, d.versionText, d.format, d.catno))
         // A JSON null is none, never the word "null".
-        assertEquals(listOf(null, null, null), listOf(lib.albums[0].catno, lib.albums[0].label, lib.albums[2].imageKey))
+        assertEquals(listOf(null, null), listOf(lib.albums[0].catno, lib.albums[2].imageKey))
         assertNull(ShelfLibrary.parse(JSONObject("""{"same": true, "sig": "abc123"}""")))
         assertEquals("/api/shelf/albums?sig=abc123", ShelfLibrary.path("abc123"))
     }
@@ -47,11 +47,10 @@ class ShelfTest {
         val c = ShelfChoices()
         assertEquals(listOf("The Wall", "Abbey Road", "Kind of Blue", "Discovery (Deluxe Edition)", "Best Of", "an Album"), titles(c.list(lib)))
         // Rouen's orders (item 213: Mandarin's A → Z by album gone); a device that kept it opens by artist.
-        assertEquals(listOf("artist", "label", "catno", "year", "random"), ShelfSort.ORDERS.map { it.first })
+        // By label went with the labels (item 492): a device that kept it opens by artist, as one that kept A → Z by album.
+        assertEquals(listOf("artist", "catno", "year", "random"), ShelfSort.ORDERS.map { it.first })
         assertEquals("artist", ShelfChoices(keptOrder = "album").order())
-        c.toggle("order", "label")
-        // Each label together in catalogue order; the unlabelled last, those with a number first (the page's own order).
-        assertEquals(listOf("Abbey Road", "Discovery (Deluxe Edition)", "Kind of Blue", "an Album", "Best Of", "The Wall"), titles(c.list(lib)))
+        assertEquals("artist", ShelfChoices(keptOrder = "label").order())
         c.toggle("order", "catno")
         assertEquals(listOf("Discovery (Deluxe Edition)", "an Album", "Kind of Blue", "Abbey Road", "Best Of", "The Wall"), titles(c.list(lib)))
         c.toggle("order", "year")
@@ -90,16 +89,17 @@ class ShelfTest {
         assertEquals(Triple("The whole library · ", "6", " albums"), c.sum(lib, 6, ""))
     }
 
-    @Test fun `a kind or a label held by name, kept when the library is read again, let go when it has gone`() {
-        val c = ShelfChoices(keptOrder = "label")
-        assertEquals("label", c.order())
+    @Test fun `a kind held, kept when the library is read again, let go when it has gone`() {
+        val c = ShelfChoices(keptOrder = "catno")
+        assertEquals("catno", c.order())
         assertEquals("artist", ShelfChoices(keptOrder = "random").order())
-        c.toggle("label", "Columbia"); c.toggle("type", "compilation")
+        c.toggle("type", "compilation"); c.toggle("year", "2000")
         assertEquals(listOf("Discovery (Deluxe Edition)"), titles(c.list(lib)))
-        val fewer = lib.copy(labels = listOf(ShelfName("Apple", 1)), albums = lib.albums.map { if (it.label == 1) it.copy(label = null) else it })
+        c.carry(lib)
+        assertEquals(listOf(1, 1), listOf(c.count("type"), c.count("year")))
+        val fewer = lib.copy(albums = lib.albums.map { if ("compilation" in it.kinds) it.copy(kinds = emptyList()) else it })
         c.carry(fewer)
-        assertEquals(0, c.count("label"))
-        assertEquals(1, c.count("type"))
+        assertEquals(listOf(0, 1), listOf(c.count("type"), c.count("year")))
     }
 
     @Test fun `the genres in the order chosen above them, #N by default, kept per device (item 213)`() {
@@ -132,18 +132,17 @@ class ShelfTest {
         assertEquals(listOf("The 2000s", "The 1970s", "The 1960s", "The 1950s", "Albums with no year"), c.tiles(lib, "year").map { it.said })
         assertEquals(listOf("album", "compilation", "none"), c.kindsHere(lib))
         assertEquals(listOf("Albums", "Compilations", "Unknown"), c.tiles(lib, "type").map { it.name })
-        // a genre's tile its name and count alone, the size of a kind's (item 209); a label's still with a fan of its covers
+        // a genre's tile its name and count alone, the size of a kind's (item 209)
         assertTrue(c.tiles(lib, "genre").all { it.fan.isEmpty() })
-        assertEquals(listOf("al-2-0"), c.tiles(lib, "label").first { it.id == "Apple" }.fan)
         assertEquals("Artists under #: names starting with 0, or with no letter A to Z", c.tiles(lib, "artist").first { it.id == "#" }.said)
         assertEquals(listOf(true, false), c.tiles(lib, "artist").filter { it.id in listOf("A", "B") }.map { it.zero })
         assertEquals("Tap to choose. Choose as many as you like.", c.note(lib, "genre"))
         assertEquals("How the shelf is filed. One order at a time.", c.note(lib, "order"))
-        assertEquals("Columbia · CL 99 · Compilation · 2001", c.lineOf(lib, lib.albums[3]))
+        assertEquals("CL 99 · Compilation · 2001", c.lineOf(lib, lib.albums[3]))
         c.toggle("artist", "B"); c.toggle("artist", "M")
         assertTrue(c.clearShown("artist"))
         assertEquals("2 letters chosen", c.note(lib, "artist"))
-        // The cards along the shelf: a new letter, label or decade where its run begins.
+        // The cards along the shelf: a new letter or decade where its run begins.
         c.clearAll(); c.toggle("order", "year")
         assertEquals(listOf("1950s", "1960s", "1970s", "", "2000s", ""), c.tabsFor(lib, c.list(lib)))
     }
@@ -155,7 +154,7 @@ class ShelfTest {
         assertEquals(listOf("16/44.1", "24/96", "DSD64 2CH", "MP3"), ShelfLibrary.parse(JSONObject(answer.toString())
             .put("formats", org.json.JSONArray(l.formats)))!!.formats)
         val c = ShelfChoices()
-        assertEquals(listOf("Genres", "Artists", "Years", "Labels", "Types", "Formats", "Favourites", "Order"), ShelfChoices.TABS.map { it.second })
+        assertEquals(listOf("Genres", "Artists", "Years", "Types", "Formats", "Favourites", "Order"), ShelfChoices.TABS.map { it.second })
         assertEquals(listOf("16/44.1", "24/96", "DSD64 2CH", "MP3"), c.tiles(l, "format").map { it.name })
         assertEquals(mapOf("16/44.1" to 2, "24/96" to 1, "MP3" to 1, "DSD64 2CH" to 1), c.counts(l, "format"))
         c.toggle("format", "16/44.1"); c.toggle("format", "DSD64 2CH")

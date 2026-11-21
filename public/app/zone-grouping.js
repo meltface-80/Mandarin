@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 16 of 33: rooms grouped. */
+/* The page's core (app.js until v1.0.5), 16 of 31: rooms grouped. */
 // A zone row's label. Grouped zones get a second line naming their outputs,
 // as Roon's own remote does — without it a zone called "Kitchen + Study" and
 // a real Kitchen+Study group look identical.

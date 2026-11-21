@@ -118,7 +118,6 @@ internal fun footColors(primary: Boolean) = if (primary) ButtonDefaults.buttonCo
 private val COVERAGE_NOTE = mapOf(
     "decade" to "Release years come from your file tags (ORIGINALDATE, then DATE) and from MusicBrainz. Undated albums aren't in any decade.",
     "genre" to "Genres are read from your files' GENRE tags. An album with no genre tag won't appear here.",
-    "label" to "Labels are collected during the label scan, which runs in the background and fills in over time.",
     "format" to "Read from your own files.",
     "added" to "Date added is when the files arrived in your music folder, as Mandarin could work out for itself — file timestamps, and albums appearing between scans."
 )
