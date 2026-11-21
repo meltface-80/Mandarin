@@ -80,7 +80,7 @@ object ShellRoute {
         "service/" + enc(service) + "?$ARTIST_ID=" + enc(artistId) + "&name=" + enc(artistName) + "&q=" + enc(q) + "&$ZONE=" + enc(zoneId)
 
     const val PANE = "pane"
-    /** Settings (item 76): its list ("home"), Setup's ("setup"), or one of its pages the app draws ("account", "metadata"). */
+    /** Settings (item 76): its list ("home"), Setup's ("setup"), or one of its pages the app draws ("account"). */
     const val SETTINGS = "settings/{$PANE}"
     fun settings(pane: String = "home"): String = "settings/" + enc(pane)
 

@@ -61,7 +61,7 @@ public sealed class AlbumCreditsPageTests
         });
         await using var s = await Session.Started(new Dictionary<string, object?>
         {
-            ["mbBaseUrl"] = mb.Base, ["deezerBaseUrl"] = none.Base, ["wikidataBaseUrl"] = none.Base, ["lastfmBaseUrl"] = none.Base,
+            ["mbBaseUrl"] = mb.Base, ["deezerBaseUrl"] = none.Base, ["wikidataBaseUrl"] = none.Base,
         }, lib);
         await using var b = await Browser.Launch(390, 844);
         var page = await b.Page(s.Base + "/", [new { name = "musicd_session", value = s.Token, url = s.Base }], touch: true);

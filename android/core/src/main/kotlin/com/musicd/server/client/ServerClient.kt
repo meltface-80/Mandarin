@@ -241,18 +241,11 @@ class ServerClient(
     fun mergedAlbums(): Merged = AlbumSplitEdit.merged(getJson("/api/library/merged"))
 
     /**
-     * Settings (item 76): the server's version; the devices signed in to the account, and one signed out; an API key as
-     * the server has it ([route]: "lastfm-key"), and a new one saved (checked by its service).
+     * Settings (item 76): the server's version; the devices signed in to the account, and one signed out.
      */
     fun updateStatus(): JSONObject = getJson("/api/update/status")
     fun accountDevices(): AccountDevices = AccountDevices.parse(getJson(AccountDevices.PATH))
     fun revokeDevice(id: String) { post("/api/auth/devices/revoke", JSONObject().put("id", id)) }
-    fun apiKey(route: String): ApiKey = ApiKey.parse(getJson("/api/settings/$route"))
-    fun saveApiKey(route: String, field: String, value: String): ApiKey {
-        val j = post("/api/settings/$route", JSONObject().put(field, value), 20_000)
-        if (!j.optBoolean("ok")) throw IOException(j.optString("error").ifEmpty { "Failed to save" })
-        return ApiKey.parse(j)
-    }
 
     /**
      * Setup's pages (item 78): one of the server's settings as it has it ([name]: "smart-picks", "display", "shelf"),

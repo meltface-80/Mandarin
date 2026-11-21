@@ -44,8 +44,8 @@
  *   - v0.8.25: nothing new answered by C#. In front of a Node server of another version (an update
  *     from Settings half done) C# answers nothing but /server-info and its work stays with Node,
  *     until the matching C# server, fetched by Node, starts itself again (test/csharp-update.test.js);
- *   - v0.8.26: Last.fm (the key, similar artists and albums), headphone profiles from AutoEq, and the
- *     phone's download lists and offline plays, by C# (test/lastfm.test.js, test/autoeq.test.js and
+ *   - v0.8.26: headphone profiles from AutoEq, and the phone's download lists and offline plays, by
+ *     C# (Last.fm's key and similar lists too, gone with item 494; test/autoeq.test.js and
  *     test/library-front.test.js in this mode);
  *   - v0.8.28: Shelf's page (/shelf), by C#; Mandarin's version now comes with Shelf's list (C#'s since
  *     v0.8.23), so the page asks the Node server for nothing but playback (test/shelf.test.js in this mode);
@@ -346,11 +346,11 @@ test("v0.8.22: backups, built-in Tailscale, the tag filter, the album editor and
   } finally { await srv.stop(); }
 });
 
-test("v0.8.26: Last.fm, headphone profiles and the phone's download lists answered by C#", { skip, timeout: 60000 }, async () => {
+test("v0.8.26: headphone profiles and the phone's download lists answered by C#", { skip, timeout: 60000 }, async () => {
   const lib = makeLibrary();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1",
-    sonosHosts: [], upnpMulticast: false, identify: false, lastfmKey: "" });
+    sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
   try {
     const token = await signIn(B);
@@ -359,9 +359,6 @@ test("v0.8.26: Last.fm, headphone profiles and the phone's download lists answer
       const r = await fetch(B + p, body ? { method: "POST", headers: H, body: JSON.stringify(body) } : { headers: H });
       return [r.status, r.headers.get("x-mandarin-answered") || "Node", await r.json()];
     };
-    assert.deepEqual(await by("/api/settings/lastfm-key"), [200, "C#", { set: false, configured: false, masked: "", source: "", check: null }]);
-    assert.deepEqual(await by("/api/lastfm/similar-artists?artist=Someone"), [200, "C#", { enabled: false }]);
-    assert.deepEqual(await by("/api/lastfm/similar-albums?artist=Someone"), [200, "C#", { enabled: false }]);
     assert.deepEqual((await by("/api/dsp/headphones?q=")).slice(0, 2), [200, "C#"]);
     assert.deepEqual((await by("/api/dsp/headphones/profile?id=../x")).slice(0, 2), [404, "C#"]);
     assert.deepEqual((await by("/api/dsp/headphones/parse", { text: "Filter 1: ON PK Fc 100 Hz Gain 1 dB Q 1" })).slice(0, 2), [200, "C#"]);

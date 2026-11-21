@@ -20,7 +20,7 @@ public sealed class TestServer : IAsyncDisposable
         ["mbBaseUrl"] = "MUSICBRAINZ_URL", ["itunesBaseUrl"] = "ITUNES_URL", ["mbpackUrl"] = "MBPACK_URL", ["mbpackDir"] = "MBPACK_DIR",
         ["autoeqBaseUrl"] = "AUTOEQ_URL", ["fanartBaseUrl"] = "FANART_URL", ["deezerBaseUrl"] = "DEEZER_URL",
         ["wikipediaBaseUrl"] = "WIKIPEDIA_URL", ["pitchforkBaseUrl"] = "PITCHFORK_URL", ["qobuzWebUrl"] = "QOBUZ_WEB_URL",
-        ["lastfmBaseUrl"] = "LASTFM_URL", ["lastfmKey"] = "LASTFM_KEY", ["identifyTickMs"] = "IDENTIFY_TICK_MS",
+        ["identifyTickMs"] = "IDENTIFY_TICK_MS",
         ["loudnessTickMs"] = "LOUDNESS_TICK_MS", ["qobuzBaseUrl"] = "QOBUZ_URL", ["tidalBaseUrl"] = "TIDAL_URL",
         ["tidalAuthUrl"] = "TIDAL_AUTH_URL", ["tidalImagesUrl"] = "TIDAL_IMAGES_URL", ["appDir"] = "MANDARIN_APP_DIR"
     };

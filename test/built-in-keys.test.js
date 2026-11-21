@@ -85,12 +85,12 @@ test("item 491: the build's own AcoustID and FanArt.tv keys, used where none is 
   assert.deepEqual([...new Set(aid.requests.slice(m).map(r => r.client))], ["mandarins-own"]);
 });
 
-test("item 491: a build without them carries none, and the API Keys page asks for neither", { skip: built() }, () => {
+test("item 491: a build without them carries none, and nothing asks for either", { skip: built() }, () => {
   assert.equal(execFileSync(BIN, ["--built-in-keys"], { encoding: "utf8" }).trim(), "acoustid=no fanart=no", "this build was made without them");
   const html = fs.readFileSync(path.join(ROOT, "public", "index.html"), "utf8");
   for (const gone of ["acoustid-key-input", "fanart-key-input", "acoustid-sound", "FanArt.tv key", "AcoustID key"]) assert.ok(!html.includes(gone), gone);
   const kt = fs.readFileSync(path.join(ROOT, "android/core/src/main/kotlin/com/musicd/server/client/Settings.kt"), "utf8");
-  assert.doesNotMatch(kt, /ApiKeySpec\("(acoustid|fanart)-key"/);
+  assert.doesNotMatch(kt, /ApiKeySpec/, "no API Keys page (item 494)");
 });
 
 test("item 491: the keys go in from the build's secrets, never the source, and a build given one that lacks it fails", () => {

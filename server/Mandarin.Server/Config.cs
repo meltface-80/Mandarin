@@ -9,7 +9,7 @@
 // INCLUDE_ZONES, EXCLUDE_ZONES, SCAN_INTERVAL_HOURS (6), MUSICDNET_BIN
 // (/usr/local/bin/musicdnet), MUSICBRAINZ_URL, ITUNES_URL, MBPACK_URL,
 // MBPACK_DIR, AUTOEQ_URL, FANART_URL, DEEZER_URL, WIKIPEDIA_URL,
-// PITCHFORK_URL, QOBUZ_WEB_URL, LASTFM_URL, LASTFM_KEY, IDENTIFY (0: the
+// PITCHFORK_URL, QOBUZ_WEB_URL, IDENTIFY (0: the
 // identification scan off), IDENTIFY_TICK_MS (5000), LOUDNESS_TICK_MS (5000),
 // LOCAL_AUDIO (0: no sound devices on this computer), UPDATE_REPO,
 // UPDATE_API, UPDATE_CHECK (false: never by itself). PORT and
@@ -50,7 +50,6 @@ internal static class Config
             ["tailscale_watchdog"] = null,
             ["update_repo"] = S("UPDATE_REPO"),
             ["update_api"] = S("UPDATE_API"), ["update_check"] = env("UPDATE_CHECK") != "false",
-            ["lastfm_url"] = S("LASTFM_URL"), ["lastfm_key"] = S("LASTFM_KEY"),
             ["autoeq_url"] = S("AUTOEQ_URL"),
             ["music_dir"] = S("MUSIC_DIR") ?? "/music", ["mass_removal"] = 500, ["scan_hours"] = N("SCAN_INTERVAL_HOURS", 6),
             ["sonos_hosts"] = Strings(List(env("SONOS_HOSTS"))), ["server_ip"] = S("SERVER_IP") ?? S("BRIDGE_IP"),

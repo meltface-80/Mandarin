@@ -13,7 +13,7 @@ public sealed class ConfigCsharpTests
     // Every name read: left out of the program's environment, so only what a test gives counts.
     private static readonly string[] Names = ["MUSIC_DIR", "SERVER_IP", "BRIDGE_IP", "SONOS_HOSTS", "UPNP_HOSTS", "UPNP_DISCOVERY", "INCLUDE_ZONES", "EXCLUDE_ZONES",
         "SCAN_INTERVAL_HOURS", "MUSICDNET_BIN", "MUSICBRAINZ_URL", "ITUNES_URL", "MBPACK_URL", "MBPACK_DIR", "AUTOEQ_URL",
-        "FANART_URL", "DEEZER_URL", "WIKIPEDIA_URL", "PITCHFORK_URL", "QOBUZ_WEB_URL", "LASTFM_URL", "LASTFM_KEY", "IDENTIFY", "IDENTIFY_TICK_MS",
+        "FANART_URL", "DEEZER_URL", "WIKIPEDIA_URL", "PITCHFORK_URL", "QOBUZ_WEB_URL", "IDENTIFY", "IDENTIFY_TICK_MS",
         "LOUDNESS_TICK_MS", "LOCAL_AUDIO", "UPDATE_REPO", "UPDATE_API", "UPDATE_CHECK", "QOBUZ_URL", "TIDAL_URL",
         "TIDAL_AUTH_URL", "TIDAL_IMAGES_URL", "IBROADCAST_URL", "ART_HOSTS", "TRUSTED_PROXIES", "MANDARIN_CONFIG"];
 
@@ -37,7 +37,7 @@ public sealed class ConfigCsharpTests
           "wikipedia_url": null, "pitchfork_url": null, "qobuz_web_url": null,
           "tailscale_bin": "/usr/local/bin/musicdnet", "tailscale_dir": "/tmp/mandarin-config-test/tailscale", "tailscale_port": 3511, "tailscale_watchdog": null,
           "update_repo": null, "update_api": null, "update_check": true,
-          "lastfm_url": null, "lastfm_key": null, "autoeq_url": null,
+          "autoeq_url": null,
           "music_dir": "/music", "mass_removal": 500, "scan_hours": 6,
           "sonos_hosts": [], "server_ip": null, "sonos_include": [], "sonos_exclude": [], "upnp_hosts": [], "upnp_multicast": true, "upnp_offline_ms": null,
           "local_audio": true, "local_devices": null,
@@ -66,7 +66,7 @@ public sealed class ConfigCsharpTests
             ["MUSICBRAINZ_URL"] = "http://127.0.0.1:9/mb", ["ITUNES_URL"] = "http://127.0.0.1:9/it", ["MBPACK_URL"] = "http://127.0.0.1:9/pack", ["MBPACK_DIR"] = "/packs",
             ["AUTOEQ_URL"] = "http://127.0.0.1:9/eq", ["FANART_URL"] = "http://127.0.0.1:9/fa", ["DEEZER_URL"] = "http://127.0.0.1:9/dz",
             ["WIKIPEDIA_URL"] = "http://127.0.0.1:9/wp", ["PITCHFORK_URL"] = "http://127.0.0.1:9/pf", ["QOBUZ_WEB_URL"] = "http://127.0.0.1:9/qw",
-            ["LASTFM_URL"] = "http://127.0.0.1:9/fm", ["LASTFM_KEY"] = "k1", ["IDENTIFY"] = "0", ["IDENTIFY_TICK_MS"] = "250", ["LOUDNESS_TICK_MS"] = "300", ["LOCAL_AUDIO"] = "0",
+            ["IDENTIFY"] = "0", ["IDENTIFY_TICK_MS"] = "250", ["LOUDNESS_TICK_MS"] = "300", ["LOCAL_AUDIO"] = "0",
             ["UPDATE_REPO"] = "someone/elsewhere", ["UPDATE_API"] = "http://127.0.0.1:9/gh", ["UPDATE_CHECK"] = "false",
             ["QOBUZ_URL"] = "http://127.0.0.1:9/qb", ["TIDAL_URL"] = "http://127.0.0.1:9/td", ["TIDAL_AUTH_URL"] = "http://127.0.0.1:9/ta", ["TIDAL_IMAGES_URL"] = "http://127.0.0.1:9/ti/", ["IBROADCAST_URL"] = "http://127.0.0.1:9/ib",
             ["ART_HOSTS"] = "radio.lan, 192.168.1.40,", ["TRUSTED_PROXIES"] = "127.0.0.1, 192.168.1.0/24"
@@ -77,7 +77,7 @@ public sealed class ConfigCsharpTests
               "musicbrainz_url": "http://127.0.0.1:9/mb", "itunes_url": "http://127.0.0.1:9/it", "mbpack_url": "http://127.0.0.1:9/pack", "mbpack_dir": "/packs",
               "autoeq_url": "http://127.0.0.1:9/eq", "fanart_url": "http://127.0.0.1:9/fa", "deezer_url": "http://127.0.0.1:9/dz",
               "wikipedia_url": "http://127.0.0.1:9/wp", "pitchfork_url": "http://127.0.0.1:9/pf", "qobuz_web_url": "http://127.0.0.1:9/qw",
-              "lastfm_url": "http://127.0.0.1:9/fm", "lastfm_key": "k1", "identify": false, "identify_tick_ms": 250, "loudness_tick_ms": 300, "local_audio": false,
+              "identify": false, "identify_tick_ms": 250, "loudness_tick_ms": 300, "local_audio": false,
               "update_repo": "someone/elsewhere", "update_api": "http://127.0.0.1:9/gh", "update_check": false,
               "qobuz_url": "http://127.0.0.1:9/qb", "tidal_url": "http://127.0.0.1:9/td", "tidal_auth_url": "http://127.0.0.1:9/ta", "tidal_images_url": "http://127.0.0.1:9/ti/", "ibroadcast_url": "http://127.0.0.1:9/ib",
               "art_hosts": ["radio.lan", "192.168.1.40"], "trusted_proxies": ["127.0.0.1", "192.168.1.0/24"] }

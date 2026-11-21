@@ -28,7 +28,7 @@ public sealed class ArtistGenresTests
         });
         await using var s = await Session.Started(new Dictionary<string, object?>
         {
-            ["mbBaseUrl"] = none.Base, ["deezerBaseUrl"] = none.Base, ["wikidataBaseUrl"] = none.Base, ["lastfmBaseUrl"] = none.Base,
+            ["mbBaseUrl"] = none.Base, ["deezerBaseUrl"] = none.Base, ["wikidataBaseUrl"] = none.Base,
         }, lib);
         async Task<string[]> Genres(string name) =>
             [.. JsonNode.Parse((await s.Api("artist?name=" + Uri.EscapeDataString(name))).Text)!["genres"].Items().Select(g => g?.GetValue<string>() ?? "")];

@@ -450,7 +450,6 @@ const SCREENS = {
   "settings": { open: OPEN_SETTINGS([], `/Mandarin v/.test(document.getElementById("settings-version").textContent)`), root: '#settings-overlay .settings-view[data-view="home"]' },
   "settings-setup": { open: OPEN_SETTINGS(["setup"]), root: '#settings-overlay .settings-view[data-pane="setup"]' },
   "settings-account": { open: OPEN_SETTINGS(["account"], `document.querySelectorAll("#acct-devices .acct-device").length > 0`), root: '#settings-overlay .settings-view[data-pane="account"]' },
-  "settings-keys": { open: OPEN_SETTINGS(["setup", "metadata"], `!!document.getElementById("lastfm-key-status").textContent`), root: '#settings-overlay .settings-view[data-pane="metadata"]' },
   "settings-picks": { open: OPEN_SETTINGS(["setup", "smartpicks"]), root: '#settings-overlay .settings-view[data-pane="smartpicks"]' },
   "settings-ui": { open: OPEN_SETTINGS(["setup", "ui"]), root: '#settings-overlay .settings-view[data-pane="ui"]' },
   "settings-display": { open: OPEN_SETTINGS(["setup", "display"]), root: '#settings-overlay .settings-view[data-pane="display"]' },

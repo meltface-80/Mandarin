@@ -58,9 +58,7 @@ class SoundMatchTest {
         assertEquals("By sound: 12 albums matched so far, 844 still to look at, when the Album Scanner is on.", SoundTally(12, 844, "off").line)
         assertEquals("By sound: 1 album matched so far, 3 still to look at, in the Album Scanner's hours.", SoundTally(1, 3, "hours").line)
         assertEquals("By sound: 5 albums matched so far, 0 still to look at.", SoundTally(5, 0, "off").line)
-        val k = ApiKey.parse(JSONObject("""{"set":true,"masked":"••••-key","check":"ok","sound":{"matched":2,"waiting":7,"held":null}}"""))
-        assertEquals("By sound: 2 albums matched so far, 7 still to look at.", k.sound?.line)
-        assertNull(ApiKey.parse(JSONObject("""{"set":false,"masked":"","check":null}""")).sound)
+        assertEquals("By sound: 2 albums matched so far, 7 still to look at.", SoundTally.parse(JSONObject("""{"matched":2,"waiting":7,"held":null}"""))?.line)
     }
 
     @Test fun aMatchBySoundSaysSo() {

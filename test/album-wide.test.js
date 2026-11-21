@@ -39,7 +39,7 @@ const STUB = `(() => { const real = window.fetch.bind(window);
 const HOMES = `(() => { const at = (sel) => { const el = document.querySelector(sel); const p = el && el.parentElement;
     return p ? (p.id || p.className) + "#" + [...p.children].indexOf(el) : null; };
   return [".modal-art", ".modal-head", "#modal-genres", "#modal-actions", "#album-credits", "#album-bio-section", "#album-artist-bio",
-    "#album-more-by", "#album-lastfm-albums", ".track-list-wrap"].map(at); })()`;
+    "#album-more-by", "#album-similar-albums", ".track-list-wrap"].map(at); })()`;
 
 const DRIVER = `(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -57,7 +57,7 @@ const DRIVER = `(async () => {
   await until(() => box($("#album-modal .modal-panel")).t === 0, "the album slid into place");
   const col = (cls) => $(".aw-col." + cls);
   const has = (cls, sel) => !!col(cls).querySelector(sel);
-  out.left = [".modal-art", ".modal-head", "#modal-genres", "#modal-actions", "#album-credits", "#album-more-by", "#album-more-appears", "#album-lastfm-artists", "#album-lastfm-albums"].every(s => has("aw-left", s));
+  out.left = [".modal-art", ".modal-head", "#modal-genres", "#modal-actions", "#album-credits", "#album-more-by", "#album-more-appears", "#album-similar-artists", "#album-similar-albums"].every(s => has("aw-left", s));
   out.mid = has("aw-mid", "#album-bio-section") && has("aw-mid", "#album-artist-bio");
   out.right = has("aw-right", "#modal-tracks");
   out.order = [".modal-art", ".modal-head", "#modal-actions"].map(s => [...col("aw-left").children].indexOf($(s)));

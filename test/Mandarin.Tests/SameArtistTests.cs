@@ -59,7 +59,7 @@ public sealed class SameArtistTests
             });
         await using var s = await Session.Started(new Dictionary<string, object?>
         {
-            ["mbBaseUrl"] = mb.Base, ["deezerBaseUrl"] = none.Base, ["wikidataBaseUrl"] = none.Base, ["lastfmBaseUrl"] = none.Base,
+            ["mbBaseUrl"] = mb.Base, ["deezerBaseUrl"] = none.Base, ["wikidataBaseUrl"] = none.Base,
         }, lib);
 
         // Before anything is looked up: two names, two artists, as before.

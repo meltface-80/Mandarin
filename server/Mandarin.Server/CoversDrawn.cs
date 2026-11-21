@@ -8,7 +8,7 @@
 //     artist, on 600 × 600, drawn at the size asked for;
 //   - a picture from elsewhere, carried in its key ("u-" and the address in
 //     base64url: a radio station's, a track queued from the Sonos app,
-//     Last.fm's): fetched as artwork.js fetches it (http or https only,
+//     Deezer's): fetched as artwork.js fetches it (http or https only,
 //     three redirects at most, 15 MB at most, a 200 or nothing) and drawn as
 //     an album's cover is. One that can't be had is answered 404, as there.
 //
