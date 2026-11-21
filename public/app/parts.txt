@@ -68,7 +68,6 @@ app/native-home.js
 app/native-search.js
 app/updater.js
 app/settings.js
-app/settings-lastfm.js
 app/settings-services.js
 app/settings-ibroadcast-bandwidth.js
 app/settings-ibroadcast.js

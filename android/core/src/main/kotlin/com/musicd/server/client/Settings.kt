@@ -122,12 +122,10 @@ data class ApiKeySpec(val route: String, val field: String, val name: String, va
     fun saved(k: ApiKey): String = if (k.bad) "Saved, but $service refused this $noun" else "$service $noun saved" + if (k.ok) " — checked and working" else ""
 
     companion object {
-        const val DESC = "Last.fm key — similar artists and albums, and with its shared secret, scrobbling. All optional."
+        const val DESC = "Last.fm key — similar artists and albums. Optional."
         val ALL = listOf(
-            ApiKeySpec("lastfm-key", "key", "Last.fm key", "Paste Last.fm API key…", "Last.fm", "key", LASTFM_KEY_INFO),
-            ApiKeySpec("lastfm-secret", "secret", "Last.fm shared secret", "Paste Last.fm shared secret…", "Last.fm", "shared secret", LASTFM_SECRET_INFO))
-        const val LASTFM_KEY_INFO = "A free API key from last.fm/api/account/create (any application name will do). Artist and album pages then show similar artists and albums from Last.fm. With its shared secret below and your account connected, what you play is scrobbled to Last.fm."
-        const val LASTFM_SECRET_INFO = "The shared secret Last.fm shows beside your API key (last.fm/api/accounts). It signs scrobbling: with it saved, Connect to Last.fm below and allow Mandarin there, and every room, Bridge and this phone scrobble what they play."
+            ApiKeySpec("lastfm-key", "key", "Last.fm key", "Paste Last.fm API key…", "Last.fm", "key", LASTFM_KEY_INFO))
+        const val LASTFM_KEY_INFO = "A free API key from last.fm/api/account/create (any application name will do). Artist and album pages then show similar artists and albums from Last.fm."
     }
 }
 

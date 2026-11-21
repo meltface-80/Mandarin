@@ -5,7 +5,7 @@ namespace Mandarin.Tests;
 /// <summary>
 /// The phone's offline plays sent again (DownloadListRoutes.cs PhonePlays): the phone clears them only when it hears the
 /// answer, which a network change can lose after the server has written them, so the same batch comes again. Each
-/// play (the track, the phone, the moment) is kept once, and so scrobbled once, never twice in the history and on Last.fm.
+/// play (the track, the phone, the moment) is kept once, never twice in the history.
 /// </summary>
 public sealed class PhonePlaysTests
 {
