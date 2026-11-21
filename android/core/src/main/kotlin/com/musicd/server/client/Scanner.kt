@@ -14,7 +14,7 @@ data class ScanFolder(val kind: String, val title: String, val count: Int, val s
 /** A release To confirm offers in place of the one proposed (item 414b): its [mbid], [how] it is applied ("edition" or "pick"), and its [name] on its button. */
 data class ScanChoice(val mbid: String, val how: String, val name: String)
 
-/** A kind of album the clean-up could remove ([kind]: files, qobuz or tidal), said ([words]), with its count ([albums]). */
+/** A kind of album the clean-up could remove ([kind]: files, qobuz, tidal or spotify), said ([words]), with its count ([albums]). */
 data class CleanupRow(val kind: String, val words: String, val albums: Int)
 
 /** The MusicBrainz pack as the page says it: [state] and the [error] after it (red), its [buttons] ([enabled] or not). */
@@ -174,12 +174,13 @@ object Scanner {
         return listOfNotNull(
             cleanup.optJSONObject("files")?.optInt("albums")?.takeIf { it > 0 }?.let { CleanupRow("files", albums(it, "album") + " whose files are gone", it) },
             q?.optInt("albums")?.takeIf { it > 0 }?.let { CleanupRow("qobuz", albums(it, "Qobuz album") + if (q.optBoolean("signed_in")) " no longer wanted" else " (signed out of Qobuz)", it) },
-            cleanup.optJSONObject("tidal")?.optInt("albums")?.takeIf { it > 0 }?.let { CleanupRow("tidal", albums(it, "Tidal album") + " no longer wanted", it) })
+            cleanup.optJSONObject("tidal")?.optInt("albums")?.takeIf { it > 0 }?.let { CleanupRow("tidal", albums(it, "Tidal album") + " no longer wanted", it) },
+            cleanup.optJSONObject("spotify")?.optInt("albums")?.takeIf { it > 0 }?.let { CleanupRow("spotify", albums(it, "Spotify album") + " no longer wanted", it) })
     }
     /** What is asked before a kind is removed. */
     fun cleanupQuestion(kind: String, n: Int, locale: Locale = Locale.getDefault()): String =
         if (kind == "files") "Remove " + num(n, locale) + " album" + plural(n, "") + " whose files are gone from the server?\n\nPlays stay in history; their edits, hearts and Listen later go. If the files come back, a scan adds the albums afresh."
-        else "Remove " + num(n, locale) + " " + (if (kind == "tidal") "Tidal" else "Qobuz") + " album" + plural(n, "") + " from the database?\n\nPlays stay in history. Signing in and favouriting again brings an album back."
+        else "Remove " + num(n, locale) + " " + (if (kind == "tidal") "Tidal" else if (kind == "spotify") "Spotify" else "Qobuz") + " album" + plural(n, "") + " from the database?\n\nPlays stay in history. Signing in and favouriting again brings an album back."
 
     // ------------------------------------------------------------ the pack
 

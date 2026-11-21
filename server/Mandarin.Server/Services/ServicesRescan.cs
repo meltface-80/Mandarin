@@ -15,7 +15,7 @@ internal static class ServicesRescan
     {
         var names = new List<string>();
         if (global::Mandarin.Server.Jobs.Holds("import"))
-            foreach (var svc in new Catalogue?[] { global::Mandarin.Server.Jobs.Qobuz, global::Mandarin.Server.Jobs.Tidal }.OfType<Catalogue>())
+            foreach (var svc in new Catalogue?[] { global::Mandarin.Server.Jobs.Qobuz, global::Mandarin.Server.Jobs.Tidal, global::Mandarin.Server.Jobs.Spotify }.OfType<Catalogue>())
                 if (svc.Connected() && svc.Settings().Import) { names.Add(svc.Name); _ = Run(svc.Name, async () => await svc.ImportLibrary()); }
         if (IBroadcast.IBroadcast.Connected() && IBroadcastLibrary.Shown() && global::Mandarin.Server.Jobs.IBroadcastLibrary is { } lib)
         {

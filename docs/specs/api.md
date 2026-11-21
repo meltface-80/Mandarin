@@ -147,7 +147,7 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | GET | `/api/search/external` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/seek` | signed in | `PlaybackRoutes.cs` |
 |  | `/api/services/watch` | signed in | `ServiceRoutes.cs` |
-|  | `/api/settings/(qobuz\|tidal)(/import\|/signin\|/signin/cancel\|/signout\|/disconnect)?` | signed in | `ServiceRoutes.cs` |
+|  | `/api/settings/(qobuz\|tidal\|spotify)(/import\|/signin\|/signin/cancel\|/signout\|/disconnect)?` | signed in | `ServiceRoutes.cs` |
 | GET | `/api/settings/acoustid-key` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/acoustid-key` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/display` | signed in | `LibraryRoutes.cs` |

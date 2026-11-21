@@ -113,7 +113,7 @@ const ENV = {
   fanartBaseUrl: "FANART_URL", deezerBaseUrl: "DEEZER_URL", wikipediaBaseUrl: "WIKIPEDIA_URL",
   pitchforkBaseUrl: "PITCHFORK_URL", qobuzWebUrl: "QOBUZ_WEB_URL",
   identifyTickMs: "IDENTIFY_TICK_MS", loudnessTickMs: "LOUDNESS_TICK_MS", qobuzBaseUrl: "QOBUZ_URL", tidalBaseUrl: "TIDAL_URL",
-  tidalAuthUrl: "TIDAL_AUTH_URL", tidalImagesUrl: "TIDAL_IMAGES_URL", ibroadcastBaseUrl: "IBROADCAST_URL",
+  tidalAuthUrl: "TIDAL_AUTH_URL", tidalImagesUrl: "TIDAL_IMAGES_URL", ibroadcastBaseUrl: "IBROADCAST_URL", spotifyBaseUrl: "SPOTIFY_URL", spotifyAuthUrl: "SPOTIFY_AUTH_URL",
   // A pause between a making's turn and its start (Upsample/MadeAsPlayed.cs, items 246, 259).
   makeWaitMs: "MANDARIN_MAKE_WAIT_MS",
   // How long a room loading a track counts as music playing for the Album Scanner (Playback/Hub.Heard.cs, item 417).

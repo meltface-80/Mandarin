@@ -1,7 +1,8 @@
 "use strict";
 /*
- * Settings → Services a list (item 449): Qobuz, Tidal and iBroadcast a row each, nothing else on it; each row opens the
- * service's own page (Qobuz's email and Sign in, Tidal's Sign in on tidal.com, iBroadcast's Sign in on iBroadcast), and
+ * Settings → Services a list (item 449): Qobuz, Tidal, Spotify (item 497) and iBroadcast a row each, nothing else on it;
+ * each row opens the service's own page (Qobuz's email and Sign in, Tidal's Sign in on tidal.com, Spotify's Sign in on
+ * Spotify, iBroadcast's Sign in on iBroadcast), and
  * Back goes back to Services.
  */
 const ports = require("./ports");
@@ -14,7 +15,7 @@ const { createServer, built } = require("./server");
 
 const skip = built() || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
 
-test("item 449: Services a list of Qobuz, Tidal and iBroadcast, each opening its own page", { skip, timeout: 120000 }, async (t) => {
+test("item 449: Services a list of Qobuz, Tidal, Spotify and iBroadcast, each opening its own page", { skip, timeout: 120000 }, async (t) => {
   const lib = makeLibrary();
   const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
@@ -35,8 +36,8 @@ test("item 449: Services a list of Qobuz, Tidal and iBroadcast, each opening its
     document.querySelector('.settings-nav-item[data-pane="streaming"]').click();
     await until(() => shown(pane("streaming")));
     out.rows = [...pane("streaming").querySelectorAll(".settings-nav-item")].filter(shown).map(r => r.textContent.trim());
-    out.onList = ["qobuz-username", "qobuz-signin", "tidal-signin", "ib-signin"].filter(id => pane("streaming").contains(document.getElementById(id)));
-    for (const [svc, control] of [["qobuz", "qobuz-username"], ["tidal", "tidal-signin"], ["ibroadcast", "ib-signin"]]) {
+    out.onList = ["qobuz-username", "qobuz-signin", "tidal-signin", "spotify-signin", "ib-signin"].filter(id => pane("streaming").contains(document.getElementById(id)));
+    for (const [svc, control] of [["qobuz", "qobuz-username"], ["tidal", "tidal-signin"], ["spotify", "spotify-signin"], ["ibroadcast", "ib-signin"]]) {
       pane("streaming").querySelector('.settings-nav-item[data-pane="' + svc + '"]').click();
       out[svc] = await until(() => shown(pane(svc)) && shown(document.getElementById(control))) && pane(svc).querySelector("h2").textContent;
       pane(svc).querySelector("[data-settings-back]").click();
@@ -44,8 +45,8 @@ test("item 449: Services a list of Qobuz, Tidal and iBroadcast, each opening its
     }
     return out;
   })()`);
-  assert.deepEqual(seen.rows, ["Qobuz", "Tidal", "iBroadcast"], "a row each");
+  assert.deepEqual(seen.rows, ["Qobuz", "Tidal", "Spotify", "iBroadcast"], "a row each");
   assert.deepEqual(seen.onList, [], "no service's own settings on the list");
-  assert.deepEqual([seen.qobuz, seen.tidal, seen.ibroadcast], ["Qobuz", "Tidal", "iBroadcast"], JSON.stringify(seen));
-  assert.deepEqual([seen.qobuzBack, seen.tidalBack, seen.ibroadcastBack], [true, true, true], "Back to Services");
+  assert.deepEqual([seen.qobuz, seen.tidal, seen.spotify, seen.ibroadcast], ["Qobuz", "Tidal", "Spotify", "iBroadcast"], JSON.stringify(seen));
+  assert.deepEqual([seen.qobuzBack, seen.tidalBack, seen.spotifyBack, seen.ibroadcastBack], [true, true, true, true], "Back to Services");
 });
