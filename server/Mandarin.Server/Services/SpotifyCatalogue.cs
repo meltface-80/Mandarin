@@ -74,12 +74,29 @@ internal sealed partial class SpotifyCatalogue : Catalogue
 
     // ------------------------------------------------------------ the catalogue (item 498 browses it)
 
-    /* The saved albums' ids, kept a minute. */
-    public override async Task<HashSet<string>> FavouriteIdSet(Ask ask, bool fresh = false)
+    /*
+     * The saved albums' ids, as the library keeps them with its import on (item 500): the page's marks and an album page's reconciling
+     * ask Spotify nothing. Spotify's allowance is small and shared by everything Mandarin asks of it; reading the whole
+     * saved list for every page, and every two minutes for the watch, used a day's in hours. The import brings them up
+     * to date (every six hours, Update library now), and saving from Mandarin's Spotify page at once.
+     */
+    public override async Task<HashSet<string>> FavouriteIdSet(Ask ask, bool fresh = false) =>
+        Settings().Import
+            ? KeptSet().Where(k => k.StartsWith(Key, StringComparison.Ordinal)).Select(k => k[Key.Length..]).ToHashSet(StringComparer.Ordinal)
+            // Not in the library: the saved list itself, read once a minute at most.
+            : (await Saved()).Select(x => Js.Str(Or(AndP(SpotifyApi.Inner(x, "album"), "id"), ""))).Where(id => id.Length > 0).ToHashSet(StringComparer.Ordinal);
+
+    /* What the import keeps, as Spotify lists it now: the listing the import read a moment ago (kept the minute). */
+    public override async Task<Dictionary<string, string>> WantedIds(Ask ask, bool fresh = false)
     {
-        if (fresh) Api.Cache.Clear();
-        return (await Saved()).Select(x => Js.Str(P(SpotifyApi.Inner(x, "album"), "id"))).Where(id => id.Length > 0).ToHashSet(StringComparer.Ordinal);
+        var o = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var x in await Saved(fresh: false, patient: true))
+            if (Js.Str(Or(AndP(SpotifyApi.Inner(x, "album"), "id"), "")) is { Length: > 0 } id) o[id] = "favourite";
+        return o;
     }
+
+    /* Imported within [ms] (a rescan's import left out then, item 500). */
+    public bool ImportedWithin(double ms) => Extras.SavedSettings.Setting(Id + "LastImport") is JsObj li && NowMs() - NumOr(li["at"], 0) < ms;
 
     private readonly object savedGate = new();
     private (double At, Task<List<object?>> Task)? saved;

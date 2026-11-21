@@ -137,6 +137,7 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
             }
             var access = await Access(refused);
             (string, string)[] headers = [("Authorization", "Bearer " + access), ("Accept", "application/json")];
+            Counted();
             var (status, text, retryAfter) = await SendTimed(method, url, headers, method == "GET" ? null : body ?? "", "application/json", Timeout);
             if (status == 401 && refused == null) { refused = access; continue; }
             if (status == 429)
@@ -160,6 +161,27 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
     }
 
     private double longWaitSaid;
+
+    // The requests made of Spotify in the last day, said in the log as they pass 250, 500, 1000… (item 500: an
+    // allowance used up unseen kept Spotify shut for a day).
+    private readonly Queue<double> asked = new();
+    private int saidAt = 250;
+    private void Counted()
+    {
+        int n;
+        lock (asked)
+        {
+            var now = NowMs();
+            asked.Enqueue(now);
+            while (asked.Count > 0 && now - asked.Peek() > 86400e3) asked.Dequeue();
+            n = asked.Count;
+            // The day's count fallen well below the last said: said again from 250.
+            if (n < saidAt / 4) saidAt = 250;
+            if (n < saidAt) return;
+            saidAt *= 2;
+        }
+        Server.Log($"[spotify] {n} requests to Spotify in the last day");
+    }
 
     public Task<object?> GetJson(string path, double ttl = 0, bool patient = false) => Call("GET", path, null, ttl, patient);
 
@@ -195,7 +217,7 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
     /* The signed-in account: { id, display_name }. */
     public Task<object?> Me() => GetJson("me");
     /* The saved albums, each { added_at, album }, newest first. */
-    public Task<List<object?>> SavedAlbums(bool patient = false) => All("me/albums", null, patient);
+    public Task<List<object?>> SavedAlbums(bool patient = false) => All("me/albums?limit=50", null, patient);
     /* An album with its first page of tracks; the rest by AlbumTracks. */
     public Task<object?> Album(string id, bool patient = false) => GetJson("albums/" + Uri.EscapeDataString(id), Month, patient);
     /* Every track of an album, the first page as the album gave it, the rest asked for. */
