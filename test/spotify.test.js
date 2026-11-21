@@ -71,6 +71,7 @@ test("Spotify: signing in, your saved albums in the library, the token kept", { 
       assert.equal(r.j.connected, false);
       assert.equal(r.j.import, false);
       assert.equal(r.j.redirect, "http://127.0.0.1:43143/mandarin-spotify");
+      assert.equal("spotify" in (await get("library/cleanup")).j, false, "Clean up says nothing of Spotify before it is used");
     });
 
     await t.test("refused in plain words: turned down on Spotify, not Spotify's answer, begun elsewhere", async () => {
@@ -123,6 +124,7 @@ test("Spotify: signing in, your saved albums in the library, the token kept", { 
       assert.ok(by["Dummy"].image_key, "its cover kept");
       const one = (await get("album?offset=" + by["Dummy"].offset)).j;
       assert.equal((one.tracks || []).length, 5, JSON.stringify(one).slice(0, 300));
+      assert.deepEqual((await get("library/cleanup")).j.spotify, { albums: 0, signed_in: true }, "counted once in use");
     });
 
     await t.test("the token: refused, refreshed once, the call made again; the new refresh token kept through a restart", async () => {

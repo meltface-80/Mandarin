@@ -21,6 +21,16 @@ internal sealed partial class SpotifyCatalogue : Catalogue
         Api = new SpotifyApi(baseUrl, accountsUrl, Account, OnToken);
     }
 
+    /* In use: signed in, or with albums here. Clean up and the prune count Spotify only then (their answers as before for everyone else). */
+    public bool InUse()
+    {
+        if (Connected()) return true;
+        using var c = Db.Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT 1 FROM albums WHERE key LIKE 'spotify:%' LIMIT 1";
+        return cmd.ExecuteScalar() != null;
+    }
+
     /* A refreshed token kept at once (Spotify's old refresh token stops working), the rest of the account as it was. */
     private void OnToken(JsObj t)
     {
