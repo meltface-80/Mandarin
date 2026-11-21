@@ -16,8 +16,7 @@ class ScreenPrefsTest {
         assertEquals("list", p.getString("rra-ui-cols"))
         assertEquals("1.25", p.getString("rra-ui-text"))
         assertEquals("off", p.getString("rra-ui-greeting"))
-        assertEquals("random", p.getString("rra-label-order"))
-        assertEquals("3", p.getString("rra-label-min"))
+        assertFalse("a label's order and minimum gone with the labels (item 492)", p.has("rra-label-order") || p.has("rra-label-min"))
         assertEquals("RINCON_1", p.getString("rra-zone"))
         assertEquals("x", p.getString("rra-filter"))
         assertFalse("what the app alone keeps is not in a backup", p.has("appOnly"))
@@ -38,7 +37,7 @@ class ScreenPrefsTest {
         assertFalse(j.has("rra-filter"))
         assertEquals("1", j.getString("rra-np-reduced"))
         assertEquals("what the app alone keeps, kept", "kept", j.getString("appOnly"))
-        assertEquals("sort=artist&dir=desc&label=ECM", j.getString("view"))
+        assertEquals("a label kept in an older view, passed over (item 492)", "sort=artist&dir=desc", j.getString("view"))
         assertEquals("list", WallPrefs.parse(ScreenPrefs.backup(prefs, null).let { ScreenPrefs.restore(it, null).first }).layout)
     }
 

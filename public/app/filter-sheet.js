@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 30 of 33: the refresh button, and the filter sheet. */
+/* The page's core (app.js until v1.0.5), 30 of 31: the refresh button, and the filter sheet. */
 // ----- Boot -----
 refreshBtn.addEventListener("click", loadRandom);
 
@@ -32,7 +32,7 @@ refreshBtn.addEventListener("click", loadRandom);
       if (f) localStorage.setItem("rra-filter", JSON.stringify(f));
       else   localStorage.removeItem("rra-filter");
     } catch (e) { /* localStorage optional (private browsing) */ }
-    if (window.__exitLabels) window.__exitLabels();
+    if (window.__exitBrowse) window.__exitBrowse();
     if (window.__exitArtists) window.__exitArtists();
     markActive();
     close();

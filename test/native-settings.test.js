@@ -77,7 +77,8 @@ test("a setting the page keeps on this device, changed in the app, is kept where
       order: localStorage.getItem("rra-label-order"), min: localStorage.getItem("rra-label-min"), kept: localStorage.getItem("rra-ui-cols") };
   })()`);
   assert.deepEqual(page.errors, [], "nothing thrown");
-  assert.deepEqual(r, { asked: [true, true, true, true, false, false], layout: "list", text: "1.25", order: "random", min: "5", kept: "list" });
+  // A label's order and minimum went with the labels (item 492): refused, nothing kept of them.
+  assert.deepEqual(r, { asked: [true, true, false, false, false, false], layout: "list", text: "1.25", order: null, min: null, kept: "list" });
 });
 
 test("this screen's settings handed to the app's own backup, and put back from a restore (item 92)", { skip, timeout: 120000 }, async (t) => {

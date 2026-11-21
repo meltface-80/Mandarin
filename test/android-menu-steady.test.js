@@ -22,7 +22,7 @@ test("the menu opens with the rows and the rescan line it was last seen with", (
 });
 
 test("the server's answer changes it only where it differs, and is kept for the next opening", () => {
-  assert.match(menu, /Menu\.items\(l\.await\(\), q\.await\(\), t\.await\(\), sh\.await\(\), items\)/, "an answer missing leaves its row as seen");
+  assert.match(menu, /Menu\.items\(q\.await\(\), t\.await\(\), sh\.await\(\), items\)/, "an answer missing leaves its row as seen");
   assert.match(menu, /Store\.setMenuKept\(context, Menu\.keep\(shown, status \?: Menu\.keptStatus\(kept\)\)\)/);
   assert.match(menu, /if \(shown != items\) AppLog\.line\("MENU", "its rows changed as the server answered: \$items, then \$shown", anomaly = kept != null\)/, "a change logged");
 });

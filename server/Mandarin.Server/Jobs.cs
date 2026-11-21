@@ -1,8 +1,7 @@
 // Jobs.cs — the server's background work, which it took from the Node server
 // one part at a time (v0.8.19 on) and since v0.9.0 has had from its start:
 // the identification scan with the MusicBrainz pack (Identify/), and measuring
-// loudness (Identify/Loudness.cs); from v0.8.20 the record labels' lookups and
-// logos, the release days after each library scan, and the taste work (Smart
+// loudness (Identify/Loudness.cs); from v0.8.20 the release days after each library scan, and the taste work (Smart
 // Picks, the share card's suggestions) (Extras/); from v0.8.22 the built-in
 // Tailscale engine (Admin/Tailscale.cs); from v0.8.34 the library scans
 // (Scans.cs); from v0.8.44 the month's prune of Qobuz's and Tidal's albums
@@ -22,7 +21,7 @@ namespace Mandarin.Server;
 
 internal static partial class Jobs
 {
-    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback", "covers"];
+    public static readonly string[] Names = ["identify", "mbpack", "loudness", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback", "covers"];
 
     public static Identifier? Identify { get; private set; }
     public static PackStore? Packs { get; private set; }
@@ -37,7 +36,7 @@ internal static partial class Jobs
     public static Admin.Updater? Updater { get; private set; }
     // The wall display's artist photos (v0.8.48, HousekeepingRoutes.cs): MusicBrainz for the act, FanArt.tv for its pictures, where each is asked.
     public static MusicBrainz? Mb { get; private set; }
-    public static string FanartBase { get; private set; } = LabelLogos.FanartBase;
+    public static string FanartBase { get; private set; } = Fanart.Base;
     // Last.fm (v0.8.26, LastfmRoutes.cs): where it is asked (LASTFM_URL), and the key from the environment (LASTFM_KEY).
     private static Lastfm? lastfm;
     public static Lastfm Lastfm => lastfm ??= NewLastfm(Environment.GetEnvironmentVariable("LASTFM_URL"));
@@ -110,14 +109,10 @@ internal static partial class Jobs
         var mqaHere = !Lookups.LoopbackOnly || (cfg["mqa"] is JsonValue mq && mq.TryGetValue<bool>(out var mqOn) && mqOn);
         MqaPass?.Stop();
         MqaPass = new Mqa.MqaPass(Log, Int(cfg["mqa_tick_ms"], 3000)) { Ready = () => Held && mqaHere };
-        // Record labels, release days and the taste work (v0.8.20): MusicBrainz as
-        // itself (no pack), Discogs, FanArt.tv and Deezer where the configuration says.
-        var labelsMb = new MusicBrainz(Text(cfg["musicbrainz_url"]), version);
+        // Release days and the taste work (v0.8.20): MusicBrainz as itself (no
+        // pack), FanArt.tv and Deezer where the configuration says.
         Mb = new MusicBrainz(Text(cfg["musicbrainz_url"]), version);
-        FanartBase = (Text(cfg["fanart_url"]) ?? LabelLogos.FanartBase).TrimEnd('/');
-        var pause = Pause(cfg["logo_pause_ms"], 1100);
-        Labels.Lookup = new LabelLookup(labelsMb, Text(cfg["discogs_url"]), pause, version, Log) { Ready = () => Holds("labels"), OnDone = Library.AfterLookups };
-        Labels.Logos = new LabelLogos(dataDir, labelsMb, Text(cfg["discogs_url"]), Text(cfg["fanart_url"]), pause, version, Log) { Ready = () => Holds("labels") };
+        FanartBase = (Text(cfg["fanart_url"]) ?? Fanart.Base).TrimEnd('/');
         Days = new ReleaseDays(Text(cfg["musicbrainz_url"]), version, Log) { Ready = () => Holds("days") };
         Taste = new Taste(Text(cfg["deezer_url"]), Log) { Ready = () => Holds("taste") };
         // Headphone profiles and Last.fm (v0.8.26): where AutoEq and Last.fm are, and the environment's Last.fm key.

@@ -19,29 +19,6 @@ const markOpen = () => document.body.classList.toggle("settings-open", !settings
 new MutationObserver(markOpen).observe(settingsOverlay, { attributes: true, attributeFilter: ["class"] });
 markOpen();
 const versionEl  = document.getElementById("settings-version");
-const labelOrderSelect = document.getElementById("label-order-select");
-const labelMinSelect   = document.getElementById("label-min-select");
-
-// Label album order (alphabetical default). Persisted in localStorage and
-// read by the labels browser when it loads a label's albums.
-if (labelOrderSelect) {
-  labelOrderSelect.value =
-    localStorage.getItem("rra-label-order") === "random" ? "random" : "alpha";
-  labelOrderSelect.addEventListener("change", () => {
-    const v = labelOrderSelect.value === "random" ? "random" : "alpha";
-    localStorage.setItem("rra-label-order", v);
-  });
-}
-
-// Minimum albums per label — hides one-off outliers from the labels grid.
-if (labelMinSelect) {
-  const stored = localStorage.getItem("rra-label-min");
-  // "Show all" until chosen otherwise — what labelMin() in the labels browser assumes.
-  labelMinSelect.value = (stored === "2" || stored === "5" || stored === "10") ? stored : "1";
-  labelMinSelect.addEventListener("change", () => {
-    localStorage.setItem("rra-label-min", labelMinSelect.value);
-  });
-}
 
 let versionLoaded = false;
 async function loadVersion() {
@@ -59,37 +36,6 @@ async function loadVersion() {
       }
     }
   } catch (e) { /* network error loading version — settings panel shows without version, non-critical */ }
-}
-
-const forceRescanBtn    = document.getElementById("force-rescan-btn");
-const forceRescanStatus = document.getElementById("force-rescan-status");
-if (forceRescanBtn) {
-  forceRescanBtn.addEventListener("click", async () => {
-    if (forceRescanBtn.disabled) return;
-    forceRescanBtn.disabled = true;
-    forceRescanBtn.textContent = "Starting…";
-    if (forceRescanStatus) forceRescanStatus.classList.add("hidden");
-    try {
-      const r = await fetch("/api/labels/rescan-force", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
-      forceRescanBtn.textContent = j.started === false ? "Done" : "Rescan started";
-      if (forceRescanStatus) {
-        forceRescanStatus.textContent = j.started === false
-          ? "Labels re-read from the library's tags and folders" + (j.count != null ? ": " + j.count + " label" + (j.count === 1 ? "" : "s") + "." : ".")
-          : "Full rescan started — this may take several minutes. Label data will update as results come in.";
-        forceRescanStatus.classList.remove("hidden");
-      }
-      setTimeout(() => {
-        forceRescanBtn.disabled = false;
-        forceRescanBtn.textContent = "Force rescan";
-      }, 5000);
-    } catch (e) {
-      forceRescanBtn.disabled = false;
-      forceRescanBtn.textContent = "Force rescan";
-      if (forceRescanStatus) { forceRescanStatus.textContent = "Error: " + e.message; forceRescanStatus.classList.remove("hidden"); }
-    }
-  });
 }
 
 // Whether each API key works (v0.6.1): the server asks the service, and the
@@ -122,7 +68,7 @@ function keyStatusText(j) {
   return "Current: " + j.masked + " — couldn’t reach the service to check it.";
 }
 
-// One API key's box, status line and Save: Discogs' token and Last.fm's key and secret; [onPaint]
+// One API key's box, status line and Save: Last.fm's key and secret; [onPaint]
 // with the server's answer, for a line of the key's own.
 function wireKey({ route, field, inputId, saveId, statusId, checkId, service, noun, onSaved, onPaint }) {
   const input  = document.getElementById(inputId);
@@ -169,8 +115,6 @@ function wireKey({ route, field, inputId, saveId, statusId, checkId, service, no
   });
   return load;
 }
-const loadDiscogsToken = wireKey({ route: "discogs-token", field: "token", inputId: "discogs-token-input", saveId: "discogs-token-save",
-  statusId: "discogs-token-status", checkId: "discogs-token-check", service: "Discogs", noun: "token" });
 const loadLastfmKey = wireKey({ route: "lastfm-key", field: "key", inputId: "lastfm-key-input", saveId: "lastfm-key-save",
   statusId: "lastfm-key-status", checkId: "lastfm-key-check", service: "Last.fm", noun: "key", onSaved: () => loadScrobbling() });
 // Scrobbling's (settings-lastfm.js): saving it again leaves the account to connect again.

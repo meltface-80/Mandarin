@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 13 of 33: the Library's Focus and Sort sheets. */
+/* The page's core (app.js until v1.0.5), 13 of 31: the Library's Focus and Sort sheets. */
 // The Library's view as it stands: what the Focus sheet compares against to
 // see whether anything changed. Derived from LIB_FACET_IDS rather than listed
 // again, so a facet added to that array is compared at once.
@@ -29,9 +29,8 @@ async function openLibFocusSheet() {
     const r = await fetch("/api/library/facets", { cache: "no-store" });
     if (r.ok) libFacets = await r.json();
   } catch (e) { /* offline — keep whatever we last had rather than blanking */ }
-  // The server decides the vocabulary — it drops "Record label" when Labels
-  // is switched off — so the count badge follows what it publishes rather
-  // than a list hardcoded here.
+  // The server decides the vocabulary, so the count badge follows what it
+  // publishes rather than a list hardcoded here.
   if (libFacets && Array.isArray(libFacets.facets)) {
     const ids = libFacets.facets.map(x => x && x.id).filter(Boolean);
     if (ids.length) libAvailableFacets = ids;
@@ -117,8 +116,6 @@ async function openLibFocusSheet() {
               "and from MusicBrainz. Undated albums aren't in any decade.",
       genre:  "Genres are read from your files' GENRE tags. " +
               "An album with no genre tag won't appear here.",
-      label:  "Labels are collected during the label scan, which runs in the background " +
-              "and fills in over time.",
       format: "Read from your own files.",
       added:  "Date added is when the files arrived in your music folder, as Mandarin could work " +
               "out for itself — file timestamps, and albums appearing between scans."
@@ -156,7 +153,7 @@ async function openLibFocusSheet() {
                facetState(sel, v.value), () => facetCycle(sel, v.value));
         }
         // Anything SELECTED that the server didn't send back gets a chip of
-        // its own. Genre and Label are truncated to the commonest values, so a
+        // its own. Genre is truncated to the commonest values, so a
         // filter set before the library changed can easily name one that
         // isn't in the list. Without this the filter is active, invisible, and
         // clearable only by Clear all, which would take every other filter

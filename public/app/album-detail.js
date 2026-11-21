@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 25 of 33: an album's detail, read and drawn. [opts.version]: another of its
+/* The page's core (app.js until v1.0.5), 25 of 31: an album's detail, read and drawn. [opts.version]: another of its
    versions shown in its place (item 349, album-versions.js): what is the album's own (its write-ups, credits, the rows
    under it, its date) not asked for again, its tabs left as they are. */
 async function fetchAlbumDetail(album, opts) {

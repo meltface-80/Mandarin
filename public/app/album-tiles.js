@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 18 of 33: toasts, the banner, the scan bar, skeletons, long-press, badges and an album's tile. */
+/* The page's core (app.js until v1.0.5), 18 of 31: toasts, the banner, the scan bar, skeletons, long-press, badges and an album's tile. */
 // ----- Toast / banner -----
 let toastTimer = null;
 // `ms` overrides the 2.4s default. Anything that lands at the END of a
@@ -40,20 +40,6 @@ function setBanner(msg, isError) {
   banner.textContent = msg;
   banner.classList.toggle("error", !!isError);
   banner.classList.remove("hidden");
-}
-
-// ----- Scan progress bar -----
-function updateScanBar(progress) {
-  const bar  = document.getElementById("scan-progress-bar");
-  const fill = document.getElementById("scan-progress-fill");
-  if (!bar || !fill) return;
-  if (progress === null || progress === undefined) {
-    bar.classList.add("hidden");
-    fill.style.width = "0%";
-  } else {
-    bar.classList.remove("hidden");
-    fill.style.width = Math.round((progress || 0) * 100) + "%";
-  }
 }
 
 // ----- Skeletons -----

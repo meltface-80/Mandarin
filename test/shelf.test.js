@@ -56,7 +56,7 @@ test("the shelf's list: genres commonest first, each album's genres as places in
   [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"])], [al(1, "Abbey Road (Remaster)", "The Beatles", "beatles", ["Rock"])],
   [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 1969)], [al(1, "Abbey Road", "The Beatles", "beatles", ["Rock"], 2019)]] }).shelves;
   assert.deepEqual(shelf.genres, [{ name: "Electronic", count: 2 }, { name: "Jazz", count: 1 }, { name: "Pop", count: 1 }, { name: "Rock", count: 1 }]);
-  assert.deepEqual(shelf.albums[0], { o: 1, t: "Abbey Road", a: "The Beatles", k: "al-1-0", g: [2, 3], b: "B", y: 1969, l: null, c: null, ty: null, fm: null, v: null, q: null, fv: false });
+  assert.deepEqual(shelf.albums[0], { o: 1, t: "Abbey Road", a: "The Beatles", k: "al-1-0", g: [2, 3], b: "B", y: 1969, c: null, ty: null, fm: null, v: null, q: null, fv: false });
   assert.deepEqual(shelf.albums.map(a => a.y), [1969, null, null, null, null], "no year: null");
   assert.deepEqual(shelf.albums.map(a => a.g), [[2, 3], [0], [1], [0], []], "a genre once per album, empty names left out");
   assert.deepEqual(shelf.albums.map(a => a.b), ["B", "B", "M", "D", "#"]);
@@ -66,8 +66,7 @@ test("the shelf's list: genres commonest first, each album's genres as places in
   assert.notEqual(year1.sig, year2.sig, "a new year, a new signature");
 });
 
-// Item 206 (Rouen's Shelf of v1.9.67 to v1.9.69-t1): each album's label as a place in a list of labels, commonest
-// first; its catalogue number; the kinds of release it is, from the identification's match or the compilation flag;
+// Item 206 (Rouen's Shelf of v1.9.67 to v1.9.69-t1): each album's catalogue number (its label too, until item 492); the kinds of release it is, from the identification's match or the compilation flag;
 // the format of its files or its service; and the version its title ends with.
 // The words that make a title's end an edition (item 361): Extended as well, however it is written, and Limited Edition
 // and Remastered as they were; a word that isn't one leaves the title whole.
@@ -79,9 +78,9 @@ test("an edition at a title's end: Extended, Limited Edition, Remastered", { ski
     ["Born to Run", "Limited Edition"], ["Hounds of Love", "Remastered"], ["Radical Optimism", "Extended · Remastered"], null]);
 });
 
-test("the shelf's list: labels, catalogue numbers, kinds, formats and versions", { skip: rules }, () => {
+test("the shelf's list: catalogue numbers, kinds, formats and versions; no record labels (item 492)", { skip: rules }, () => {
   const al = (id, title, label, more) => Object.assign({ id, title, artist: "A", sortArtist: "a", genres: [], image_key: "al-" + id + "-0", label }, more);
-  const [shelf, plain, numbered, typed, flac, mp3] = score({ fn: "shelf", shelves: [[
+  const [shelf, plain, numbered, typed, flac, mp3, relabelled] = score({ fn: "shelf", shelves: [[
     al(1, "Untrue", "Hyperdub", { catno: "HDBCD002", type: "Album", lossless: true, container: "FLAC", bits: 16, rate: 44100 }),
     al(2, "Archangel", "Hyperdub", { catno: "HDB008", type: "EP", lossless: false, container: "MP3", bits: 16, rate: 44100 }),
     al(3, "MTV Unplugged in New York", "DGC", { type: "Album + Live", lossless: true, container: "FLAC", rate: 96000 }),
@@ -91,10 +90,11 @@ test("the shelf's list: labels, catalogue numbers, kinds, formats and versions",
     al(7, "Music for the Masses (Instrumental)", "Mute", { compilation: true, type: "Album" }),
     al(8, "(What's the Story) Morning Glory?", "", {})
   ], [al(1, "Untrue", "Hyperdub")], [al(1, "Untrue", "Hyperdub", { catno: "HDBCD002" })], [al(1, "Untrue", "Hyperdub", { type: "EP" })],
-  [al(1, "Untrue", "Hyperdub", { lossless: true, container: "FLAC", bits: 16, rate: 44100 })], [al(1, "Untrue", "Hyperdub", { lossless: false, container: "MP3" })]] }).shelves;
-  assert.deepEqual(shelf.labels, [{ name: "Hyperdub", count: 2 }, { name: "DGC", count: 1 }, { name: "Domino", count: 1 }, { name: "Mute", count: 1 }, { name: "Virgin", count: 1 }],
-    "labels commonest first, then by name; none for an album with none, or an empty one");
-  assert.deepEqual(shelf.albums.map(a => a.l), [0, 0, 1, null, 4, 2, 3, null]);
+  [al(1, "Untrue", "Hyperdub", { lossless: true, container: "FLAC", bits: 16, rate: 44100 })], [al(1, "Untrue", "Hyperdub", { lossless: false, container: "MP3" })],
+  [al(1, "Untrue", "Domino")]] }).shelves;
+  assert.equal(shelf.labels, undefined, "no list of labels");
+  assert.ok(shelf.albums.every(a => !("l" in a)), "no album's label");
+  assert.equal(plain.sig, relabelled.sig, "another label, the same shelf");
   assert.deepEqual(shelf.albums.map(a => a.c), ["HDBCD002", "HDB008", null, null, null, null, null, null]);
   assert.deepEqual(shelf.albums.map(a => a.ty), [["album"], ["ep"], ["album", "live"], ["compilation"], ["album", "compilation", "live"], ["other"], ["album"], null],
     "the match's kinds, each once, in the tiles' order; the compilation flag only where the match says nothing");
@@ -316,7 +316,7 @@ test("Shelf in a browser", { skip: (!haveFfmpeg() && "ffmpeg is not installed") 
         $('.tile[data-cat="order"][data-id="random"]').click();
         out.random = window.__shelfOrder().slice().sort();
         return out; })()`);
-      assert.deepEqual(r.tabs, ["Genres", "Artists", "Years", "Labels", "Types", "Formats", "Favourites", "Order"], "Rouen's tabs (item 206: Random is an order), Formats and Favourites (item 208)");
+      assert.deepEqual(r.tabs, ["Genres", "Artists", "Years", "Types", "Formats", "Favourites", "Order"], "Rouen's tabs (item 206: Random is an order), Formats and Favourites (item 208), Labels gone (item 492)");
       assert.deepEqual(r.tiles, ["2020s 1", "2000s 2", "1990s 2", "1970s 1", "1960s 2", "1950s 1", "Undated 1"], "newest first, the albums with no year last");
       assert.equal(r.note, "Tap decades. Choose as many as you like.");
       assert.deepEqual(r.sixties, ["Abbey Road", "Pastel Blues"], "1960–1969, in artist order");

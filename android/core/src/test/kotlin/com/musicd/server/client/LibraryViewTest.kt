@@ -33,7 +33,8 @@ class LibraryViewTest {
         val j = v.json()
         assertEquals("artist", j.getString("sort"))
         assertEquals("Rock", j.getJSONArray("genre").getString(0))
-        assertEquals(0, j.getJSONArray("label").length())
+        assertEquals(0, j.getJSONArray("decade").length())
+        assertFalse("no record label facet (item 492)", j.has("label"))
         assertEquals(v, LibraryView.ofJson(j))
         assertEquals(LibraryView(sort = "added", dir = "asc", seed = 42, played = "never", facets = mapOf("decade" to listOf("1990", "!1980"))),
             LibraryView.ofJson(JSONObject("""{"sort":"added","dir":"asc","seed":42,"played":"never","decade":[1990,"!1980"],"genre":[]}""")))

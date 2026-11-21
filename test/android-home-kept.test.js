@@ -37,7 +37,7 @@ test("the menu's items and the row's buttons go back to Home through the one ste
   const tap = menu.slice(menu.indexOf("internal fun menuTap("), menu.indexOf("\n}\n", menu.indexOf("internal fun menuTap(")));
   // The Shelf too since item 207: its own screen over Home, no longer the phone's browser.
   assert.doesNotMatch(tap, /openShelf/);
-  for (const item of ["later", "pitchfork", "labels", "qobuz", "tidal", "settings", "shelf"])
+  for (const item of ["later", "pitchfork", "qobuz", "tidal", "settings", "shelf"])
     assert.match(tap, new RegExp('"' + item + '"[^\\n]*-> overHome\\(nav, '), item);
   assert.doesNotMatch(tap, /popBackStack\(|nav\.navigate\(/, "every item goes through overHome");
   const row = routes.slice(routes.indexOf("internal fun navTap("), routes.indexOf("\n}\n", routes.indexOf("internal fun navTap(")));

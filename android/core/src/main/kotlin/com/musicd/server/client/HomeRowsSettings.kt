@@ -18,7 +18,7 @@ object HomeRowsSettings {
     val TITLES: Map<String, String> = linkedMapOf(
         "phone" to "Music on device", "downloads" to "Downloaded albums", "unplayed" to "Not played in 6 months", "later" to "Listen later",
         "favourites" to "Favourites", "history" to "Recently played", "picks" to "Smart Picks",
-        "lotw" to "Label of the week", "random" to "Random albums", "library" to "Library", "genres" to "Browse by genre")
+        "random" to "Random albums", "library" to "Library", "genres" to "Browse by genre")
 
     /** What Downloaded albums says while albums are on the phone: it stays on until they are removed. */
     const val HELD = "On while albums are downloaded to this phone"

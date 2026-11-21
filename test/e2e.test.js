@@ -193,17 +193,17 @@ test("MusicD Server end to end", { skip }, async (t) => {
       assert.equal((await api("settings/share-links")).status, 404);
       assert.equal((await api("settings/share-links", { card_review: false })).status, 404);
     });
-    await t.test("labels are off until switched on (test/labels.test.js has the rest)", async () => {
-      // The fixture's Album One is tagged LABEL=Parlophone; off, none of it surfaces.
+    await t.test("no record labels anywhere (item 492)", async () => {
+      // The fixture's Album One is tagged LABEL=Parlophone: kept for matching an edition, never shown or browsed.
       const a = await api("album?offset=" + cd.offset);
       assert.equal(a.album.label, undefined);
       const f = await api("library/facets");
       assert.ok(!f.facets.some(x => x.id === "label"));
-      assert.deepEqual((await api("search?q=parlophone")).labels, []);
-      assert.deepEqual((await api("filters/labels")).labels, []);
-      assert.equal((await api("home/label-of-the-week")).label, null);
-      assert.equal((await api("settings/labels")).enabled, false);
-      assert.ok((await api("settings/home-rows")).rows.some(r => r.id === "lotw" && r.unavailable));
+      const found = await api("search?q=parlophone");
+      assert.deepEqual([found.labels, found.results.length], [undefined, 0]);
+      for (const gone of ["filters/labels", "home/label-of-the-week", "settings/labels", "settings/label-folder-depth", "settings/discogs-token", "labels-scan-log"])
+        assert.equal((await api(gone)).status, 404, gone);
+      assert.ok(!(await api("settings/home-rows")).rows.some(r => r.id === "lotw"));
       // The Android app's Downloaded albums row: first, off until something is downloaded.
       const rows = (await api("settings/home-rows")).rows;
       assert.deepEqual(rows[0], Object.assign({ id: "downloads", on: false }, { unavailable: rows[0].unavailable }));

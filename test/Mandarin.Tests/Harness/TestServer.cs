@@ -18,7 +18,7 @@ public sealed class TestServer : IAsyncDisposable
         ["serverIp"] = "SERVER_IP", ["sonosHosts"] = "SONOS_HOSTS", ["upnpHosts"] = "UPNP_HOSTS", ["include"] = "INCLUDE_ZONES",
         ["exclude"] = "EXCLUDE_ZONES", ["scanHours"] = "SCAN_INTERVAL_HOURS", ["tailscaleBin"] = "MUSICDNET_BIN",
         ["mbBaseUrl"] = "MUSICBRAINZ_URL", ["itunesBaseUrl"] = "ITUNES_URL", ["mbpackUrl"] = "MBPACK_URL", ["mbpackDir"] = "MBPACK_DIR",
-        ["autoeqBaseUrl"] = "AUTOEQ_URL", ["discogsBaseUrl"] = "DISCOGS_URL", ["fanartBaseUrl"] = "FANART_URL", ["deezerBaseUrl"] = "DEEZER_URL",
+        ["autoeqBaseUrl"] = "AUTOEQ_URL", ["fanartBaseUrl"] = "FANART_URL", ["deezerBaseUrl"] = "DEEZER_URL",
         ["wikipediaBaseUrl"] = "WIKIPEDIA_URL", ["pitchforkBaseUrl"] = "PITCHFORK_URL", ["qobuzWebUrl"] = "QOBUZ_WEB_URL",
         ["lastfmBaseUrl"] = "LASTFM_URL", ["lastfmKey"] = "LASTFM_KEY", ["identifyTickMs"] = "IDENTIFY_TICK_MS",
         ["loudnessTickMs"] = "LOUDNESS_TICK_MS", ["qobuzBaseUrl"] = "QOBUZ_URL", ["tidalBaseUrl"] = "TIDAL_URL",
@@ -29,7 +29,7 @@ public sealed class TestServer : IAsyncDisposable
     // The rest laid over the configuration (MANDARIN_CONFIG).
     private static readonly Dictionary<string, string> Config = new()
     {
-        ["qobuzSyncDelayMs"] = "service_sync_delay_ms", ["serviceWatchMs"] = "service_watch_ms", ["logoPauseMs"] = "logo_pause_ms",
+        ["qobuzSyncDelayMs"] = "service_sync_delay_ms", ["serviceWatchMs"] = "service_watch_ms",
         ["upnpOfflineMs"] = "upnp_offline_ms", ["localDevices"] = "local_devices", ["massRemoval"] = "mass_removal", ["tailscaleWatchdog"] = "tailscale_watchdog",
         ["credits"] = "credits", ["creditsTickMs"] = "credits_tick_ms", ["wikidataBaseUrl"] = "wikidata_url", ["coversAhead"] = "covers_ahead",
         ["autoCovers"] = "auto_covers", ["autoCoversGapMs"] = "auto_covers_gap_ms", ["coverartBaseUrl"] = "coverart_url", ["loudness"] = "loudness",
@@ -37,7 +37,7 @@ public sealed class TestServer : IAsyncDisposable
     };
 
     /// <summary>Every job's name: the C# server makes them all (Jobs.Names).</summary>
-    public static readonly string[] Jobs = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback", "covers"];
+    public static readonly string[] Jobs = ["identify", "mbpack", "loudness", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback", "covers"];
 
     private readonly Dictionary<string, string> env = [];
     private ServerProcess? srv;

@@ -84,9 +84,6 @@ object ShellRoute {
     const val SETTINGS = "settings/{$PANE}"
     fun settings(pane: String = "home"): String = "settings/" + enc(pane)
 
-    /** The record labels (item 71); a label's albums are a wall ([wall], kind "label", the label's name as its filter). */
-    const val LABELS = "labels?$ZONE={$ZONE}"
-    fun labels(zoneId: String): String = "labels?$ZONE=" + enc(zoneId)
 
     /** The Artists wall (item 130): the row's Artists; an artist's page ([artist]) over it. */
     const val ARTISTS = "artists?$ZONE={$ZONE}"

@@ -57,9 +57,8 @@ internal object HomeKept {
 
     /** The rows in the owner's order, each on or off (/api/settings/home-rows), the app's own at the top where the server doesn't know them. */
     val layout = mutableStateListOf<HomeRow>()
-    val rows: Map<String, RowKept> = listOf("unplayed", "later", "favourites", "history", "random", "library", "lotw", "downloads", "phone").associateWith { RowKept() }
+    val rows: Map<String, RowKept> = listOf("unplayed", "later", "favourites", "history", "random", "library", "downloads", "phone").associateWith { RowKept() }
     val picks = mutableStateListOf<Pick>()
-    var lotwName by mutableStateOf<String?>(null)
     val genres = mutableStateListOf<GenreCard>()
     var genresNote by mutableStateOf<String?>(null)
     /** A row of the last visit's failed, worth asking again (item 157: Home asks again — [AskAgain] — rather than keep "Couldn’t load."). */
@@ -82,19 +81,18 @@ internal object HomeKept {
     /** Whether Not played has answered since the clock was last started (an empty answer counts; a failure doesn't). */
     private var unplayedLoaded = false
     private var genresLoaded = false
-    private var lotwLoaded = false
     private val serverAlbums = HashMap<Int, AlbumSummary>()
 
     /** Everything kept forgotten, for the rows to be read afresh: the app gone offline, or back online (item 109). */
     fun reset() {
         rows.values.forEach { it.albums.clear(); it.note = null; it.at = 0 }
-        picks.clear(); genres.clear(); genresNote = null; lotwName = null; aotd = null
+        picks.clear(); genres.clear(); genresNote = null; aotd = null
         phoneKeys.clear(); downloads.clear(); serverAlbums.clear()
-        rowsAt = 0; unplayedLoaded = false; genresLoaded = false; lotwLoaded = false
+        rowsAt = 0; unplayedLoaded = false; genresLoaded = false
     }
 
     /** Whether a row hides itself when it has nothing to show (the page's rowHidesWhenEmpty). */
-    fun hidesWhenEmpty(id: String) = id in setOf("unplayed", "history", "picks", "lotw", "favourites", "later", "phone")
+    fun hidesWhenEmpty(id: String) = id in setOf("unplayed", "history", "picks", "favourites", "later", "phone")
 
     /** Whether [row] is on: the Downloads row is on while anything is downloaded, whatever the switch said. */
     fun on(row: HomeRow): Boolean = row.unavailable == null && (row.on || (row.id == "downloads" && rows["downloads"]!!.albums.isNotEmpty()))
@@ -130,7 +128,6 @@ internal object HomeKept {
             scope.launch { val got = withContext(Dispatchers.IO) { runCatching { lib.smartPicks().picks }.getOrNull() }; if (got != null && (got.isNotEmpty() || picks.isEmpty())) { picks.clear(); picks.addAll(got) } }
             // Read again when the other rows are (not only once an app's run, as they were): what the server says of them
             // changes, its genres in English since it said them in French; the cards shown stay until the answer comes.
-            if (!lotwLoaded || !ttlFresh) scope.launch { lotw(lib) }
             if (!genresLoaded || !ttlFresh) scope.launch { genres(lib) }
             scope.launch { loadDownloads(context, client) }
         }
@@ -204,14 +201,6 @@ internal object HomeKept {
             if (row.albums.isEmpty()) row.note = if (e is ServerClient.ServerException && e.status == 503) "Reading your music library…" else "Couldn’t load."
             if (Failure.worthAgain(e)) failed = true
         }
-    }
-
-    private suspend fun lotw(lib: LibraryClient) {
-        val row = rows["lotw"]!!
-        if (row.albums.isEmpty()) row.note = "Loading…"
-        val got = withContext(Dispatchers.IO) { runCatching { lib.labelOfTheWeek() }.getOrNull() }
-        if (got?.label != null && got.albums.isNotEmpty()) { lotwName = got.label; row.albums.clear(); row.albums.addAll(got.albums); row.note = null; lotwLoaded = true }
-        else if (row.albums.isEmpty()) row.note = null   // nothing yet: the row stays hidden, and is asked again next visit
     }
 
     private suspend fun genres(lib: LibraryClient) {

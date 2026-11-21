@@ -101,29 +101,15 @@ internal static partial class Library
         var raw = Q(ctx, "q") ?? "";
         var limit = (int)Math.Max(1, Math.Min(100, IntOr(Q(ctx, "limit") is { Length: > 0 } l ? l : "60", 60)));
         if (Names.JsTrim(raw).Length == 0)
-            return Send(ctx, new JsonObject { ["query"] = raw, ["results"] = new JsonArray(), ["artists"] = new JsonArray(), ["labels"] = new JsonArray(), ["indexed"] = s.Count });
+            return Send(ctx, new JsonObject { ["query"] = raw, ["results"] = new JsonArray(), ["artists"] = new JsonArray(), ["indexed"] = s.Count });
         if (st.Building)
-            return Send(ctx, new JsonObject { ["query"] = raw, ["results"] = new JsonArray(), ["artists"] = new JsonArray(), ["labels"] = new JsonArray(), ["building"] = true, ["progress"] = st.Progress?.DeepClone() });
+            return Send(ctx, new JsonObject { ["query"] = raw, ["results"] = new JsonArray(), ["artists"] = new JsonArray(), ["building"] = true, ["progress"] = st.Progress?.DeepClone() });
 
         var q = Names.Fold(raw);
         var results = new JsonArray();
         foreach (var h in SearchHits(s, raw, limit)) results.Add(AlbumJson(s, h.Al, new JsonObject { ["score"] = h.Score }));
 
-        // Labels (only while they're on) and artists whose names hold the words.
-        var labels = new JsonArray();
-        if (s.LabelsOn && q.Length > 0)
-        {
-            var qn = q.Replace(" ", "");
-            var found = new List<(string Display, int Count, string N)>();
-            foreach (var g in s.LabelGroups.Values)
-            {
-                var n = Names.Fold(g.Title);
-                var merged = g.MergedFrom.Any(x => Names.Fold(x.Display).Contains(q, StringComparison.Ordinal));
-                if (n.Contains(q, StringComparison.Ordinal) || g.Key.Contains(qn, StringComparison.Ordinal) || merged) found.Add((g.Title, g.Albums.Count, n));
-            }
-            foreach (var x in Sorted(found, (a, b) => Or((a.N.StartsWith(q, StringComparison.Ordinal) ? 0 : 1) - (b.N.StartsWith(q, StringComparison.Ordinal) ? 0 : 1), () => b.Count - a.Count)).Take(10))
-                labels.Add(new JsonObject { ["display"] = x.Display, ["albumCount"] = x.Count, ["logo_url"] = null });
-        }
+        // Artists whose names hold the words.
         var artists = new JsonArray();
         if (q.Length > 0)
         {
@@ -141,7 +127,7 @@ internal static partial class Library
             foreach (var k in Sorted(order, (a, b) => Or((seen[a].N.StartsWith(q, StringComparison.Ordinal) ? 0 : 1) - (seen[b].N.StartsWith(q, StringComparison.Ordinal) ? 0 : 1), () => seen[b].Count - seen[a].Count)).Take(8))
                 artists.Add(WithAct(new JsonObject { ["name"] = seen[k].Name, ["n"] = seen[k].N, ["count"] = seen[k].Count, ["albumCount"] = seen[k].Count }, k, seen[k].First));
         }
-        return Send(ctx, new JsonObject { ["query"] = raw, ["count"] = results.Count, ["indexed"] = s.Count, ["results"] = results, ["labels"] = labels, ["artists"] = artists });
+        return Send(ctx, new JsonObject { ["query"] = raw, ["count"] = results.Count, ["indexed"] = s.Count, ["results"] = results, ["artists"] = artists });
     }
 
     // ---------------------------------------------------------------- artists

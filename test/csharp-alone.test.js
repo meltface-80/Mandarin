@@ -64,7 +64,7 @@ test("the C# server alone: the account, the scan, the library, the pages, the ro
     assert.deepEqual([x.status, x.json.tracks.length], [200, 3]);
     // The page and its files, Home's rows, the search: answered here.
     for (const p of ["/", "/app.js", "/api/home/history", "/api/home/unplayed", "/api/home/genre-groups", "/api/search?q=song", "/api/artists", "/api/library/facets",
-      "/api/zones", "/api/outputs", "/api/audio-devices", "/api/filters/labels", "/api/filters/genres", "/api/library/folders"]) {
+      "/api/zones", "/api/outputs", "/api/audio-devices", "/api/filters/genres", "/api/library/folders"]) {
       x = await ask(p, { headers: H });
       assert.deepEqual([p, x.status, x.by], [p, 200, "C#"]);
     }
@@ -92,7 +92,7 @@ test("the C# server alone: the account, the scan, the library, the pages, the ro
     const best = (await ask("/api/library/albums?sort=album", { headers: H })).json.albums.find(a => a.title === "Best Of");
     x = await ask("/api/image/" + best.image_key + "?size=300", { headers: H });
     assert.deepEqual([x.status, x.by, x.type], [200, "C#", "image/jpeg"], "the placeholder");
-    // The day's album and the week's label: this clock's day and week.
+    // The day's album: this clock's day.
     x = await ask("/api/home/album-of-the-day", { headers: H });
     assert.deepEqual([x.status, x.by], [200, "C#"]);
     assert.match(String(x.json.day), /^\d{4}-\d{1,2}-\d{1,2}$/);

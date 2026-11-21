@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 8 of 33: Smart Picks left behind, and the Library wall's pages. */
+/* The page's core (app.js until v1.0.5), 8 of 31: Smart Picks left behind, and the Library wall's pages. */
 // Any screen that takes over the shared grid must orphan an in-flight Smart
 // Picks fetch, or its response paints into whatever opened next. enterFullWall
 // and showHome both call this, so it covers every route out of the screen.
@@ -58,7 +58,7 @@ const libWin = libraryWindow({
   grid,
   scroller: document.querySelector("main"),
   items: () => libWall.items,
-  live: () => libraryWallActive && !labelsActive,
+  live: () => libraryWallActive,
   tile: (a) => keyLibraryTile(homeTile(a)),   // filter:null → offsets resolve; keyed as the contract's
   picked: (a) => albumSelected.some(x => x.offset === a.offset),
   opener: (a) => () => openAlbum(a, { source: "home", filter: null }),   // as homeTile opens it

@@ -11,7 +11,7 @@
  *   const faces = ShelfFaces.create(h);
  *   faces.coverImg(a)              the cover picture, for a front drawn without it while the shelf flew past
  *   faces.frontHTML(a, withImg)    the front: the cover (its picture, or its names on a plain sleeve), then the card's names
- *   faces.spineHTML(a, tab, up)    the spine, with the divider card standing on it where a new letter, label or decade begins
+ *   faces.spineHTML(a, tab, up)    the spine, with the divider card standing on it where a new letter or decade begins
  */
 (() => {
   "use strict";

@@ -1,7 +1,6 @@
-// Labels.cs — the record labels' background work, as this server holds it
-// (v0.8.20): the lookups (LabelLookup.cs) and the logos (LabelLogos.cs),
-// set up at the start (Jobs.cs). The routes
-// that show them and start them are LabelRoutes.cs.
+// SavedSettings.cs — a setting as the database keeps it (db.setting and
+// db.setSetting in the Node server): the stored JSON, read and written as
+// JSON.parse and JSON.stringify do.
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
 
@@ -9,11 +8,8 @@ namespace Mandarin.Server.Extras;
 
 using Js = Mandarin.Server.Tags.Js;
 
-internal static class Labels
+internal static class SavedSettings
 {
-    public static LabelLookup? Lookup { get; set; }
-    public static LabelLogos? Logos { get; set; }
-
     /* db.setting(key): the stored JSON as JSON.parse reads it, undefined when there's none (or it won't parse). */
     public static object? Setting(string key)
     {

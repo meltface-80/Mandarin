@@ -110,7 +110,7 @@ const ENV = {
   port: "PORT", musicDir: "MUSIC_DIR", dataDir: "DATA_DIR", serverIp: "SERVER_IP", sonosHosts: "SONOS_HOSTS", upnpHosts: "UPNP_HOSTS",
   include: "INCLUDE_ZONES", exclude: "EXCLUDE_ZONES", scanHours: "SCAN_INTERVAL_HOURS", tailscaleBin: "MUSICDNET_BIN",
   mbBaseUrl: "MUSICBRAINZ_URL", mbRestMs: "MUSICBRAINZ_REST_MS", itunesBaseUrl: "ITUNES_URL", acoustidBaseUrl: "ACOUSTID_URL", mbpackUrl: "MBPACK_URL", mbpackDir: "MBPACK_DIR", autoeqBaseUrl: "AUTOEQ_URL",
-  discogsBaseUrl: "DISCOGS_URL", fanartBaseUrl: "FANART_URL", deezerBaseUrl: "DEEZER_URL", wikipediaBaseUrl: "WIKIPEDIA_URL",
+  fanartBaseUrl: "FANART_URL", deezerBaseUrl: "DEEZER_URL", wikipediaBaseUrl: "WIKIPEDIA_URL",
   pitchforkBaseUrl: "PITCHFORK_URL", qobuzWebUrl: "QOBUZ_WEB_URL", lastfmBaseUrl: "LASTFM_URL", lastfmKey: "LASTFM_KEY",
   identifyTickMs: "IDENTIFY_TICK_MS", loudnessTickMs: "LOUDNESS_TICK_MS", qobuzBaseUrl: "QOBUZ_URL", tidalBaseUrl: "TIDAL_URL",
   tidalAuthUrl: "TIDAL_AUTH_URL", tidalImagesUrl: "TIDAL_IMAGES_URL", ibroadcastBaseUrl: "IBROADCAST_URL",
@@ -137,7 +137,7 @@ const ENV = {
 const FLAGS = { upnpMulticast: "UPNP_DISCOVERY", identify: "IDENTIFY", localAudio: "LOCAL_AUDIO" };
 // The rest laid over the configuration (MANDARIN_CONFIG), by the names the hand-over carried them under.
 const CONFIG = {
-  qobuzSyncDelayMs: "service_sync_delay_ms", serviceWatchMs: "service_watch_ms", ibroadcastWatchMs: "ibroadcast_watch_ms", ibroadcastUploadLimit: "ibroadcast_upload_limit", acoustidBuiltIn: "acoustid_built_in", fanartBuiltIn: "fanart_built_in", ibroadcastUploadWaitMs: "ibroadcast_upload_wait_ms", ibroadcastUploadAgainMs: "ibroadcast_upload_again_ms", ibroadcastScheduleTickMs: "ibroadcast_schedule_tick_ms", logoPauseMs: "logo_pause_ms", upnpOfflineMs: "upnp_offline_ms",
+  qobuzSyncDelayMs: "service_sync_delay_ms", serviceWatchMs: "service_watch_ms", ibroadcastWatchMs: "ibroadcast_watch_ms", ibroadcastUploadLimit: "ibroadcast_upload_limit", acoustidBuiltIn: "acoustid_built_in", fanartBuiltIn: "fanart_built_in", ibroadcastUploadWaitMs: "ibroadcast_upload_wait_ms", ibroadcastUploadAgainMs: "ibroadcast_upload_again_ms", ibroadcastScheduleTickMs: "ibroadcast_schedule_tick_ms", upnpOfflineMs: "upnp_offline_ms",
   localDevices: "local_devices", massRemoval: "mass_removal", tailscaleWatchdog: "tailscale_watchdog",
   // Loudness measured with the Album Scanner on (Jobs.cs, item 411): only where a test asks for it.
   loudness: "loudness",
@@ -145,7 +145,7 @@ const CONFIG = {
   mqa: "mqa", mqaTickMs: "mqa_tick_ms"
 };
 // What the C# server makes (Jobs.Names): every job, with no Node server to leave any to.
-const JOBS = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback"];
+const JOBS = ["identify", "mbpack", "loudness", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback"];
 
 /**
  * index.js's createServer, for the tests that started the Node server with it (stage 7 part 4): the

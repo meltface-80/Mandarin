@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 24 of 33: the album editor's matches, and an album's menu items. */
+/* The page's core (app.js until v1.0.5), 24 of 31: the album editor's matches, and an album's menu items. */
 // ---- names from MusicBrainz (the identification scan, by hand) ----------
 // Find match lists the releases the scan would weigh, best first, to tap;
 // the box under them takes a barcode or a MusicBrainz link for an exact

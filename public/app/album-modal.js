@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 20 of 33: the device picker on Now playing, and the album view's frame. */
+/* The page's core (app.js until v1.0.5), 20 of 31: the device picker on Now playing, and the album view's frame. */
 // ----- Device picker (now-playing screen) -----
 // Replaces the old share button. Lists available zones and switches the
 // active zone by driving the existing topbar selector, so playback, the

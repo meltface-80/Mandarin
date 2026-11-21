@@ -12,9 +12,7 @@ data class WallPrefs(val layout: String = "auto", val tile: Double = 1.0, val te
                      /** Home's greeting, its Random Album tile and its Album of the Day (item 236), each shown or not (Settings → Home Screen; item 57). */
                      val greeting: Boolean = true, val random: Boolean = true, val aotd: Boolean = true,
                      /** The side menu's size (UI Settings' Menu size; item 67): its insides zoomed by it, its width not. */
-                     val menu: Double = 1.0,
-                     /** A label's albums in alphabetical or random order, and the fewest albums a label needs to be listed (Settings → Record labels; item 71). */
-                     val labelOrder: String = "alpha", val labelMin: Int = 1) {
+                     val menu: Double = 1.0) {
     /** The albums as rows (UI Settings' List), not tiles. */
     val list: Boolean get() = layout == "list"
 
@@ -41,8 +39,7 @@ data class WallPrefs(val layout: String = "auto", val tile: Double = 1.0, val te
             return WallPrefs(
                 layout = j.optString("layout", "auto").takeIf { it in LAYOUTS } ?: "auto",
                 tile = num("tile", TILES), text = num("text", TEXTS), title = num("title", TEXTS),
-                greeting = j.optString("greeting", "on") != "off", random = j.optString("random", "on") != "off", aotd = j.optString("aotd", "on") != "off", menu = num("menu", TEXTS),
-                labelOrder = if (j.optString("labelOrder") == "random") "random" else "alpha", labelMin = j.optString("labelMin").toIntOrNull()?.takeIf { it > 0 } ?: 1
+                greeting = j.optString("greeting", "on") != "off", random = j.optString("random", "on") != "off", aotd = j.optString("aotd", "on") != "off", menu = num("menu", TEXTS)
             )
         }
     }

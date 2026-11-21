@@ -32,7 +32,6 @@ public sealed partial class AndroidApiTests
         ("smart_picks", "/api/smart-picks"),
         ("genres", "/api/filters/genres"),
         ("genre_groups", "/api/home/genre-groups"),
-        ("label_of_the_week", "/api/home/label-of-the-week"),
         ("favourites", "/api/favourites"),
         ("listen_later", "/api/listen-later"),
         ("pick_unheard", "/api/pick-unheard"),

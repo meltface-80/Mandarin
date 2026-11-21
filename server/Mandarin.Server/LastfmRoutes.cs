@@ -27,7 +27,7 @@ internal static partial class Library
     /* The key saved in Settings: absent (null) until one is, even an empty one. */
     private static string? SavedLastfmKey()
     {
-        var s = Labels.Setting("lastfmKey");
+        var s = SavedSettings.Setting("lastfmKey");
         return s is Undef || s == null ? null : TJs.Str(s);
     }
     public static string LastfmKey() => Names.JsTrim(SavedLastfmKey() ?? Jobs.LastfmEnvKey ?? "");
@@ -53,7 +53,7 @@ internal static partial class Library
         var b = await Auth.Body(ctx);
         if (b == null) return true;
         var given = (FromNode(b) as JsObj ?? new JsObj())["key"];
-        Labels.SetSetting("lastfmKey", Names.JsTrim(TJs.Truthy(given) ? TJs.Str(given) : ""));
+        SavedSettings.SetSetting("lastfmKey", Names.JsTrim(TJs.Truthy(given) ? TJs.Str(given) : ""));
         fm.Clear();
         var k = LastfmKey();
         return await Send(ctx, new JsonObject

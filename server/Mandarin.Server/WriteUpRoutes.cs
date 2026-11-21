@@ -91,23 +91,13 @@ internal static partial class Library
             bios = Field(hit, "bios");
         }
         if (TJs.Truthy(bios) && Field(bios, "album") is JsObj a0 && TJs.Truthy(year)) a0["year"] = year;
-        // The label is the library's own (Settings → Record labels), never one a write-up names.
-        var label = al != null ? s.LabelOf(al) : null;
+        // No record label, never one a write-up names (the record labels taken out, item 492).
         if (TJs.Truthy(bios) && TJs.Truthy(Field(bios, "album")))
         {
             var copy = new JsObj();
             if (Field(bios, "album") is JsObj album) foreach (var k in album.Keys) copy[k] = album[k];
-            copy["label"] = label;
+            copy["label"] = null;
             ((JsObj)bios!)["album"] = copy;
-        }
-        else if (label != null)
-        {
-            var nb = new JsObj();
-            if (bios is JsObj old) foreach (var k in old.Keys) nb[k] = old[k];
-            var only = new JsObj();
-            only["label"] = label;
-            nb["album"] = only;
-            bios = nb;
         }
         var o = new JsObj();
         o["year"] = year;

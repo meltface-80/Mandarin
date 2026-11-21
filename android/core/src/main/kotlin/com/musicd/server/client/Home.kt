@@ -131,12 +131,6 @@ data class GenreCard(val label: String, val genre: String?, val group: List<Genr
     }
 }
 
-/** The label of the week (/api/home/label-of-the-week): its name and its albums; no label while the labels are still being read, or with none of three albums. */
-data class LabelOfTheWeek(val label: String?, val albums: List<AlbumSummary>) {
-    companion object {
-        fun parse(j: JSONObject) = LabelOfTheWeek(j.text("label"), AlbumRow.parse(j).albums)
-    }
-}
 
 /** Random Album's choice (/api/pick-unheard): one not heard in a year, or any until Mandarin has a year's listening. */
 data class PickedAlbum(val album: AlbumSummary) {

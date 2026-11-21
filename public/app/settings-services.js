@@ -41,43 +41,6 @@ if (displaySeconds) {
   });
   displaySeconds.addEventListener("change", saveDisplaySettings);
 }
-const lfdInput  = document.getElementById("label-folder-depth-input");
-const lfdSave   = document.getElementById("label-folder-depth-save");
-const lfdStatus = document.getElementById("label-folder-depth-status");
-
-async function loadLabelFolderDepth() {
-  try {
-    const r = await fetch("/api/settings/label-folder-depth");
-    const j = await r.json();
-    if (lfdInput && document.activeElement !== lfdInput) lfdInput.value = j.depth || 0;
-    if (lfdStatus) lfdStatus.textContent = j.depth ? ("Using folder depth " + j.depth) : "Off — using file label tags";
-  } catch (_) { /* display-only status — stale on failure is fine */ }
-}
-
-if (lfdSave) {
-  lfdSave.addEventListener("click", async () => {
-    const depth = parseInt(lfdInput ? lfdInput.value : "0", 10) || 0;
-    lfdSave.disabled = true;
-    try {
-      const r = await fetch("/api/settings/label-folder-depth", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ depth })
-      });
-      const j = await r.json();
-      if (j.ok) {
-        settingsToast(j.rescanning ? "Saved — re-scanning labels…" : "Saved", "ok");
-        loadLabelFolderDepth();
-      } else {
-        settingsToast(j.error || "Failed to save", "error");
-      }
-    } catch (e) {
-      settingsToast("Failed: " + e.message, "error");
-    } finally {
-      lfdSave.disabled = false;
-    }
-  });
-}
-
 // ----- Qobuz (v0.6.23): Settings → Services -------------------------------
 const qobuzUser       = document.getElementById("qobuz-username");
 const qobuzPass       = document.getElementById("qobuz-password");

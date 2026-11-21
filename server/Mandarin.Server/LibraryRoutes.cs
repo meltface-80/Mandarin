@@ -33,7 +33,6 @@ internal static partial class Library
         ["/api/listen-later"] = ListenLater,
         ["/api/home/genre-groups"] = GenreGroups,
         ["/api/home/album-of-the-day"] = AlbumOfTheDay,
-        ["/api/home/label-of-the-week"] = LabelOfTheWeek,
         ["/api/home/history"] = History,
         ["/api/home/unplayed"] = Unplayed,
         ["/api/settings/display"] = DisplaySettings,
@@ -49,15 +48,6 @@ internal static partial class Library
         ["/api/album-scanner"] = AlbumScannerState,
         ["/api/waveform"] = Waveform,
         ["/api/settings/waveform"] = WaveformSettings,
-        ["/api/filters/labels"] = LabelWall,
-        ["/api/label-albums"] = LabelAlbums,
-        ["/api/labels-scan-status"] = LabelScanStatus,
-        ["/api/labels-scan-log"] = LabelScanLog,
-        ["/api/labels/logo-candidates"] = LogoCandidates,
-        ["/api/settings/labels"] = LabelSettings,
-        ["/api/settings/label-folder-depth"] = LabelFolderDepth,
-        ["/api/settings/fanart-key"] = KeyState,
-        ["/api/settings/discogs-token"] = KeyState,
         ["/api/settings/acoustid-key"] = AcoustIdKeyState,
         ["/api/smart-picks"] = SmartPicks,
         ["/api/album/extras"] = AlbumExtras,
@@ -97,9 +87,6 @@ internal static partial class Library
         ["/api/favourites"] = SaveFavourite,
         ["/api/album/versions/main"] = SaveMainVersion,
         ["/api/listen-later"] = SaveLater,
-        ["/api/labels/merge"] = MergeLabels,
-        ["/api/settings/labels"] = SaveLabelsOn,
-        ["/api/settings/label-folder-depth"] = SaveLabelDepth,
         ["/api/identify/settings"] = IdentifySettings,
         ["/api/identify/accept"] = IdentifyAccept,
         ["/api/identify/reject"] = IdentifyReject,
@@ -115,11 +102,6 @@ internal static partial class Library
         ["/api/covers/auto"] = SaveAutoCovers,
         ["/api/album-scanner"] = SaveAlbumScanner,
         ["/api/settings/waveform"] = SaveWaveformSettings,
-        ["/api/labels/rescan"] = LabelRescan,
-        ["/api/labels/rescan-force"] = LabelRescan,
-        ["/api/labels/logo"] = SaveLabelLogo,
-        ["/api/settings/fanart-key"] = SaveKey,
-        ["/api/settings/discogs-token"] = SaveKey,
         ["/api/settings/acoustid-key"] = SaveAcoustIdKey,
         ["/api/smart-picks/rebuild"] = RebuildSmartPicks,
         ["/api/smart-picks/block"] = BlockSmartPicksArtist,
@@ -137,10 +119,6 @@ internal static partial class Library
         ["/api/download/albums"] = DownloadAlbums,
         ["/api/phone/plays"] = PhonePlays,
     };
-    private static readonly Dictionary<string, Handler> Deletes = new()
-    {
-        ["/api/labels/logo"] = RemoveLabelLogo,
-    };
 
     /* Before the routes: what is answered here is answered; the rest goes on. */
     public static void Use(WebApplication app)
@@ -148,12 +126,6 @@ internal static partial class Library
         app.Use(async (ctx, next) =>
         {
             var m = ctx.Request.Method;
-            // A merged label let go (v0.8.16, LibraryChanges.cs).
-            if (UnmergeAddress(ctx, out var source))
-            {
-                try { await UnmergeLabel(ctx, source); } catch (Exception e) when (!ctx.Response.HasStarted) { await Server.Failed(ctx, "library", e); }
-                return;
-            }
             // Playback (v0.8.49, stage 6, PlaybackRoutes.cs: once this server holds the job); backup & restore and built-in Tailscale (v0.8.22, AdminRoutes.cs): the library's copy not needed.
             if (await PlaybackRoutes.Route(ctx) || await AdminRoute(ctx)) return;
             // Restart, Shut down and the processor split (v0.8.31, PowerRoutes.cs): nor here.
@@ -177,7 +149,7 @@ internal static partial class Library
             if (await ServiceImport(ctx)) return;
             // Settings → Services → iBroadcast (item 443, IBroadcastRoutes.cs).
             if (await IBroadcastRoute(ctx)) return;
-            if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : HttpMethods.IsDelete(m) ? Deletes : null) is { } table
+            if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : null) is { } table
                 && table.TryGetValue(p, out var h))
             {
                 try

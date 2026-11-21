@@ -214,14 +214,10 @@ internal fun SearchScreen(prefs: WallPrefs, zoneId: String, client: () -> Server
             if (lib != null && q.isNotEmpty()) {
                 if (lib.artists.isNotEmpty()) {
                     section("h-artists", "Artists")
-                    item("artists", span = { GridItemSpan(maxLineSpan) }) { SearchChips(lib.artists, labels = false) { n -> onPage("artist", n) } }
-                }
-                if (lib.labels.isNotEmpty()) {
-                    section("h-labels", "Labels")
-                    item("labels", span = { GridItemSpan(maxLineSpan) }) { SearchChips(lib.labels, labels = true) { n -> onPage("label", n) } }
+                    item("artists", span = { GridItemSpan(maxLineSpan) }) { SearchChips(lib.artists) { n -> onPage("artist", n) } }
                 }
                 if (lib.albums.isNotEmpty()) {
-                    if (lib.artists.isNotEmpty() || lib.labels.isNotEmpty()) section("h-albums", "Albums")
+                    if (lib.artists.isNotEmpty()) section("h-albums", "Albums")
                     val albums = lib.albums
                     items(albums.size, key = { "a" + albums[it].offset }, span = { if (prefs.list) GridItemSpan(maxLineSpan) else GridItemSpan(1) }) { i ->
                         if (prefs.list) AlbumRow(albums[i], prefs, coverPx, client) { openAlbum(albums, i) } else AlbumTile(albums[i], prefs, coverPx, client) { openAlbum(albums, i) }

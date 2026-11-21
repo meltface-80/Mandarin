@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 22 of 33: the queue. */
+/* The page's core (app.js until v1.0.5), 22 of 31: the queue. */
 // Send the selection, in the order it was picked.
 async function runHistoryMulti(kind, rows) {
   if (!historySelected.length) return;

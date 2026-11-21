@@ -118,7 +118,6 @@ internal fun menuTap(nav: NavHostController, what: String, context: android.cont
     when (what) {
         "later" -> overHome(nav, ShellRoute.wall("later", z, ""))
         "pitchfork" -> overHome(nav, ShellRoute.pitchfork("", z))
-        "labels" -> overHome(nav, ShellRoute.labels(z))
         "qobuz", "tidal" -> overHome(nav, ShellRoute.serviceBrowser(what, z))
         "settings" -> overHome(nav, ShellRoute.settings())
         "shelf" -> overHome(nav, ShellRoute.shelf(z))
@@ -162,9 +161,9 @@ private fun MenuDrawer(zoom: Double, client: () -> ServerClient?, scope: Corouti
         val c = client() ?: return@LaunchedEffect
         val (status, shown) = withContext(Dispatchers.IO) {
             fun ask(path: String) = async { runCatching { c.getJson(path) }.getOrNull() }
-            val st = ask("/api/status"); val l = ask("/api/settings/labels"); val q = ask("/api/settings/qobuz")
+            val st = ask("/api/status"); val q = ask("/api/settings/qobuz")
             val t = ask("/api/settings/tidal"); val sh = ask("/api/settings/shelf")
-            st.await() to Menu.items(l.await(), q.await(), t.await(), sh.await(), items)
+            st.await() to Menu.items(q.await(), t.await(), sh.await(), items)
         }
         if (shown != items) AppLog.line("MENU", "its rows changed as the server answered: $items, then $shown", anomaly = kept != null)
         sub = Menu.rescanSub(status ?: Menu.keptStatus(kept), System.currentTimeMillis()); items = shown
@@ -251,7 +250,6 @@ private fun MenuList(items: Menu.Items, offline: Boolean, sub: String, onOffline
         OfflineRow(offline, onOffline)
         MenuSep()
         MenuItem(Modifier.parity("menu.pitchfork", Contract.label("menu.pitchfork")).clip(ITEM).clickable { onItem("pitchfork") }, R.drawable.mn_pitchfork, Contract.label("menu.pitchfork"))
-        if (items.labels) MenuItem(Modifier.parity("menu.labels", Contract.label("menu.labels")).clip(ITEM).clickable { onItem("labels") }, R.drawable.mn_labels, Contract.label("menu.labels"))
         if (items.qobuz) MenuItem(Modifier.parity("menu.qobuz", Contract.label("menu.qobuz")).clip(ITEM).clickable { onItem("qobuz") }, R.drawable.mn_qobuz, Contract.label("menu.qobuz"))
         if (items.tidal) MenuItem(Modifier.parity("menu.tidal", Contract.label("menu.tidal")).clip(ITEM).clickable { onItem("tidal") }, R.drawable.src_tidal, Contract.label("menu.tidal"))
         // Shelf is the server's whole library, a page of its own: not offline.

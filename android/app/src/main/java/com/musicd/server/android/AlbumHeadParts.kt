@@ -38,20 +38,15 @@ import org.json.JSONObject
 
 /* An album's page (AlbumScreen.kt), its head's lines and its ⋯ menu, split from it (bug list item 108). */
 
-/** The release date, its label (a tap: the label's albums) and the score after it; nothing until the extras come. */
+/** The release date and the score after it; nothing until the extras come. */
 @Composable
 internal fun DateLine(extras: AlbumExtras?, onPage: (String, String?) -> Unit) {
     val e = extras ?: return
     val date = e.date()
-    if (date.isEmpty() && e.label == null && e.scoreText == null) return
+    if (date.isEmpty() && e.scoreText == null) return
     Row(Modifier.parity("album.date").padding(top = 3.dp)) {
         val dim = MaterialTheme.colorScheme.onSurfaceVariant
         Text(date, color = dim, fontSize = 14.sp, lineHeight = 19.sp)
-        e.label?.let { label ->
-            if (date.isNotEmpty()) Text(" · ", color = dim, fontSize = 14.sp, lineHeight = 19.sp)
-            Text(label, Modifier.parity("album.label", Contract.label("album.label", 0, label)).clickable { onPage("label", label) },
-                color = MaterialTheme.colorScheme.secondary, fontSize = 14.sp, lineHeight = 19.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
         e.scoreText?.let { Text(" · $it" + if (e.bestNewMusic) " BNM" else "", color = dim, fontSize = 14.sp, lineHeight = 19.sp) }
     }
 }

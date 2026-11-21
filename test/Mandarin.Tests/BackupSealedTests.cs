@@ -62,7 +62,7 @@ public sealed class BackupSealedTests
         var boots = await new Boots(s.Base).Init();
         var db = s.Server;
         db.SetSetting("smartPicksHour", 7);
-        db.SetSetting("discogsToken", "secret-discogs-S1");
+        db.SetSetting("fanartKey", "secret-fanart-S1");
         db.SetSetting("qobuz", new { user_auth_token = "secret-qobuz-S1", user = new { id = 1 } });
         var tsDir = Path.Combine(s.Lib.Data, "tailscale");
         Directory.CreateDirectory(tsDir);
@@ -77,7 +77,7 @@ public sealed class BackupSealedTests
         Assert.True(JsonNode.Parse(r.Header("x-mandarin-backup")!).Bool("sealed"), "said up front, for the app's list");
         var file = r.Body;
         var raw = Gunzip(file);
-        foreach (var secret in new[] { "secret-discogs-S1", "secret-qobuz-S1", "secret-node-key-S1", Convert.ToBase64String(Encoding.UTF8.GetBytes("secret-node-key-S1")) })
+        foreach (var secret in new[] { "secret-fanart-S1", "secret-qobuz-S1", "secret-node-key-S1", Convert.ToBase64String(Encoding.UTF8.GetBytes("secret-node-key-S1")) })
             Assert.True(!raw.Contains(secret, StringComparison.Ordinal), secret + " is not in the file in the clear");
         var at = Path.Combine(Tmp(), "sealed.tar.gz");
         await File.WriteAllBytesAsync(at, file);
@@ -90,7 +90,7 @@ public sealed class BackupSealedTests
 
         // Everything changed afterwards.
         db.SetSetting("smartPicksHour", 2);
-        db.SetSetting("discogsToken", "other");
+        db.SetSetting("fanartKey", "other");
         Directory.Delete(tsDir, true);
         Task<Http.Answer> Restore(string which, Dictionary<string, string>? headers = null)
         {
@@ -106,20 +106,20 @@ public sealed class BackupSealedTests
         Same(await Restore("keys"), 422, """{"error":"This backup is sealed with a passphrase: enter it to restore the keys or the whole database"}""");
         Same(await Restore("settings,keys", PassHeader("correct horse battery")), 422, """{"error":"That passphrase doesn't open this backup"}""");
         Same(await Restore("keys", new() { ["X-Mandarin-Passphrase"] = "not base64!" }), 400, """{"error":"The passphrase didn't arrive whole"}""");
-        Assert.Equal(("other", 2, 0), ((string?)db.Setting("discogsToken"), db.Setting("smartPicksHour")!.GetValue<int>(), await Kept()));
+        Assert.Equal(("other", 2, 0), ((string?)db.Setting("fanartKey"), db.Setting("smartPicksHour")!.GetValue<int>(), await Kept()));
 
         // The rest without it.
         var j = await Restore("settings");
         Assert.True(j.Status == 200, j.Text);
         JsonAssert.Same("""["settings"]""", j.J["restored"]);
-        Assert.Equal((7, "other"), (db.Setting("smartPicksHour")!.GetValue<int>(), (string?)db.Setting("discogsToken")));
+        Assert.Equal((7, "other"), (db.Setting("smartPicksHour")!.GetValue<int>(), (string?)db.Setting("fanartKey")));
         await boots.Restarted();
 
         // The keys with it: as from a backup without one, the Tailscale identity too.
         j = await Restore("keys", PassHeader(Pass));
         Assert.True(j.Status == 200, j.Text);
         Assert.Equal(["keys", "tailscale"], j.J["restored"].Items().Select(x => (string?)x).Order(StringComparer.Ordinal));
-        Assert.Equal("secret-discogs-S1", (string?)db.Setting("discogsToken"));
+        Assert.Equal("secret-fanart-S1", (string?)db.Setting("fanartKey"));
         JsonAssert.Same("""{"user_auth_token":"secret-qobuz-S1","user":{"id":1}}""", db.Setting("qobuz"));
         Assert.Equal("secret-node-key-S1", await File.ReadAllTextAsync(Path.Combine(tsDir, "tailscaled.state")));
         await boots.Restarted();
@@ -131,7 +131,7 @@ public sealed class BackupSealedTests
         await using var s = await Session.Started();
         var boots = await new Boots(s.Base).Init();
         var db = s.Server;
-        db.SetSetting("discogsToken", "secret-discogs-S1");
+        db.SetSetting("fanartKey", "secret-fanart-S1");
         db.Exec("INSERT INTO favourites(key, added_at) VALUES('then', 1)");
         var authSecret = (string?)db.Setting("authSecret");
         Assert.True(!string.IsNullOrEmpty(authSecret), "the server's signing secret");
@@ -146,7 +146,7 @@ public sealed class BackupSealedTests
         // The file as downloaded: no key, no signing secret, no sign-in in it, not even in the database's free pages.
         var file = (await Bytes.Get(s.Base + "/api/backup/download/" + id, s.H)).Body;
         var raw = Gunzip(file);
-        foreach (var secret in new[] { "secret-discogs-S1", authSecret! }) Assert.True(!raw.Contains(secret, StringComparison.Ordinal), "not in the file in the clear: " + secret[..6] + "…");
+        foreach (var secret in new[] { "secret-fanart-S1", authSecret! }) Assert.True(!raw.Contains(secret, StringComparison.Ordinal), "not in the file in the clear: " + secret[..6] + "…");
         var dir = Tmp();
         var copy = Path.Combine(dir, "copy.db");
         await File.WriteAllBytesAsync(Path.Combine(dir, "b.tar.gz"), file);
@@ -156,10 +156,10 @@ public sealed class BackupSealedTests
             c.Open();
             long Count(string sql) { using var q = c.CreateCommand(); q.CommandText = sql; return (long)q.ExecuteScalar()!; }
             Assert.Equal((0L, 0L, 0L, 1L), (Count("SELECT COUNT(*) FROM account"), Count("SELECT COUNT(*) FROM devices"),
-                Count("SELECT COUNT(*) FROM settings WHERE key IN ('discogsToken', 'authSecret', 'tailscale')"), Count("SELECT COUNT(*) FROM favourites")));
+                Count("SELECT COUNT(*) FROM settings WHERE key IN ('fanartKey', 'authSecret', 'tailscale')"), Count("SELECT COUNT(*) FROM favourites")));
         }
 
-        db.SetSetting("discogsToken", "later");
+        db.SetSetting("fanartKey", "later");
         db.Exec("INSERT INTO favourites(key, added_at) VALUES('later', 2)");
         Task<Http.Answer> ById(object body) => s.Api("backup/restore/" + id, body);
         Same(await ById(new { include = new[] { "database" } }), 422, """{"error":"This backup is sealed with a passphrase: enter it to restore the keys or the whole database"}""");
@@ -171,7 +171,7 @@ public sealed class BackupSealedTests
         await boots.Restarted();
         db.CloseDb();
         Assert.Equal(["then"], db.Rows("SELECT key FROM favourites ORDER BY key").Select(x => (string?)x["key"]));
-        Assert.Equal("secret-discogs-S1", (string?)db.Setting("discogsToken"));
+        Assert.Equal("secret-fanart-S1", (string?)db.Setting("fanartKey"));
         Assert.True((string?)db.Setting("authSecret") == authSecret, "today's signing secret kept");
         Assert.True((await s.Api("backup")).Status == 200, "the same sign-in still works");
     }

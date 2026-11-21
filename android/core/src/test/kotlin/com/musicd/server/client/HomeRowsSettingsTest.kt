@@ -19,11 +19,12 @@ class HomeRowsSettingsTest {
     }
 
     @Test fun `each row listed with its name, a setting off or albums on the phone saying why it can't be switched`() {
-        val rows = listOf(HomeRow("downloads", false, null), HomeRow("lotw", true, "Record labels is off in Settings"), HomeRow("soon", true, null), HomeRow("history", false, null))
+        // Label of the week gone with the labels (item 492): an older server's row of it is passed over, as one not known.
+        val rows = listOf(HomeRow("downloads", false, null), HomeRow("picks", true, "Smart Picks is off in Settings"), HomeRow("lotw", true, null), HomeRow("history", false, null))
         val none = HomeRowsSettings.listed(rows, 0)
-        assertEquals("downloads,lotw,history", none.joinToString(",") { it.id })
+        assertEquals("downloads,picks,history", none.joinToString(",") { it.id })
         assertEquals(ListedRow("downloads", "Downloaded albums", null, false), none[0])
-        assertEquals(ListedRow("lotw", "Label of the week", "Record labels is off in Settings", false), none[1])
+        assertEquals(ListedRow("picks", "Smart Picks", "Smart Picks is off in Settings", false), none[1])
         assertFalse(none[1].switchable)
         assertTrue(none[2].switchable)
         val some = HomeRowsSettings.listed(rows, 2)

@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-222 routes.
+203 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -74,14 +74,12 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/favourites` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/filters/decades` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/filters/genres` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/filters/labels` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/filters/tags` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/group-outputs` | signed in | `PlaybackRoutes.cs` |
 | GET | `/api/health` | open | `LibraryRoutes.cs` |
 | GET | `/api/home/album-of-the-day` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/home/genre-groups` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/home/history` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/home/label-of-the-week` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/home/unplayed` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/identify` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/identify/accept` | signed in | `LibraryRoutes.cs` |
@@ -99,15 +97,6 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | POST | `/api/identify/sound` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/identify/undo` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/image/…` | signed in, or a signed address | `Images.cs` |
-| GET | `/api/label-albums` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/labels-scan-log` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/labels-scan-status` | signed in | `LibraryRoutes.cs` |
-| DELETE | `/api/labels/logo` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/labels/logo` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/labels/logo-candidates` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/labels/merge` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/labels/rescan` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/labels/rescan-force` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/lastfm/connect` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/lastfm/disconnect` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/lastfm/scrobbling` | signed in | `LibraryRoutes.cs` |
@@ -166,18 +155,10 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 |  | `/api/settings/(qobuz\|tidal)(/import\|/signin\|/signin/cancel\|/signout\|/disconnect)?` | signed in | `ServiceRoutes.cs` |
 | GET | `/api/settings/acoustid-key` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/acoustid-key` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/settings/discogs-token` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/settings/discogs-token` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/display` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/display` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/settings/fanart-key` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/settings/fanart-key` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/home-rows` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/home-rows` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/settings/label-folder-depth` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/settings/label-folder-depth` | signed in | `LibraryRoutes.cs` |
-| GET | `/api/settings/labels` | signed in | `LibraryRoutes.cs` |
-| POST | `/api/settings/labels` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/lastfm-key` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/settings/lastfm-key` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/settings/lastfm-secret` | signed in | `LibraryRoutes.cs` |

@@ -4,27 +4,7 @@
       "count": 2
     }
   },
-  "test/fake-discogs.js": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
   "test/housekeeping-csharp.test.js": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
-  "test/label-logos.test.js": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
-  "test/label-lookup.test.js": {
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
-  "test/labels.test.js": {
     "no-useless-assignment": {
       "count": 1
     }

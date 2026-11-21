@@ -206,20 +206,16 @@ internal fun AlbumTabRow(tab: String, versions: Int, scroll: ScrollState, onTab:
     }
 }
 
-/** About's head: the album's genres (a tap: the genre's albums), its label (a tap: the label's) and its score. */
+/** About's head: the album's genres (a tap: the genre's albums) and its score. */
 internal fun LazyListScope.aboutHead(a: Album, extras: AlbumExtras?, onPage: (String, String?) -> Unit) {
-    if (a.genres.isEmpty() && extras?.label == null && extras?.scoreText == null) return
+    if (a.genres.isEmpty() && extras?.scoreText == null) return
     item {
         Column(Modifier.parity("album.about-facts").fillMaxWidth().padding(top = 18.dp)) {
             if (a.genres.isNotEmpty()) GenreChips(a.genres, "album", center = false, modifier = Modifier.fillMaxWidth()) { onPage("genre", it) }
             val e = extras ?: return@Column
-            if (e.label != null || e.scoreText != null) Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (e.scoreText != null) Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 val dim = MaterialTheme.colorScheme.onSurfaceVariant
-                e.label?.let { label ->
-                    Text(label, Modifier.parity("album.label", Contract.label("album.label", 0, label)).clickable { onPage("label", label) },
-                        color = MaterialTheme.colorScheme.secondary, fontSize = 14.sp, lineHeight = 19.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                e.scoreText?.let { Text((if (e.label != null) " · " else "") + it + if (e.bestNewMusic) " BNM" else "", color = dim, fontSize = 14.sp, lineHeight = 19.sp) }
+                e.scoreText?.let { Text(it + if (e.bestNewMusic) " BNM" else "", color = dim, fontSize = 14.sp, lineHeight = 19.sp) }
             }
         }
     }

@@ -1,5 +1,5 @@
 /* shelf-pick.css — the Shelf's selection centre: its title, the summary and chips, the tabs, and the tiles of each
-   tab (genres, letters, decades, labels, kinds of release, the orders). Moved out of shelf.css in v1.9.67 (its length),
+   tab (genres, letters, decades, kinds of release, the orders). Moved out of shelf.css in v1.9.67 (its length),
    unchanged but for what v1.9.67 added. Loaded by shelf.html after shelf.css, whose variables it reads.
    Copyright (c) 2026 Lewis Menzies (Music Duck / MusicD). Released under the MIT License. See the LICENSE file. */
 
@@ -38,14 +38,10 @@
 .g-sort[aria-pressed="true"] { background: var(--accent); border-color: transparent; color: var(--on-accent); }
 .tiles.artist { --cols: 6; gap: .5rem; }
 .tiles.order { --cols: 1; }
-/* genres and formats the size of a decade or a kind (item 209); the one Favourites tile with a fan of covers, as a label's */
+/* genres and formats the size of a decade or a kind (item 209); the one Favourites tile with a fan of covers */
 .tiles.year, .tiles.type, .tiles.genre, .tiles.format { --cols: 3; gap: .5rem; }
-.tiles.label { --cols: 3; }
 .tiles.favourite { --cols: 2; }
-/* a label's name is longer than a genre's ("Ghostly International"): wider tiles, and never broken inside a word */
-@container pick (max-width: 560px) { .tiles.label { --cols: 2; } }
-.t-label .t-name { overflow-wrap: normal; hyphens: auto; font-size: .9rem; }
-@container pick (min-width: 700px) { .tiles.label { --cols: 4; } .tiles.artist { --cols: 9; } .tiles.year, .tiles.type, .tiles.genre, .tiles.format { --cols: 5; } .tiles.favourite { --cols: 3; } .tiles.order { --cols: 2; } .t-genre { aspect-ratio: 1.45; } .fan { width: 30%; } }
+@container pick (min-width: 700px) { .tiles.artist { --cols: 9; } .tiles.year, .tiles.type, .tiles.genre, .tiles.format { --cols: 5; } .tiles.favourite { --cols: 3; } .tiles.order { --cols: 2; } .t-genre { aspect-ratio: 1.45; } .fan { width: 30%; } }
 .tiles-msg { grid-column: 1 / -1; margin: .4rem 0; color: var(--text-dim); font-size: .9rem; }
 
 .tile {

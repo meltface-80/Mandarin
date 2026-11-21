@@ -22,6 +22,25 @@ const { signIn } = require("./auth-helper");
 const { FakeAcoustId } = require("./fake-acoustid");
 const { createServer, built, BIN } = require("./server");
 const { until } = require("./helpers");
+const http = require("http");
+
+/* MusicBrainz and FanArt.tv stood in for an artist's page: the act found by name, its entry, and its picture, each
+   FanArt.tv ask's key kept (item 492: the label settings that said a FanArt.tv key was there are gone). */
+function standIn() {
+  const fanartKeys = [];
+  const server = http.createServer((req, res) => {
+    const u = new URL(req.url, "http://x");
+    const send = o => { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify(o)); };
+    if (u.pathname === "/ws/2/artist/") {
+      const name = (/artist:"([^"]*)"/.exec(u.searchParams.get("query") || "") || [])[1] || "";
+      return send({ count: 1, artists: [{ id: "a1b2c3d4-0000-0000-0000-000000000001", name, "sort-name": name, score: 100 }] });
+    }
+    if (u.pathname.startsWith("/ws/2/artist/")) return send({ id: u.pathname.split("/").pop(), name: "Artist A", type: "Group", relations: [] });
+    if (u.pathname.startsWith("/fanart/v3/music/")) { fanartKeys.push(u.searchParams.get("api_key")); return send({ artistthumb: [{ url: "https://assets.fanart.tv/a.jpg" }] }); }
+    res.writeHead(404); res.end();
+  });
+  return new Promise(r => server.listen(0, "127.0.0.1", () => r({ base: "http://127.0.0.1:" + server.address().port, fanartKeys, stop: () => server.close() })));
+}
 
 const ROOT = path.join(__dirname, "..");
 const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed");
@@ -30,9 +49,12 @@ test("item 491: the build's own AcoustID and FanArt.tv keys, used where none is 
   const lib = makeLibrary();
   const aid = await new FakeAcoustId({ keys: ["mandarins-own", "pasted-before"] }).start();
   t.after(() => aid.stop());
+  const web = await standIn();
+  t.after(() => web.stop());
   const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false,
-    acoustidBaseUrl: aid.baseUrl, acoustidBuiltIn: "mandarins-own", fanartBuiltIn: "fanart-project-key" });
+    acoustidBaseUrl: aid.baseUrl, acoustidBuiltIn: "mandarins-own", fanartBuiltIn: "fanart-project-key",
+    mbBaseUrl: web.base + "/ws/2", mbRestMs: 0, fanartBaseUrl: web.base + "/fanart", deezerBaseUrl: "http://127.0.0.1:9", wikipediaBaseUrl: "http://127.0.0.1:9" });
   const ctx = await srv.start();
   t.after(() => srv.stop());
   const H = { Authorization: "Bearer " + await signIn(base), "Content-Type": "application/json" };
@@ -47,8 +69,10 @@ test("item 491: the build's own AcoustID and FanArt.tv keys, used where none is 
   const scan = await until(async () => { const s = await get("album-scanner"); return s.sound_tally && s; }, 15000, "the scanner's tally");
   assert.deepEqual(Object.keys(scan.sound_tally).sort(), ["held", "matched", "waiting"]);
   assert.equal(ctx.db.setting("acoustidKey") || "", "", "nothing written of it");
-  // FanArt.tv's too: artist photos and label logos have a key.
-  assert.equal((await get("settings/labels")).fanart, true);
+  // FanArt.tv's too: an artist's page asks for its picture with the build's own key.
+  const act = await until(async () => { const a = await get("artist?name=Artist%20A"); return a && a.photo_source && a; }, 30000, "the act's picture");
+  assert.equal(act.photo_source, "fanart.tv", JSON.stringify(act));
+  assert.deepEqual([...new Set(web.fanartKeys)], ["fanart-project-key"]);
   assert.equal(ctx.db.setting("fanartKey") || "", "", "nothing written of it");
 
   // A key saved before item 491 is still the one used; cleared, the build's again.

@@ -8,7 +8,7 @@
 // or BRIDGE_IP, SONOS_HOSTS, UPNP_HOSTS, UPNP_DISCOVERY (0: no multicast),
 // INCLUDE_ZONES, EXCLUDE_ZONES, SCAN_INTERVAL_HOURS (6), MUSICDNET_BIN
 // (/usr/local/bin/musicdnet), MUSICBRAINZ_URL, ITUNES_URL, MBPACK_URL,
-// MBPACK_DIR, AUTOEQ_URL, DISCOGS_URL, FANART_URL, DEEZER_URL, WIKIPEDIA_URL,
+// MBPACK_DIR, AUTOEQ_URL, FANART_URL, DEEZER_URL, WIKIPEDIA_URL,
 // PITCHFORK_URL, QOBUZ_WEB_URL, LASTFM_URL, LASTFM_KEY, IDENTIFY (0: the
 // identification scan off), IDENTIFY_TICK_MS (5000), LOUDNESS_TICK_MS (5000),
 // LOCAL_AUDIO (0: no sound devices on this computer), UPDATE_REPO,
@@ -43,8 +43,8 @@ internal static class Config
             ["musicbrainz_url"] = S("MUSICBRAINZ_URL"), ["itunes_url"] = S("ITUNES_URL"),
             ["mbpack_url"] = S("MBPACK_URL"), ["mbpack_dir"] = S("MBPACK_DIR"),
             ["loudness_tick_ms"] = N("LOUDNESS_TICK_MS", 5000),
-            ["discogs_url"] = S("DISCOGS_URL"), ["fanart_url"] = S("FANART_URL"),
-            ["deezer_url"] = S("DEEZER_URL"), ["logo_pause_ms"] = null,
+            ["fanart_url"] = S("FANART_URL"),
+            ["deezer_url"] = S("DEEZER_URL"),
             ["wikipedia_url"] = S("WIKIPEDIA_URL"), ["pitchfork_url"] = S("PITCHFORK_URL"), ["qobuz_web_url"] = S("QOBUZ_WEB_URL"),
             ["tailscale_bin"] = S("MUSICDNET_BIN") ?? "/usr/local/bin/musicdnet", ["tailscale_dir"] = Path.Combine(dataDir, "tailscale"), ["tailscale_port"] = port,
             ["tailscale_watchdog"] = null,

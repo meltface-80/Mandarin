@@ -162,7 +162,6 @@
           "score": 916
         }
       ],
-      "labels": [],
       "artists": []
     }
   },
@@ -204,11 +203,6 @@
           "id": "picks",
           "on": true,
           "unavailable": null
-        },
-        {
-          "id": "lotw",
-          "on": true,
-          "unavailable": "Record labels is off in Settings"
         },
         {
           "id": "random",
@@ -321,13 +315,6 @@
         }
       ],
       "flat": true
-    }
-  },
-  "label_of_the_week": {
-    "path": "/api/home/label-of-the-week",
-    "answer": {
-      "label": null,
-      "albums": []
     }
   },
   "favourites": {
