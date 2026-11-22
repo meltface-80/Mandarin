@@ -1,6 +1,7 @@
-// SpotifyNow.cs — Now Playing for a room playing Spotify's live stream (bug list item 142): the stream's address
-// never changes, so what plays is Soloist's (its track, artists, album, cover, length and position), and the format
-// line says what the samples have proven (SoloistProof.cs). The same shape as NowPlaying.Of's.
+// SpotifyNow.cs — Now Playing for a room playing Spotify Connect's live stream (bug list items 142, 501, 503): the
+// stream's address never changes, so what plays is Soloist's (its track, artists, album, cover, length and position),
+// and the format line says it is Spotify Connect, what the samples have proven (SoloistProof.cs) and how the room is
+// sent it (SpotifyRoomPlan.cs). The same shape as NowPlaying.Of's. And the room's controls as Spotify's (Allow).
 using System.Text.Json.Nodes;
 using Mandarin.Server.Playback;
 
@@ -27,8 +28,34 @@ internal static class SpotifyNow
             ["track_id"] = null,
             ["album_offset"] = null,
             ["source"] = "spotify",
-            ["format"] = new JsonObject { ["kind"] = proof.StartsWith("lossless", StringComparison.Ordinal) ? "lossless" : "spotify", ["text"] = FormatText(proof) }
+            ["format"] = new JsonObject { ["kind"] = proof.StartsWith("lossless", StringComparison.Ordinal) ? "lossless" : proof == "lossy" ? "lossy" : "spotify", ["text"] = NowText(proof, SpotifyLive.Sound) }
         };
+    }
+
+    /*
+     * Now playing's format line (item 503): "Spotify Connect · Lossless 24/44.1", then how the room is sent it where it
+     * isn't as it comes ("· FLAC 24/176.4 ↑×4 · Minimum-phase filter"), as a library track's line says it.
+     */
+    public static string NowText(string proof, RoomSound sound)
+    {
+        var text = "Spotify Connect" + proof switch
+        {
+            "lossless 24-bit" => " · Lossless 24/44.1",
+            "lossless 16-bit" => " · Lossless 16/44.1",
+            "lossy" => " · Lossy",
+            _ => ""
+        };
+        if (sound == RoomSound.AsItComes) return text;
+        var khz = Tags.Js.Num(sound.Rate / 1000.0);
+        return text + $" · FLAC {sound.Bits}/{khz}" + (sound.Factor > 1 ? $" ↑×{sound.Factor}" : "") + (sound.Shape != null ? " · " + Upsample.Shape.Name(sound.Shape) : "");
+    }
+
+    /* A room playing Spotify Connect (item 503): next, previous and seek are Spotify's, whatever the device's queue says. Each its own value. */
+    public static void Allow(JsonObject o, double duration)
+    {
+        o["is_next_allowed"] = true;
+        o["is_previous_allowed"] = true;
+        o["is_seek_allowed"] = duration > 0;
     }
 
     /* "Spotify · Lossless 24-bit/44.1 kHz", "Spotify · Lossy (not Lossless)", "Spotify" before the samples have said. */
