@@ -93,7 +93,14 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
             Save(StateKey, found);
             Server.Log($"[ibroadcast] the library read: {found["albums"]} albums in it, {found["also_here"]} of them here as files too, {found["tracks"]} tracks");
             await Library.Tell(new JsonObject { ["services"] = "changed" });
-            _ = Task.Run(async () => { await IBroadcastArt.Run(IBroadcastApi.Str(found["artwork_server"]), dataDir, KeptNs); await IBroadcastBooklets.Run(dataDir, KeptNs); });
+            // The covers, then the booklets (items 504, 510): whatever stops either is said (item 513: it went unsaid, nothing awaiting it).
+            _ = Task.Run(async () =>
+            {
+                try { await IBroadcastArt.Run(IBroadcastApi.Str(found["artwork_server"]), dataDir, KeptNs); }
+                catch (Exception e) { Server.Log($"[ibroadcast] covers: stopped: {e.GetType().Name}: {e.Message}", "WARN"); }
+                try { await IBroadcastBooklets.Run(dataDir, KeptNs); }
+                catch (Exception e) { Server.Log($"[ibroadcast] booklets: stopped: {e.GetType().Name}: {e.Message}", "WARN"); }
+            });
             // Each lossless track's rate and depth, read from its file (item 445).
             if (Jobs.IBroadcastStreams is { } streams) _ = Task.Run(streams.Rates);
             return found;
