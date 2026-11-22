@@ -15,20 +15,26 @@ internal sealed partial class Soloist
     internal static readonly Dictionary<string, string> Bitrates = new(StringComparer.Ordinal) { ["lossless"] = "5", ["very_high"] = "4", ["high"] = "3", ["normal"] = "2" };
 
     /* The prefs that ask for [quality] (lossless for one not known), normalisation off. */
-    internal static (string Key, string Value)[] PrefsFor(string quality)
+    internal static (string Key, string Value)[] PrefsFor(string quality, bool normalise = false)
     {
         var n = Bitrates.TryGetValue(quality, out var v) ? v : Bitrates["lossless"];
         // The marker that makes Soloist honour the non-metered value (item 506, as Music Assistant's Soloist notes found).
-        return [("audio.play_bitrate_enumeration", n), ("audio.play_bitrate_non_metered_enumeration", n), ("audio.play_bitrate_non_metered_migrated", "true"), ("audio.normalize_v2", "false")];
+        return [("audio.play_bitrate_enumeration", n), ("audio.play_bitrate_non_metered_enumeration", n), ("audio.play_bitrate_non_metered_migrated", "true"), ("audio.normalize_v2", normalise ? "true" : "false")];
     }
+
+    /*
+     * Whether Soloist was last started with Spotify's own loudness normalisation on (item 507): the room's volume
+     * levelling, where it is on, done as Spotify does it, since only Spotify's player has a Spotify track's loudness.
+     */
+    public bool Normalising { get; private set; }
 
     /* The quality Soloist was last started with (Settings' choice then). */
     public string Quality { get; private set; } = "lossless";
 
     /* Every account's prefs under [data] made to ask for [quality]; true when one of them changed. */
-    internal static bool AskQuality(string data, string quality)
+    internal static bool AskQuality(string data, string quality, bool normalise = false)
     {
-        var Lossless = PrefsFor(quality);
+        var Lossless = PrefsFor(quality, normalise);
         var settings = Path.Combine(data, "settings");
         var users = Path.Combine(settings, "Users");
         if (!Directory.Exists(settings)) return false;
@@ -71,7 +77,7 @@ internal sealed partial class Soloist
         askedAfterSignIn = true;
         try
         {
-            if (!AskQuality(dataDir, Quality)) return;
+            if (!AskQuality(dataDir, Quality, Normalising)) return;
             Log("lossless asked for on the account just signed in: starting Soloist again to take it up");
             Restart();
         }

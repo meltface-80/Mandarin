@@ -21,7 +21,7 @@ using System.Text;
 namespace Mandarin.Server.Connect;
 
 /* What Soloist is started with: the program, PulseAudio, the key, and the name the Spotify app shows. */
-internal sealed record SoloistSetup(string Soloist, string PulseAudio, string ApiKey, string DeviceName, string Quality = "lossless");
+internal sealed record SoloistSetup(string Soloist, string PulseAudio, string ApiKey, string DeviceName, string Quality = "lossless", bool Normalise = false);
 
 /* What plays, as Soloist says it. Position is seconds at [At] (Unix ms); 0 duration when unknown. */
 internal sealed record SoloistTrack(string Title, string Artists, string Album, string Cover, double Duration, double Position = 0, long At = 0, string Uri = "");
@@ -139,8 +139,9 @@ internal sealed partial class Soloist : IDisposable
 
         // Lossless asked for on the accounts already signed in, before Soloist reads their prefs.
         Quality = s.Quality;
+        Normalising = s.Normalise;
         Name = s.DeviceName;
-        try { AskQuality(dataDir, Quality); }
+        try { AskQuality(dataDir, Quality, Normalising); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Log("couldn't ask for lossless: " + e.Message); }
         askedAfterSignIn = false;
         Proof.Reset();
