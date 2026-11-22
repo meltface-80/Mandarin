@@ -9,7 +9,7 @@
 //   - in the trash, never;
 //   - one you have here too (one title and one artist, as Mandarin Migration compares them): left out, the files here
 //     its copy, and counted ("also here").
-// Its cover is iBroadcast's for its first track (artwork_server/artwork/<id>-1000), kept beside the database once.
+// Its cover: its folder's, iBroadcast's for its first track, or none for the cover finder (IBroadcastArt.cs, item 504).
 //
 // A track is one row whichever album it is under (item 489). Each album's tracks were written as new unless that album
 // had them already, so a track iBroadcast had moved to another album, listed under two, or listed twice in one, was
@@ -91,7 +91,7 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
             Save(StateKey, found);
             Server.Log($"[ibroadcast] the library read: {found["albums"]} albums in it, {found["also_here"]} of them here as files too, {found["tracks"]} tracks");
             await Library.Tell(new JsonObject { ["services"] = "changed" });
-            _ = Covers(IBroadcastApi.Str(found["artwork_server"]));
+            _ = IBroadcastArt.Run(IBroadcastApi.Str(found["artwork_server"]), dataDir, KeptNs);
             // Each lossless track's rate and depth, read from its file (item 445).
             if (Jobs.IBroadcastStreams is { } streams) _ = Task.Run(streams.Rates);
             return found;
@@ -254,7 +254,7 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
                 Run(c, "INSERT INTO cache(ns, key, value, ts) VALUES($ns, $k, $v, $ts) ON CONFLICT(ns, key) DO UPDATE SET value = excluded.value, ts = excluded.ts",
                     ("$ns", IBroadcastStreams.FilesNs), ("$k", tid), ("$v", Text(t.GetValueOrDefault("file"))), ("$ts", now));
             Run(c, "INSERT INTO cache(ns, key, value, ts) VALUES($ns, $k, $v, $ts) ON CONFLICT(ns, key) DO UPDATE SET value = excluded.value, ts = excluded.ts",
-                ("$ns", KeptNs), ("$k", key), ("$v", new JsonObject { ["why"] = "library", ["at"] = now, ["cover"] = Text(rows[0].T.GetValueOrDefault("artwork_id")) }.ToJsonString()), ("$ts", now));
+                ("$ns", KeptNs), ("$k", key), ("$v", new JsonObject { ["why"] = "library", ["at"] = now, ["cover"] = Text(rows[0].T.GetValueOrDefault("artwork_id")), ["from"] = Text(rows[0].T.GetValueOrDefault("path")) }.ToJsonString()), ("$ts", now));
             written.Add(key);
         }
         // Gone from iBroadcast (or here as files now): gone here, its tracks first, those of an album that stays among them.
@@ -264,6 +264,7 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
         {
             Run(c, "DELETE FROM albums WHERE key = $k", ("$k", gone));
             Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", KeptNs), ("$k", gone));
+            Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", IBroadcastArt.Ns), ("$k", gone));
         }
         tx.Commit();
         if (moved > 0 || listedTwice > 0)
@@ -273,33 +274,6 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
             ["lastmodified"] = IBroadcastApi.Str(answer["status"]?["lastmodified"]), ["at"] = now, ["albums"] = written.Count + alsoHere, ["also_here"] = alsoHere,
             ["tracks"] = trackCount, ["artwork_server"] = IBroadcastApi.Str(answer["settings"]?["artwork_server"]), ["streaming_server"] = IBroadcastApi.Str(answer["settings"]?["streaming_server"]),
         };
-    }
-
-    /* The covers not yet kept, fetched one after another: iBroadcast's for each album's first track. */
-    private async Task Covers(string? server)
-    {
-        if (server == null) return;
-        var dir = NodePath.Join(dataDir, "ibroadcast", "art");
-        Directory.CreateDirectory(dir);
-        List<object?[]> want;
-        using (var c = Db.Open())
-            want = Library.Rows(c, "SELECT a.id, a.key, k.value FROM albums a JOIN cache k ON k.ns = $1 AND k.key = a.key WHERE a.art_path IS NULL", KeptNs);
-        foreach (var r in want)
-        {
-            var cover = IBroadcastApi.Str(JsonNode.Parse((string)r[2]!)?["cover"]);
-            if (cover is null or "0") continue;
-            var file = NodePath.Join(dir, ((string)r[1]!)["ibroadcast:".Length..] + ".jpg");
-            try
-            {
-                var (status, body) = await ServiceHttp.GetBytes($"{server.TrimEnd('/')}/artwork/{cover}-1000", 15000);
-                if (status is < 200 or > 299 || body.Length == 0) continue;
-                await File.WriteAllBytesAsync(file, body);
-                using var c = Db.Open();
-                Run(c, "UPDATE albums SET art_path = $p, art_hash = $h WHERE id = $id", ("$p", file), ("$h", "ib" + cover), ("$id", (long)r[0]!));
-            }
-            catch (Exception e) when (e is Tags.JsError or IOException) { Server.Log($"[ibroadcast] cover {cover}: {e.Message}"); }
-        }
-        if (want.Count > 0) await Library.Tell(new JsonObject { ["services"] = "changed" });
     }
 
     private static Microsoft.Data.Sqlite.SqliteConnection Rows()
