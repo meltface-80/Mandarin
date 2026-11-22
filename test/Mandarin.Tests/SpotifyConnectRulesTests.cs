@@ -179,6 +179,36 @@ public sealed class SpotifyConnectRulesTests
     }
 
     [Test]
+    public async Task A_room_playing_Spotify_Connect_offers_its_controls_and_says_so_on_Now_playing()
+    {
+        var zone = new { state = "playing", is_next_allowed = false, is_previous_allowed = false, is_seek_allowed = false };
+        var o = await Ask(new
+        {
+            // The room's own flags (a live stream: no queue to go on in, no length), Spotify's laid over them (item 503: the
+            // room's state failed, "The node already has a parent", and the app showed nothing).
+            allows = new object[] { new { zone, duration = 200 }, new { zone, duration = 0 } },
+            now_texts = new object[]
+            {
+                new { proof = "lossless 24-bit", query = "" },
+                new { proof = "lossless 16-bit", query = "?r=176400&b=24&u=4&f=min" },
+                new { proof = "", query = "?r=48000&b=24" },
+                new { proof = "lossy", query = "" },
+            }
+        });
+        var a = o["allows"]!.AsArray();
+        Assert.True(a[0]!["is_next_allowed"]!.GetValue<bool>());
+        Assert.True(a[0]!["is_previous_allowed"]!.GetValue<bool>());
+        Assert.True(a[0]!["is_seek_allowed"]!.GetValue<bool>());
+        Assert.False(a[1]!["is_seek_allowed"]!.GetValue<bool>());   // no length said: no seeking
+        Assert.Equal("playing", (string?)a[0]!["state"]);
+        var t = o["now_texts"]!.AsArray();
+        Assert.Equal("Spotify Connect · Lossless 24/44.1", (string?)t[0]);
+        Assert.Equal("Spotify Connect · Lossless 16/44.1 · FLAC 24/176.4 ↑×4 · Minimum-phase filter", (string?)t[1]);
+        Assert.Equal("Spotify Connect · FLAC 24/48", (string?)t[2]);
+        Assert.Equal("Spotify Connect · Lossy", (string?)t[3]);
+    }
+
+    [Test]
     public async Task The_quality_chosen_is_asked_of_Spotify_in_its_own_numbers()
     {
         var p = (await Ask(new { prefs = new object?[] { null, null, null, null }, prefs_quality = new[] { "very_high", "high", "normal", "nonsense" } }))["prefs"]!.AsArray();

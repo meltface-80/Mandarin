@@ -13,10 +13,12 @@
 //     rooms: [target | null]                          SpotifyRoomPlan.For (item 501): what a room with that target is sent
 //     reads: [query]                                  SpotifyRoomPlan.Read: the sound a stream's address asks for
 //     listening: [row]                                SoloistPorts.Listening (item 502): a /proc/net/tcp row read
-//     port_words: [[port, …]] }                       SoloistPorts.Words: what the log says of Soloist's ports
+//     port_words: [[port, …]]                         SoloistPorts.Words: what the log says of Soloist's ports
+//     allows: [{ zone, duration }]                    SpotifyNow.Allow (item 503): a zone's flags, Spotify's controls laid over them
+//     now_texts: [{ proof, query }] }                 SpotifyNow.NowText: Now playing's format line for a proof and a room's sound
 //   → { follows, proofs, builds: [{ expires, plan }], prefs: [{ changed, text }], entities, cleans, paces,
 //       rooms: [{ rate, bits, factor, shape, query, words }], reads: [the same], listening: [{ port, inode, loopback } | null],
-//       port_words: [text] }
+//       port_words: [text], allows: [zone], now_texts: [text] }
 using System.Globalization;
 using System.Text.Json;
 using Mandarin.Server.Tags;
@@ -83,6 +85,20 @@ internal static class SpotifyCommand
             return (object?)x;
         }).ToList();
         o["port_words"] = L(job["port_words"]).Select(p => (object?)SoloistPorts.Words(L(p).Select(v => (int)Tags.Js.ToNumber(v)).ToList(), "Mandarin")).ToList();
+        o["allows"] = L(job["allows"]).Select(a0 =>
+        {
+            var a = O(a0);
+            // As PlaybackRoutes.ZoneJson has them, then laid over: a JsonObject throws where one value is put in two places.
+            var zone = System.Text.Json.Nodes.JsonNode.Parse(Tags.Js.Json(a["zone"]) ?? "{}")!.AsObject();
+            SpotifyNow.Allow(zone, Tags.Js.ToNumber(a["duration"]) is var d && double.IsFinite(d) ? d : 0);
+            return Scan.JsJson.Parse(zone.ToJsonString());
+        }).ToList();
+        o["now_texts"] = L(job["now_texts"]).Select(n0 =>
+        {
+            var n = O(n0);
+            var sound = SpotifyRoomPlan.Read(new QueryCollection(Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(S(n["query"]))));
+            return (object?)SpotifyNow.NowText(S(n["proof"]), sound);
+        }).ToList();
         return o;
     }
 
