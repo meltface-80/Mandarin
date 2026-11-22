@@ -12,7 +12,9 @@
 // (429): waited out as long as Spotify's Retry-After says, a minute at most, and made again, three times at most
 // (item 499), by the import and the builders in the background; the page's own asks are answered at once that Spotify
 // is busy (the phone gives up after six seconds). The wait is kept: until it is over, every call is answered at once
-// that Spotify is busy, without asking it, so a run of calls (an import) stops rather than asking again and again. Lists are read a page at a time, following Spotify's "next",
+// that Spotify is busy, without asking it, so a run of calls (an import) stops rather than asking again and again. A long
+// wait (over a minute) is kept in the settings too (item 514, "spotifyWaitUntil"), so a restart doesn't ask Spotify again
+// while it is shut: the owner's day-long one was asked again at each of five restarts. Lists are read a page at a time, following Spotify's "next",
 // and only ever on Spotify's own address: the token goes nowhere else. A failure is said in Spotify's words.
 using System.Security.Cryptography;
 using System.Text;
@@ -43,7 +45,36 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
     /* How long a 429 without a Retry-After is waited out, each time (the tests make it short); the most waited at once. */
     public int BusyWaitMs { get; init; } = 5000;
     public double MostWaitS { get; init; } = 60;
-    private double busyUntil;
+    /// <summary>The setting a long wait is kept in (item 514): when Spotify may be asked again, ms since 1970.</summary>
+    public const string WaitKey = "spotifyWaitUntil";
+    private double? busyKept;
+
+    /* When Spotify may be asked again: read once from the settings, where a long wait outlasts a restart. */
+    private double BusyUntil
+    {
+        get => busyKept ??= KeptWait();
+        set { busyKept = value; if (value - NowMs() > MostWaitS * 1000) KeepWait(value); }
+    }
+
+    private static double KeptWait()
+    {
+        try { using var c = Db.Open(); return Db.Setting(c, WaitKey) is System.Text.Json.Nodes.JsonValue v && v.TryGetValue<double>(out var d) ? d : 0; }
+        catch (Microsoft.Data.Sqlite.SqliteException) { return 0; }
+    }
+
+    private static void KeepWait(double until)
+    {
+        try
+        {
+            using var c = Db.Open();
+            using var cmd = c.CreateCommand();
+            cmd.CommandText = "INSERT INTO settings(key, value) VALUES($k, $v) ON CONFLICT(key) DO UPDATE SET value = excluded.value";
+            cmd.Parameters.AddWithValue("$k", WaitKey);
+            cmd.Parameters.AddWithValue("$v", Math.Round(until).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            cmd.ExecuteNonQuery();
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException e) { Server.Log("[spotify] the wait couldn't be kept: " + e.Message); }
+    }
 
     // ------------------------------------------------------------ signing in (PKCE)
 
@@ -129,7 +160,7 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
         string? refused = null;
         for (int attempt = 0; ; attempt++)
         {
-            var left = (busyUntil - NowMs()) / 1000;
+            var left = (BusyUntil - NowMs()) / 1000;
             if (left > 0)
             {
                 if (!patient || left > MostWaitS) throw new ServiceError(Busy()!, 503);
@@ -144,7 +175,7 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
             {
                 var wait = retryAfter ?? BusyWaitMs * (attempt + 1) / 1000.0;
                 var until = NowMs() + wait * 1000;
-                if (until > busyUntil) busyUntil = until;
+                if (until > BusyUntil) BusyUntil = until;
                 if (wait > MostWaitS && NowMs() - longWaitSaid > 60_000) { longWaitSaid = NowMs(); Server.Log($"[spotify] Spotify asks Mandarin to wait {Math.Ceiling(wait / 60)} min"); }
                 if (patient && wait <= MostWaitS && attempt < 3) continue;
                 throw new ServiceError(Busy() ?? "Spotify is busy: try again in a minute", 503);
@@ -188,7 +219,7 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
     /* While Spotify has asked Mandarin to wait: what is said; null when it may be asked. */
     public string? Busy()
     {
-        var left = busyUntil - NowMs();
+        var left = BusyUntil - NowMs();
         return left <= 0 ? null : left > 90_000 ? $"Spotify asked Mandarin to wait: it is asked again in {Math.Ceiling(left / 60_000)} min" : "Spotify is busy: try again in a minute";
     }
 
