@@ -14,10 +14,10 @@ namespace Mandarin.Tests;
 /// </summary>
 public sealed class SpotifyConnectTests
 {
-    private const string Key = "sk-standin-0123456789abcdef";
+    internal const string Key = "sk-standin-0123456789abcdef";
 
     // Spotify's archive, as the CDN serves it: a folder with the soloist program in it (here the stand-in's script).
-    private static byte[] Archive()
+    internal static byte[] Archive()
     {
         var script = System.Text.Encoding.UTF8.GetBytes($"#!/bin/sh\nexec dotnet \"{StandIn.Dll}\" soloist \"$0\" \"$@\"\n");
         using var ms = new MemoryStream();

@@ -22,7 +22,7 @@ internal sealed record ConnectSettings(string ApiKey, string Room, string Device
     public const string DefaultName = "Mandarin";
 }
 
-internal static class SpotifyLive
+internal static partial class SpotifyLive
 {
     public const string StreamPath = "/stream/spotify/live.flac";
 
@@ -180,7 +180,7 @@ internal static class SpotifyLive
         {
             string? room;
             lock (gate) room = playingIn;
-            var want = Settings().Room;
+            var want = Wanted();   // the room a Spotify album was played in from Mandarin, else Settings' (item 517)
             var st = room != null ? hub.StateOf(room) : null;
             var starting = Environment.TickCount64 - startedAt < SpotifyFollow.StartingMs;
             var what = SpotifyFollow.Decide(playback, lastPlayback, want, room, st != null ? new SpotifyRoom(IsLive(st), st.State) : null, starting);
@@ -197,10 +197,10 @@ internal static class SpotifyLive
                     await hub.Enqueue(want, [Item(hub, want)], "play_now");
                     lock (gate) playingIn = want;
                     startedAt = Environment.TickCount64;
-                    Server.Log("[spotify] playing in the room chosen for it");
+                    Server.Log($"[spotify] playing in the room chosen for it ({want})");
                     break;
                 case "moved-on" or "room-paused":
-                    if (what == "moved-on") lock (gate) playingIn = null;
+                    if (what == "moved-on") { lock (gate) playingIn = null; Released(); }
                     Server.Log(what == "moved-on" ? "[spotify] the room went on to other music: Spotify paused" : "[spotify] the room was paused: Spotify paused too");
                     await p.Pause();
                     break;
@@ -209,13 +209,14 @@ internal static class SpotifyLive
                 case "stop-room" or "forget":
                     if (what == "stop-room") await hub.ControlDevice(room!, "stop");
                     lock (gate) playingIn = null;
+                    Released();
                     break;
             }
             lastPlayback = playback;
         }
         catch (Exception e) when (e is HubError or HttpRequestException or InvalidOperationException or TaskCanceledException)
         {
-            Server.Log("[spotify] the room didn't follow: " + e.Message);
+            Server.Log($"[spotify] the room didn't follow ({Wanted()}): {e.Message}");
         }
         finally { following.Release(); }
     }

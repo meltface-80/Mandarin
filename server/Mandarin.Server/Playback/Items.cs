@@ -167,6 +167,16 @@ internal static class Items
     public static async Task<JsonObject> PlayTracks(Hub hub, string zoneId, List<PlayTrack> tracks, string how, double startAt = 0, double seconds = 0, bool? shuffled = null)
     {
         if (tracks.Count == 0) throw new HubError(500, "Nothing to play");
+        // Spotify's: played by Mandarin's own Spotify player into the room (item 517, Connect/SpotifyFromLibrary.cs); among your
+        // own files, left out (Spotify gives no sound to queue), the rest played.
+        if (tracks.All(Connect.SpotifyLive.IsSpotify)) return await Connect.SpotifyLive.PlayFromLibrary(hub, zoneId, tracks, how, (int)Math.Max(0, startAt));
+        if (tracks.Any(Connect.SpotifyLive.IsSpotify))
+        {
+            var before = tracks.Count;
+            tracks = tracks.Where(t => !Connect.SpotifyLive.IsSpotify(t)).ToList();
+            startAt = Math.Min(startAt, tracks.Count - 1);
+            Server.Log($"[spotify] {before - tracks.Count} Spotify track(s) left out of a queue of other music: Spotify plays a whole album at a time");
+        }
         // iBroadcast's tracks planned at their own rates, read now where the library hasn't yet (item 463).
         if (Jobs.IBroadcastStreams is { } ib) await ib.KnowRates(tracks);
         List<PlayItem> items;
