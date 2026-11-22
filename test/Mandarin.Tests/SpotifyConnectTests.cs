@@ -191,6 +191,23 @@ public sealed class SpotifyConnectTests
         Assert.InRange(port, 1024, 65535);
         Assert.DoesNotContain(",", said[said.IndexOf("TCP", StringComparison.Ordinal)..].Split(';')[0]);   // one port: the WebSocket, on loopback, left out
 
+        // The room's volume levelling switched on while Spotify plays (item 508): Soloist started again at once with Spotify's
+        // loudness normalisation, and handed the account's playback back (activate, play), not left normalised until it
+        // stopped; switched off, the same the other way.
+        var commands = Path.Combine(dir, "commands.log");
+        s.Server.Exec("INSERT INTO audio_devices(id, kind, network_name, settings, first_seen, last_seen) VALUES('lounge-1', 'upnp', 'Lounge', '{\"levelling\":{\"mode\":\"track\"}}', 1, 1)");
+        Assert.Equal(200, (await s.Api("settings/spotify-connect", new { room = "lounge-1" })).Status);
+        int Starts() => File.ReadAllLines(Path.Combine(dir, "starts.log")).Length;
+        var startsBefore = Starts();
+        await Session.Until(() => Task.FromResult(Starts() > startsBefore && File.ReadAllLines(prefsLog)[^1].Contains("audio.normalize_v2=true", StringComparison.Ordinal)), 30000, "Soloist started again, normalising");
+        await Session.Until(() => Task.FromResult(File.Exists(commands) && File.ReadAllText(commands) is var c && c.Contains("\"activate\"", StringComparison.Ordinal) && c.Contains("\"play\"", StringComparison.Ordinal)), 30000, "playback handed back");
+        Assert.Contains(s.Server.Logs, l => l.Contains("[spotify] the room's volume levelling is on: Soloist started again", StringComparison.Ordinal));
+        File.Delete(commands);
+        s.Server.Exec("UPDATE audio_devices SET settings = '{\"levelling\":{\"mode\":\"off\"}}' WHERE id = 'lounge-1'");
+        startsBefore = Starts();
+        await Session.Until(() => Task.FromResult(Starts() > startsBefore && File.ReadAllLines(prefsLog)[^1].Contains("audio.normalize_v2=false", StringComparison.Ordinal)), 30000, "Soloist started again, not normalising");
+        await Session.Until(() => Task.FromResult(File.Exists(commands) && File.ReadAllText(commands).Contains("\"activate\"", StringComparison.Ordinal)), 30000, "playback handed back again");
+
         // The key, said by Soloist, taken out before it is logged or kept.
         var logs = string.Join("\n", s.Server.Logs);
         Assert.Contains("started with api key [key]", logs);
