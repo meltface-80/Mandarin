@@ -57,6 +57,13 @@ test("item 516: Your albums from what the import keeps: at once, newest first, S
     const n = spotify.calls.length;
     const list = await yours();
     assert.deepEqual(list.map(a => a.id), ["a5", "a4", "a3", "a2", "a1"]);
+    // Saved since, so not in the import's reading: the cover the library keeps of it (item 521), served by Mandarin.
+    assert.match(list[0].image || "", /^\/api\/image\/al-\d+-/, JSON.stringify(list[0]));
+    // The very picture the library's wall shows for it (the fake's stand-in bytes aren't one ffmpeg can draw, so the
+    // address is compared, not fetched).
+    const lib = (await call("GET", "library/albums?count=50")).j.albums.find(a => a.source === "spotify" && a.title === "Album 5");
+    assert.ok(lib, "Album 5 in the library");
+    assert.equal(list[0].image, "/api/image/" + encodeURIComponent(lib.image_key) + "?size=640");
     assert.deepEqual(spotify.calls.slice(n).map(c => c.path), [], "Spotify not asked");
   });
 });
