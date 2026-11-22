@@ -37,7 +37,9 @@ public sealed partial class ScanCsharpTests(ScanCsharpTests.Book book) : IClassF
     {
         ["albums"] = ["updated_at"], ["tracks"] = ["composer", "conductor", "work", "movement", "movement_no", "performers"], ["album_edits"] = ["version"],
         // Edit album's hand splits and joins (item 424): tables of the C# server's own, left out whole.
-        ["album_splits"] = ["path", "part", "made_at"], ["album_joins"] = ["dir", "key", "made_at"]
+        ["album_splits"] = ["path", "part", "made_at"], ["album_joins"] = ["dir", "key", "made_at"],
+        // The albums merged from the selection menu (item 512): the C# server's own too.
+        ["album_merges"] = ["key", "into_key", "disc", "title", "dirs", "made_at"]
     };
 
     private sealed record Table(List<string> Cols, List<JsonArray> Rows);

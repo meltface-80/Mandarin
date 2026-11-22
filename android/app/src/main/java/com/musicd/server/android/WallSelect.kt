@@ -42,8 +42,8 @@ import com.musicd.server.client.ServerClient
  * invokeAlbumMulti): a long press on a tile starts selecting, with that tile
  * the first pick, and the bar along the foot says "Tap albums to select"
  * until one is; then the ⋯ with the count, top right, opens what to do with
- * them: play now, play next, add to the end of the queue, Listen later, or
- * clear. The Library wall, the walls
+ * them: play now, play next, add to the end of the queue, Listen later,
+ * Merge albums (two or more; item 512), Unmerge (a merged one), or clear. The Library wall, the walls
  * Home links to and an artist's page select alike, so each carries the
  * three screens' keys.
  */
@@ -63,9 +63,12 @@ internal fun SelectBar(onCancel: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-/** The ⋯ with the count, and its menu; [n] albums picked; [onAct]: play_now, play_next, queue, later, clear. */
+/** What a selection's act needs no room for: Listen later, Merge albums, Unmerge. */
+internal val NoRoomActs = setOf("later", "merge", "unmerge")
+
+/** The ⋯ with the count, and its menu; [n] albums picked ([picks]: which); [onAct]: play_now, play_next, queue, later, merge, unmerge, clear. */
 @Composable
-internal fun AlbumSelectMenu(n: Int, onAct: (String) -> Unit, modifier: Modifier = Modifier) {
+internal fun AlbumSelectMenu(n: Int, onAct: (String) -> Unit, modifier: Modifier = Modifier, picks: List<AlbumSummary> = emptyList()) {
     var open by remember { mutableStateOf(false) }
     val plural = if (n == 1) "" else "s"
     Box(modifier) {
@@ -87,6 +90,11 @@ internal fun AlbumSelectMenu(n: Int, onAct: (String) -> Unit, modifier: Modifier
                 modifier = Modifier.parity("library.select-queue wall.select-queue artist.select-queue", Contract.label("library.select-queue")))
             DropdownMenuItem(text = { Text(Contract.label("library.select-later"), fontSize = 15.sp) }, onClick = { open = false; onAct("later") },
                 modifier = Modifier.parity("library.select-later wall.select-later artist.select-later", Contract.label("library.select-later")))
+            // Merge albums: two or more of the server's; Unmerge: one merged (item 512, the server's AlbumMergeRoutes.cs).
+            if (picks.size >= 2 && picks.all { it.offset >= 0 }) DropdownMenuItem(text = { Text(Contract.label("library.select-merge"), fontSize = 15.sp) }, onClick = { open = false; onAct("merge") },
+                modifier = Modifier.parity("library.select-merge wall.select-merge artist.select-merge", Contract.label("library.select-merge")))
+            if (picks.size == 1 && picks[0].merged) DropdownMenuItem(text = { Text(Contract.label("library.select-unmerge"), fontSize = 15.sp) }, onClick = { open = false; onAct("unmerge") },
+                modifier = Modifier.parity("library.select-unmerge wall.select-unmerge artist.select-unmerge", Contract.label("library.select-unmerge")))
             DropdownMenuItem(text = { Text(Contract.label("library.select-clear"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp) }, onClick = { open = false; onAct("clear") },
                 modifier = Modifier.parity("library.select-clear wall.select-clear artist.select-clear", Contract.label("library.select-clear")))
         }
@@ -98,6 +106,8 @@ internal fun AlbumSelectMenu(n: Int, onAct: (String) -> Unit, modifier: Modifier
  * says it (multiOutcome); an exception's message when the server refused. Run off the main thread.
  */
 internal fun selectAct(c: ServerClient, picks: List<AlbumSummary>, zoneId: String, zoneName: String?, act: String): String {
+    if (act == "merge") { val j = c.mergeAlbums(picks.map { it.offset }); return "Merged ${picks.size} albums into “${j.optString("title")}”" }
+    if (act == "unmerge") { c.unmergeAlbum(picks[0].offset); return "“${picks[0].title}” unmerged" }
     if (act == "later") { c.listenLater(picks.map { it.offset }, true); return if (picks.size == 1) "Put aside to listen later" else "${picks.size} albums put aside to listen later" }
     val j = c.playMulti(picks, zoneId, act)
     val verb = when (act) { "play_now" -> "Playing"; "shuffle" -> "Shuffling"; "play_next" -> "Playing next:"; else -> "Queued" }

@@ -19,8 +19,9 @@ internal sealed partial class Scanner
     private void Rekey(string from, string to)
     {
         if (from.Length == 0 || to.Length == 0 || from == to) return;
-        foreach (var t in new[] { "albums", "favourites", "listen_later", "album_edits", "track_edits", "album_matches", "album_ids" }.Concat(Overlays() ? ["album_joins"] : []))
+        foreach (var t in new[] { "albums", "favourites", "listen_later", "album_edits", "track_edits", "album_matches", "album_ids" }.Concat(Overlays() ? ["album_joins"] : []).Concat(Merges() ? ["album_merges"] : []))
             Exec($"UPDATE OR IGNORE {t} SET key = $to WHERE key = $from", ("$to", to), ("$from", from));
+        if (Merges()) { Exec("UPDATE album_merges SET into_key = $to WHERE into_key = $from", ("$to", to), ("$from", from)); merges = null; }   // item 512
         Exec("UPDATE OR IGNORE cache SET key = $to WHERE ns = 'mbday' AND key = $from", ("$to", to), ("$from", from));
         if (Setting("album_of_the_day", null) is JsObj aotd && Js.StrictEq(aotd["key"], from))
         {
@@ -80,6 +81,7 @@ internal sealed partial class Scanner
             g.SortArtist = sorted != null ? Js.Str(sorted["artist_sort"]) : albumArtist;
             g.Base = ScanNames.Key(albumArtist) + "\u0001" + ScanNames.Key(g.Title);
             g.Key = g.Base + "\u0001" + RelFolder(dir) + (g.Part.Length > 0 ? "\u0001" + g.Part : "");
+            MergeDiscs(g);   // an album merged into another: its discs after that one's (item 512, Scanner.Merge.cs)
         }
         return groups;
     }
@@ -93,6 +95,7 @@ internal sealed partial class Scanner
 
     private double AlbumIdFor1(Group g, string dir, double now)
     {
+        if (MergedInto(g) is double merged) return merged;   // merged into another (item 512, Scanner.Merge.cs)
         if (JoinedInto(g, dir) is double joined) return joined;   // Join back's (item 424, Scanner.Split.cs)
         var hit = Get("SELECT id FROM albums WHERE key = $k", ("$k", g.Key));
         if (hit != null) return Js.ToNumber(hit["id"]);

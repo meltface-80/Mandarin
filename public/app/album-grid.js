@@ -47,6 +47,7 @@ function refreshSelectMenu(kind, n) {
   if (selCount) selCount.textContent = String(n);
   const noun = kind === "tracks" ? "track" : "album";
   if (selMenuTitle) selMenuTitle.textContent = `${n} ${noun}${n === 1 ? "" : "s"} selected`;
+  mergeMenuShown(kind, n);   // Merge albums, Unmerge (item 512, album-merge.js)
   if (selMenuBtn) {
     selMenuBtn.setAttribute("aria-label",
       `Actions for ${n} selected ${noun}${n === 1 ? "" : "s"}`);

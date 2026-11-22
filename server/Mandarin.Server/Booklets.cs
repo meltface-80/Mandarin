@@ -106,15 +106,17 @@ internal static partial class Booklets
         var places = new List<string>();
         // An iBroadcast album Mandarin uploaded (item 505): its booklets as kept here (item 510: shown with the drive away),
         // else the folder it was sent from, where it is here.
+        // An album merged into it (item 512): its booklets too.
         if (al.Service == "ibroadcast")
-        {
-            if (Services.IBroadcast.IBroadcastBooklets.KeptFor(al.Key) is { } kept) places.Add(kept);
-            else if (Services.IBroadcast.IBroadcastArt.FolderOf(al.Key) is { } from)
+            foreach (var key in Services.IBroadcast.IBroadcastMerges.MembersOf(al.Key).Prepend(al.Key))
             {
-                places.Add(from);
-                if (DiscFolder().IsMatch(System.IO.Path.GetFileName(from)) && System.IO.Path.GetDirectoryName(from) is { Length: > 0 } up) places.Add(up);
+                if (Services.IBroadcast.IBroadcastBooklets.KeptFor(key) is { } kept) places.Add(kept);
+                else if (Services.IBroadcast.IBroadcastArt.FolderOf(key) is { } from)
+                {
+                    places.Add(from);
+                    if (DiscFolder().IsMatch(System.IO.Path.GetFileName(from)) && System.IO.Path.GetDirectoryName(from) is { Length: > 0 } up) places.Add(up);
+                }
             }
-        }
         else using (var c = Db.Open())
         {
             using (var a = c.CreateCommand())

@@ -164,7 +164,7 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
             "clear" -> { selecting = false; picks = emptyList() }
             else -> {
                 val c = client() ?: return
-                if (what != "later" && zone.isEmpty()) { toast("Pick a zone first"); return }
+                if (what !in NoRoomActs && zone.isEmpty()) { toast("Pick a zone first"); return }
                 val made = ServerWrites.write { selectAct(c, chosen, zone, room.zoneName, what) }   // Listen later before Home reads (item 85)
                 scope.launch { toast(ServerWrites.await(made).getOrElse { com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }); selecting = false; picks = emptyList() }
             }
@@ -202,7 +202,7 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
             if (tab != "about" && a != null && n == 0 && credited.isEmpty() && failed == null) Text("No albums found for \"$name\"", Modifier.parity("artist.empty").fillMaxWidth().padding(vertical = 48.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 20.5.sp, textAlign = TextAlign.Center)
         }
         WallBack(onBack)
-        if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp))
+        if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp), picks)
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
             if (selecting && picks.isEmpty()) SelectBar(onCancel = { selecting = false })

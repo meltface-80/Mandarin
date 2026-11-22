@@ -154,6 +154,12 @@ class ServerClient(
     fun listenLater(offset: Long, on: Boolean) { listenLater(listOf(offset), on) }
 
     /** Albums onto Listen later, or off it (item 52: a selection). */
+    /** Albums merged into one (item 512), the first volume or disc first whichever was picked first: { ok, offset, title }. */
+    fun mergeAlbums(offsets: List<Long>): JSONObject = post("/api/albums/merge", JSONObject().put("offsets", org.json.JSONArray().also { a -> offsets.forEach { a.put(it) } }))
+
+    /** A merged album's albums each their own again (item 512). */
+    fun unmergeAlbum(offset: Long): JSONObject = post("/api/albums/unmerge", JSONObject().put("offset", offset))
+
     fun listenLater(offsets: List<Long>, on: Boolean) { post("/api/listen-later", JSONObject().put("offsets", org.json.JSONArray().also { a -> offsets.forEach { a.put(it) } }).put("on", on)) }
 
     /**
