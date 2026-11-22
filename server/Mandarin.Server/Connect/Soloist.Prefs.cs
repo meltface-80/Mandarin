@@ -70,9 +70,28 @@ internal sealed partial class Soloist
     /* The name the Spotify app shows, as Soloist was last started with. */
     public string Name { get; private set; } = ConnectSettings.DefaultName;
 
+    // 0: nothing; 1: Mandarin was the Spotify app's device as Soloist was started again, so it is again; 2: and played on.
+    private volatile int resume;
+
+    /*
+     * Soloist started again now, whatever it is doing (item 508: the room's levelling switched, which Soloist reads only as
+     * it starts), and, once signed in again, made the account's device again ("activate", as the Spotify app hands
+     * playback from one device to another: the same album or playlist, where it was) and played on where it was playing.
+     */
+    public void RestartAndResume(bool active, bool playing)
+    {
+        resume = !active ? 0 : playing ? 2 : 1;
+        Restart();
+    }
+
     // Signed in: an account new to Soloist hasn't been asked for lossless yet; asked, Soloist starts again to take it up.
     private void SignedInNow()
     {
+        if (Interlocked.Exchange(ref resume, 0) is var r and > 0)
+        {
+            Log(r == 2 ? "playing on where it was, after starting again" : "the Spotify app's device again, after starting again");
+            _ = Task.Run(async () => { await Command("activate"); if (r == 2) await Command("play"); });
+        }
         if (askedAfterSignIn) return;
         askedAfterSignIn = true;
         try
