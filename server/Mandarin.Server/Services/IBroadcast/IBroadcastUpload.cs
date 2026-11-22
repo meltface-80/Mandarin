@@ -316,10 +316,12 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             var md5 = await IBroadcastUploadFiles.Md5(send, token);
             bool there;
             lock (have) there = have.Contains(md5);
-            if (there) { IBroadcastUploadSent.Note(f, md5, made != null, 0, null); lock (run) run.Already++; return; }
+            // iBroadcast has it already: noted with the name it went as when sent before (item 513: noted with none, the link from
+            // iBroadcast's track back to this file, its folder's cover and booklets, was lost).
+            var sentAs = SentAs(f, run, made != null);
+            if (there) { IBroadcastUploadSent.Note(f, md5, made != null, 0, null, was?.SentAs ?? sentAs); lock (run) run.Already++; return; }
             // Sent before as it is, under the name it goes as now, and iBroadcast hasn't it: taken and not kept (item 477),
             // said with what iBroadcast said then. Under another name (item 480), counted afresh.
-            var sentAs = SentAs(f, run, made != null);
             var taken = was != null && was.Md5 == md5 && was.SentAs == sentAs ? was.Taken : 0;
             if (taken > 0) Server.Log($"[ibroadcast] upload: {Path.GetFileName(f.Path)} was taken before but iBroadcast hasn't it"
                 + (string.IsNullOrWhiteSpace(was!.Said) ? "" : $" (it said: \"{was.Said}\")") + "; sent again");

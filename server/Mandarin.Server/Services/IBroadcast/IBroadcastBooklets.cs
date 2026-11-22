@@ -59,7 +59,8 @@ internal static class IBroadcastBooklets
         using (var c = Db.Open())
             albums = Library.Rows(c, "SELECT k.key, k.value FROM cache k LEFT JOIN cache d ON d.ns = $2 AND d.key = k.key WHERE k.ns = $1 AND d.key IS NULL", keptNs, Ns);
         var files = IBroadcastArt.SentFrom();
-        int away = 0, copied = 0;
+        int away = 0, copied = 0, failed = 0;
+        string? failedFirst = null;
         long size = 0;
         foreach (var r in albums)
         {
@@ -76,11 +77,13 @@ internal static class IBroadcastBooklets
                 Keep(key, n, bytes);
                 if (n > 0) { copied++; size += bytes; }
             }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Server.Log($"[ibroadcast] booklets of {key}: {e.Message}"); }
+            // Each album its own (item 513): one that fails is said and tried again at the next reading; the rest go on.
+            catch (Exception e) when (e is not OperationCanceledException) { failed++; failedFirst ??= $"{key}: {e.GetType().Name}: {e.Message}"; }
         }
         waiting = away;
-        if (copied > 0 || away > 0)
-            Server.Log($"[ibroadcast] booklets: {copied} album(s)' kept ({size / 1048576.0:0.#} MB){(away > 0 ? $", {away} waiting for their drive to be connected" : "")}");
+        if (copied > 0 || away > 0 || failed > 0)
+            Server.Log($"[ibroadcast] booklets: {copied} album(s)' kept ({size / 1048576.0:0.#} MB){(away > 0 ? $", {away} waiting for their drive to be connected" : "")}"
+                + (failed > 0 ? $"; {failed} failed, tried again at the next reading (first: {failedFirst})" : ""));
     });
 
     // The folder's booklets (Booklets.PdfsIn's: its own and those of a folder in it with no music) into [to], each under its
