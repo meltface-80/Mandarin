@@ -117,6 +117,8 @@ internal static partial class Library
         {
             ["import"] = IB.IBroadcastLibrary.Shown(), ["reading"] = Jobs.IBroadcastLibrary?.Reading ?? false,
             ["albums"] = st?["albums"]?.DeepClone(), ["also_here"] = st?["also_here"]?.DeepClone(), ["tracks"] = st?["tracks"]?.DeepClone(), ["at"] = st?["at"]?.DeepClone(),
+            // The uploaded albums' booklets kept here (item 510): when every one is, the drives may go.
+            ["booklets"] = IB.IBroadcastBooklets.Status(),
         };
         o["upload"] = Jobs.IBroadcastUpload?.Status();
         o["schedule"] = IB.IBroadcastSchedule.Stored();

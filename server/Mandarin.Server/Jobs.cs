@@ -123,6 +123,8 @@ internal static partial class Jobs
             cfg["spotify_busy_wait_ms"] is JsonValue bw && bw.TryGetValue<double>(out var bwv) && bwv > 0 ? (int)bwv : 5000)
         { DataDir = dataDir, PaceMs = cfg["spotify_pace_ms"] is JsonValue sp && sp.TryGetValue<double>(out var spv) && spv >= 0 ? (int)spv : 1000 };
         IBroadcast = new Services.IBroadcast.IBroadcast(Text(cfg["ibroadcast_url"]));
+        // The uploaded albums' booklets kept here (item 510), shown from the start.
+        Services.IBroadcast.IBroadcastBooklets.Init(dataDir);
         IBroadcastLibrary = new Services.IBroadcast.IBroadcastLibrary(IBroadcast, dataDir)
             { WatchMs = cfg["ibroadcast_watch_ms"] is JsonValue ibw && ibw.TryGetValue<double>(out var ibms) && ibms > 0 ? ibms : 10 * 60 * 1000 };
         IBroadcastStreams = new Services.IBroadcast.IBroadcastStreams(IBroadcast) { DataDir = dataDir };

@@ -132,4 +132,15 @@ class IBroadcastSettingsTest {
         val none = IBroadcastSettings.uploadWords(JSONObject("""{"running":false,"finished":1,"uploaded":3,"already":5,"waiting":0}"""), { "then" })
         assertEquals("3 uploaded · 5 already in iBroadcast", none.progress)
     }
+
+    @Test fun `the uploaded albums' booklets kept here, and those waiting for their drive, as the page says them`() {
+        assertEquals("", IBroadcastSettings.bookletWords(null))
+        assertEquals("", IBroadcastSettings.bookletWords(org.json.JSONObject("""{"albums":0,"bytes":0,"waiting":0}""")))
+        assertEquals(" · booklets of 1,204 albums kept here (3.2 GB)".replace("1,204", "1204"),
+            IBroadcastSettings.bookletWords(org.json.JSONObject("""{"albums":1204,"bytes":3200000000,"waiting":0}""")))
+        assertEquals(" · booklets of 1 album kept here (2.5 MB) · 37 albums' booklets waiting for their drive to be connected",
+            IBroadcastSettings.bookletWords(org.json.JSONObject("""{"albums":1,"bytes":2500000,"waiting":37}""")))
+        assertEquals(" · 1 album's booklets waiting for their drive to be connected",
+            IBroadcastSettings.bookletWords(org.json.JSONObject("""{"albums":0,"bytes":0,"waiting":1}""")))
+    }
 }

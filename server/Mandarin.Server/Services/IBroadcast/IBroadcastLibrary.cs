@@ -91,7 +91,7 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
             Save(StateKey, found);
             Server.Log($"[ibroadcast] the library read: {found["albums"]} albums in it, {found["also_here"]} of them here as files too, {found["tracks"]} tracks");
             await Library.Tell(new JsonObject { ["services"] = "changed" });
-            _ = IBroadcastArt.Run(IBroadcastApi.Str(found["artwork_server"]), dataDir, KeptNs);
+            _ = Task.Run(async () => { await IBroadcastArt.Run(IBroadcastApi.Str(found["artwork_server"]), dataDir, KeptNs); await IBroadcastBooklets.Run(dataDir, KeptNs); });
             // Each lossless track's rate and depth, read from its file (item 445).
             if (Jobs.IBroadcastStreams is { } streams) _ = Task.Run(streams.Rates);
             return found;
@@ -265,6 +265,8 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
             Run(c, "DELETE FROM albums WHERE key = $k", ("$k", gone));
             Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", KeptNs), ("$k", gone));
             Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", IBroadcastArt.Ns), ("$k", gone));
+            Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", IBroadcastBooklets.Ns), ("$k", gone));
+            IBroadcastBooklets.Forget(gone);
         }
         tx.Commit();
         if (moved > 0 || listedTwice > 0)

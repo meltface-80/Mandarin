@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New - The booklets of the iBroadcast albums you uploaded are kept in Mandarin, copied from their folders while the drive is connected, so they still show once you disconnect the drives. Settings → iBroadcast says how many albums' booklets are kept, their size, and how many are still waiting for their drive to be connected
 - Fixed - Spotify Connect follows the room's volume levelling within seconds of it being switched on or off, even while Spotify plays: Soloist is started again and picks up where it was, the same album or playlist, after a gap of a few seconds. It kept normalising for as long as Spotify played
 - Fixed - iBroadcast albums uploaded before 18 November get their folder's cover and booklets too: Mandarin sent those with the file's whole path, which it didn't trace back to the folder, so they went without. Every iBroadcast album's cover is looked at once more
 - New - Spotify Connect, checked end to end as your own files are: Now playing's signal path shows each step, Spotify's audio as it reached Mandarin (bit for bit or not), the upsampling for the room, and the Mandarin Bridge's own word on what its DAC is fed, with the ✓ where it matches what was sent and the samples go untouched. A room's volume levelling now levels Spotify too, with Spotify's own loudness normalisation (only Spotify's player knows a Spotify track's loudness), shown as a step; switched on or off, it takes effect once Spotify isn't playing on Mandarin
