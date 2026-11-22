@@ -114,7 +114,7 @@ internal sealed partial class SpotifyCatalogue
     {
         if (type != "your-albums") throw new ServiceError("Spotify has no such list", 404);
         // With the import on, from what it keeps, at once (item 516, SpotifyYourAlbums.cs); else the saved list itself.
-        var albums = Settings().Import ? YourAlbums()
+        var albums = Settings().Import ? YourAlbums(await Library.CurrentCopy())
             : (await Saved()).Select(x => NormAlbum(SpotifyApi.Inner(x, "album"))).Where(a => a != null).Select(a => (object?)a).ToList();
         return await Marked(albums, ask);
     }
