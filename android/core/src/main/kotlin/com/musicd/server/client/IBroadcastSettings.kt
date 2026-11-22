@@ -174,7 +174,17 @@ object IBroadcastSettings {
         if (l == null || !l.has("albums") || l.isNull("albums")) return "Your iBroadcast library is read shortly after signing in."
         val n = l.optInt("albums")
         val here = l.optInt("also_here")
-        return "$n album" + (if (n == 1) "" else "s") + " in iBroadcast" + (if (here > 0) " · $here of them here as files too, shown once" else "") + " · updated " + at(l.optLong("at"))
+        return "$n album" + (if (n == 1) "" else "s") + " in iBroadcast" + (if (here > 0) " · $here of them here as files too, shown once" else "") + " · updated " + at(l.optLong("at")) +
+            bookletWords(l.optJSONObject("booklets"))
+    }
+
+    /** The uploaded albums' booklets kept here (item 510), as the page's ibroadcastBookletWords says it: when every one is, the drives may go. */
+    fun bookletWords(b: JSONObject?): String {
+        val albums = b?.optInt("albums") ?: 0
+        val waiting = b?.optInt("waiting") ?: 0
+        if (albums == 0 && waiting == 0) return ""
+        return (if (albums > 0) " · booklets of $albums album" + (if (albums == 1) "" else "s") + " kept here (" + size(b!!.optDouble("bytes", 0.0)) + ")" else "") +
+            (if (waiting > 0) " · $waiting album" + (if (waiting == 1) "'s" else "s'") + " booklets waiting for their drive to be connected" else "")
     }
 
     const val UPLOAD_INFO = "Your music here uploaded to iBroadcast, album by album, each file as it is. DSD, which iBroadcast can't play, goes up as FLAC at 24-bit/176.4 kHz (88.2 kHz where that is over iBroadcast's 1.5 GB a file); a lossless file over 1.5 GB as FLAC at its most compression, or at half its rate where that is still over. A file already in iBroadcast isn't sent again, so an upload stopped goes on where it was. Your files here are only read: never changed, moved or deleted. While music plays, it waits."

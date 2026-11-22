@@ -3,7 +3,9 @@
  * An iBroadcast album's booklets (item 505), against a stand-in on loopback (test/fake-ibroadcast.js): an album Mandarin
  * uploaded has the PDFs of the folder it was sent from (and of a folder in it with no music, "Scans"), as an album of
  * files has, and their pages drawn; one iBroadcast has from elsewhere has none. The page and the app ask for them on an
- * iBroadcast album as on one of files (public/app/page-state.js, AlbumScreen.kt).
+ * iBroadcast album as on one of files (public/app/page-state.js, AlbumScreen.kt). And (item 510) each album's booklets
+ * are kept in the data folder while its drive is here, so they show once the drives are taken away; Settings →
+ * iBroadcast says how many albums' are kept, and how many wait for their drive.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -71,14 +73,23 @@ test("item 505: an uploaded iBroadcast album has the booklets of the folder it w
     { id: 801, name: "Slow Snow (iBroadcast)", artist: { id: 9, name: "At iBroadcast" }, year: 2015, tracks: [{ id: 8010, title: "Shelter", track: 1, type: "audio/flac", artwork_id: 1, path: sent }] },
     { id: 802, name: "From Elsewhere", artist: { id: 9, name: "At iBroadcast" }, year: 2015, tracks: [{ id: 8020, title: "Away", track: 1, type: "audio/flac", artwork_id: 2, path: "elsewhere/Away.flac" }] },
     { id: 803, name: "Old Upload", artist: { id: 9, name: "At iBroadcast" }, year: 2015, tracks: [{ id: 8030, title: "Four", track: 1, type: "audio/flac", artwork_id: 3, path: path.join(old, "01 Four.flac") }] },
+    // Uploaded from a drive that isn't connected now: its booklets wait for it.
+    { id: 804, name: "Drive Away", artist: { id: 9, name: "At iBroadcast" }, year: 2015, tracks: [{ id: 8040, title: "Five", track: 1, type: "audio/flac", artwork_id: 4, path: "/media/Away Drive/Drive Away/01 Five.flac" }] },
   ];
   ib.changed();
   assert.equal((await post("/library")).status, 200);
   const offset = key => until(() => db.prepare("SELECT id FROM albums WHERE key = ?").get(key)?.id, 15000, key);
   const uploaded = await offset("ibroadcast:801"), elsewhere = await offset("ibroadcast:802");
 
+  // Kept here once the reading has looked (item 510): two albums' booklets, one album waiting for its drive.
+  const kept = await until(async () => { const b = (await state()).library?.booklets; return b && b.albums === 2 && b; }, 30000, "the booklets kept");
+  assert.equal(kept.waiting, 1, JSON.stringify(kept));
+  assert.ok(kept.bytes > 0);
+  // The drives taken away: the booklets are still there.
+  fs.renameSync(dir, dir + " (gone)");
+  fs.renameSync(old, old + " (gone)");
   const booklets = await until(async () => { const b = await call("GET", "album/booklets?offset=" + uploaded); return b.booklets && b.booklets.length === 2 && b.booklets; }, 20000, "the booklets");
-  assert.deepEqual(booklets.map(b => [b.name, b.pages]).sort(), [["Inlay", 1], ["booklet", 2]]);
+  assert.deepEqual(booklets.map(b => [b.name, b.pages]).sort(), [["Scans - Inlay", 1], ["booklet", 2]]);
   const page = await fetch(`${base}/api/booklet/page?offset=${uploaded}&id=${booklets.find(b => b.name === "booklet").id}&page=2&w=480`, { headers: H });
   assert.equal(page.status, 200);
   assert.equal(page.headers.get("content-type"), "image/jpeg");

@@ -31,7 +31,14 @@ function ibroadcastLibraryWords(l) {
   if (typeof l.albums !== "number") return "Your iBroadcast library is read shortly after signing in.";
   const n = l.albums, here = l.also_here || 0;
   return n + " album" + (n === 1 ? "" : "s") + " in iBroadcast" + (here ? " · " + here + " of them here as files too, shown once" : "")
-    + " · updated " + new Date(l.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+    + " · updated " + new Date(l.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + ibroadcastBookletWords(l.booklets);
+}
+
+/** The uploaded albums' booklets kept here (item 510), as the app's IBroadcastSettings.bookletWords says it. @param {any} b */
+function ibroadcastBookletWords(b) {
+  if (!b || (!b.albums && !b.waiting)) return "";
+  return (b.albums ? " · booklets of " + b.albums + " album" + (b.albums === 1 ? "" : "s") + " kept here (" + ibroadcastSize(b.bytes || 0) + ")" : "")
+    + (b.waiting ? " · " + b.waiting + " album" + (b.waiting === 1 ? "'s" : "s'") + " booklets waiting for their drive to be connected" : "");
 }
 
 /** A size in bytes as the page says it: "512 KB", "3.4 MB", "1.2 GB". @param {number} b */
