@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New - Backups carry the iBroadcast albums' covers and booklets that Mandarin keeps from the folders you uploaded ("iBroadcast covers and booklets" in Settings → Backup & restore), and a restore puts them back, so they aren't lost once the drives are disconnected. Mandarin OS's own backup before Reinstall Mandarin leaves them out: they stay in the data folder
 - New - The booklets of the iBroadcast albums you uploaded are kept in Mandarin, copied from their folders while the drive is connected, so they still show once you disconnect the drives. Settings → iBroadcast says how many albums' booklets are kept, their size, and how many are still waiting for their drive to be connected
 - Fixed - Spotify Connect follows the room's volume levelling within seconds of it being switched on or off, even while Spotify plays: Soloist is started again and picks up where it was, the same album or playlist, after a gap of a few seconds. It kept normalising for as long as Spotify played
 - Fixed - iBroadcast albums uploaded before 18 November get their folder's cover and booklets too: Mandarin sent those with the file's whole path, which it didn't trace back to the folder, so they went without. Every iBroadcast album's cover is looked at once more

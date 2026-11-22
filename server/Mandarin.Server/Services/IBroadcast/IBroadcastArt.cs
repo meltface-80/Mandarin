@@ -106,6 +106,14 @@ internal static class IBroadcastArt
             var decided = r[4] as string;
             var artPath = r[3] as string;
             // Not traced to a file here ("unknown"): looked at again at each reading, a drive with it perhaps here by then.
+            // Its folder's cover decided and kept, but not the album's (a restore, item 511: the album read afresh from iBroadcast).
+            if (decided == "folder" && string.IsNullOrEmpty(artPath) && Directory.EnumerateFiles(dir, key["ibroadcast:".Length..] + "-folder.*").FirstOrDefault() is { } keptCover)
+            {
+                var keptBytes = await File.ReadAllBytesAsync(keptCover);
+                Set(id, keptCover, "ibf" + Convert.ToHexString(SHA256.HashData(keptBytes))[..10].ToLowerInvariant());
+                changed++;
+                continue;
+            }
             if (decided is "folder" or "none" || decided == "ibroadcast" && !string.IsNullOrEmpty(artPath)) continue;
             var (kind, picture) = decided == "ibroadcast" ? (Kind.IBroadcast, null) : await Decide(IBroadcastApi.Str(kept?["from"]), files);
             try
