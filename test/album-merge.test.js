@@ -122,6 +122,10 @@ test("item 512: albums merged into one, the first volume first, kept through sca
     // Rescanned (the folder watch may have begun it already): until the file is read again.
     await post("/api/library/rescan");
     await until(() => db.prepare("SELECT duration FROM tracks WHERE path LIKE ?").get("%Motion II%02 Track II-2.flac").duration > 1.5, 60000, "the file read again");
+    // The folder watch sees the file too and begins a scan of its own a moment later (item 520: it began while the page
+    // step merged, and the merge was rightly refused): its notice waited for, then a scan done after it.
+    const noticed = await until(() => { const i = ctx.logs.findIndex(l => /\[watch\] \d+ changes? in the music folders.*Motion II/.test(l)); return i >= 0 ? i + 1 : 0; }, 20000, "the folder watch's notice");
+    await until(() => ctx.logs.slice(noticed).some(l => /\[scan\] (updated|unchanged):/.test(l)), 60000, "the folder watch's scan");
     await scanned();
     const s = await shelf();
     assert.ok(!s["Motion II"], JSON.stringify(Object.keys(s)));
