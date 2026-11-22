@@ -17,6 +17,10 @@ internal sealed partial class Soloist
     private SoloistTap? tap;
     private Thread? reader;
     private volatile bool readerStop;
+    private bool saidOff;   // the sound said not bit-perfect, once a run (item 506)
+
+    /* How far what the room has been sent is ahead of what it has played (ms): Now playing's position is set back by it (item 506). */
+    public int AheadMs { get; private set; }
 
     /* What the samples have shown so far (SoloistProof.cs). */
     public SoloistProof Proof { get; } = new();
@@ -111,6 +115,11 @@ internal sealed partial class Soloist
                 Array.Copy(buf, usable, buf, 0, have - usable);
                 have -= usable;
                 Proof.See(chunk);
+                if (!saidOff && Proof.FirstOff is { } off)
+                {
+                    saidOff = true;
+                    Log($"the sound isn't bit-perfect (a sample 0x{off:X8}, off the 24-bit grid; Soloist's volume {Volume}%): shown as the quality asked for, Lossless");
+                }
 
                 SoloistTap? t;
                 lock (gate) t = tap;
@@ -124,6 +133,7 @@ internal sealed partial class Soloist
                     }
                 // At the speed it plays, a stream open or not (SoloistPace.cs): a lead while one is open.
                 var wait = pace.Next(chunk.Length / FrameBytes, Environment.TickCount64, t != null ? SoloistPace.LeadMs : 0);
+                AheadMs = t != null ? pace.AheadMs : 0;
                 if (wait > 0) stop.Token.WaitHandle.WaitOne(wait);
             }
         }

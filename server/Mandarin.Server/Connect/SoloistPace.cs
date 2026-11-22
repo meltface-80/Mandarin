@@ -8,11 +8,18 @@ namespace Mandarin.Server.Connect;
 
 internal sealed class SoloistPace
 {
-    /* How far ahead of real time an open stream may be: enough for a player to start, not enough to be heard late. */
-    public const int LeadMs = 3000;
+    /*
+     * How far ahead of real time an open stream may be: enough for a player to start, not enough to be heard late. Three
+     * seconds put every skip, previous and seek three seconds late, and Now playing's position as far ahead of what was
+     * heard (item 506): one.
+     */
+    public const int LeadMs = 1000;
     private const int SlackMs = 250;
 
     private long startMs = -1, frames;
+
+    /* How far ahead of real time what has been let out is, as the last read left it (ms, 0 at least): what the room has yet to play of it. */
+    public int AheadMs { get; private set; }
 
     /*
      * [chunkFrames] read at [nowMs] (a steady clock, in ms), with [leadMs] allowed ahead: how long to wait before the
@@ -22,7 +29,9 @@ internal sealed class SoloistPace
     {
         if (startMs < 0 || frames * 1000 / Soloist.Rate < nowMs - startMs - leadMs - SlackMs) { startMs = nowMs; frames = 0; }
         frames += chunkFrames;
-        var ahead = frames * 1000 / Soloist.Rate - (nowMs - startMs) - leadMs;
+        var out_ = frames * 1000 / Soloist.Rate - (nowMs - startMs);
+        AheadMs = out_ > 0 ? (int)out_ : 0;
+        var ahead = out_ - leadMs;
         return ahead > 0 ? (int)ahead : 0;
     }
 
