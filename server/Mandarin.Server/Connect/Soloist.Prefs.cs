@@ -114,7 +114,7 @@ internal sealed partial class Soloist
 
     // ------------------------------------------------------------ what Now Playing sends
 
-    public Task Play(string uri = "") => uri == "" ? Command("play") : Command("play", "\"uri\":" + System.Text.Json.JsonSerializer.Serialize(uri, SoloistJson.Default.String));
+    public Task<bool> Play(string uri = "") => uri == "" ? Command("play") : Command("play", "\"uri\":" + System.Text.Json.JsonSerializer.Serialize(uri, SoloistJson.Default.String));
     public Task Pause() => Command("pause");
     public Task Next() => Command("skip_next");
     public Task Previous() => Command("skip_prev");

@@ -69,16 +69,19 @@ internal sealed partial class Soloist
         });
     }
 
-    /* A command to Soloist: {"type":"command","command":…} with [extra] fields ("" for none). Dropped when it isn't up. */
-    public async Task Command(string command, string extra = "")
+    /// <summary>Whether its WebSocket is open and it is signed in: a command sent now is taken (item 517).</summary>
+    public bool Ready { get { lock (gate) return SignedIn && ws is { State: WebSocketState.Open }; } }
+
+    /* A command to Soloist: {"type":"command","command":…} with [extra] fields ("" for none). Whether it was sent: not when it isn't up. */
+    public async Task<bool> Command(string command, string extra = "")
     {
         ClientWebSocket? w;
         lock (gate) w = ws;
-        if (w is not { State: WebSocketState.Open }) return;
+        if (w is not { State: WebSocketState.Open }) return false;
         var json = "{\"type\":\"command\",\"command\":" + JsonSerializer.Serialize(command, SoloistJson.Default.String) + (extra != "" ? "," + extra : "") + "}";
         await sendGate.WaitAsync();
-        try { await w.SendAsync(Encoding.UTF8.GetBytes(json), WebSocketMessageType.Text, true, stop.Token); }
-        catch (Exception e) when (e is WebSocketException or OperationCanceledException or ObjectDisposedException) { /* closing */ }
+        try { await w.SendAsync(Encoding.UTF8.GetBytes(json), WebSocketMessageType.Text, true, stop.Token); return true; }
+        catch (Exception e) when (e is WebSocketException or OperationCanceledException or ObjectDisposedException) { return false; }
         finally { sendGate.Release(); }
     }
 
