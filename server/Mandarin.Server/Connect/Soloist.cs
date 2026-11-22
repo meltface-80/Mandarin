@@ -144,6 +144,7 @@ internal sealed partial class Soloist : IDisposable
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Log("couldn't ask for lossless: " + e.Message); }
         askedAfterSignIn = false;
         Proof.Reset();
+        saidOff = false;
         StartPulse(s.PulseAudio);
         StartReader();
         StartSoloist(s);

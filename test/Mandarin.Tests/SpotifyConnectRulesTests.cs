@@ -48,15 +48,22 @@ public sealed class SpotifyConnectRulesTests
     }
 
     [Test]
-    public async Task The_samples_prove_lossless_24_or_16_bit_or_lossy()
+    public async Task The_samples_prove_bit_perfect_24_or_16_bit_or_not()
     {
         int[] Tone(int shift, int n = 44100) => [.. Enumerable.Range(0, n).Select(i => ((i % 1000) + 1) << shift)];
+        // As PulseAudio writes a float sample: k / 2^(bits−1) times 2147483647, rounded (item 506: real lossless said "Lossy").
+        int[] Floated(int bits, int n = 44100) => [.. Enumerable.Range(0, n).Select(i => (int)Math.Round(((i % 1000) * 37 - 18000) * (2147483647.0 / (1L << (bits - 1))), MidpointRounding.ToEven))];
         var lossy = Tone(8);
         lossy[^1] |= 1;   // one sample off the 24-bit grid
-        var said = (await Ask(new { proofs = new[] { Tone(8), Tone(16), lossy, Tone(8, 1000), new int[44100] } }))["proofs"]!.AsArray();
+        // Lossless 24-bit with Spotify's volume at 90%: off the grid, as lossy audio is.
+        var turned = Floated(24).Select(v => (int)(v * 0.9)).ToArray();
+        var said = (await Ask(new { proofs = new[] { Tone(8), Tone(16), lossy, Tone(8, 1000), new int[44100], Floated(24), Floated(16), turned } }))["proofs"]!.AsArray();
         Assert.Equal("lossless 24-bit", (string?)said[0]);
         Assert.Equal("lossless 16-bit", (string?)said[1]);
-        Assert.Equal("lossy", (string?)said[2]);
+        Assert.Equal("not bit-perfect", (string?)said[2]);
+        Assert.Equal("lossless 24-bit", (string?)said[5]);
+        Assert.Equal("lossless 16-bit", (string?)said[6]);
+        Assert.Equal("not bit-perfect", (string?)said[7]);
         Assert.Equal("", (string?)said[3]);     // not heard enough yet
         Assert.Equal("", (string?)said[4]);     // silence proves nothing
     }
@@ -90,15 +97,17 @@ public sealed class SpotifyConnectRulesTests
             {
                 null,
                 "ui.theme=dark\naudio.play_bitrate_enumeration=2\naudio.normalize_v2=true\n",
-                "audio.normalize_v2=false\naudio.play_bitrate_non_metered_enumeration=5\naudio.play_bitrate_enumeration=5\n",
+                "audio.normalize_v2=false\naudio.play_bitrate_non_metered_migrated=true\naudio.play_bitrate_non_metered_enumeration=5\naudio.play_bitrate_enumeration=5\n",
             }
         }))["prefs"]!.AsArray();
-        var lossless = "audio.play_bitrate_enumeration=5\naudio.play_bitrate_non_metered_enumeration=5\naudio.normalize_v2=false\n";
+        var lossless = "audio.play_bitrate_enumeration=5\naudio.play_bitrate_non_metered_enumeration=5\naudio.play_bitrate_non_metered_migrated=true\naudio.normalize_v2=false\n";
         Assert.True(p[0]!["changed"]!.GetValue<bool>());
         Assert.Equal(lossless, (string?)p[0]!["text"]);
         Assert.True(p[1]!["changed"]!.GetValue<bool>());
         Assert.Equal("ui.theme=dark\n" + lossless, (string?)p[1]!["text"]);
         Assert.False(p[2]!["changed"]!.GetValue<bool>(), "the same values in another order are no change (no restart)");
+        // The global store too (item 506), as Music Assistant's Soloist writes it.
+        Assert.Equal(lossless, (string?)p[0]!["global"]);
     }
 
     [Test]
@@ -192,7 +201,7 @@ public sealed class SpotifyConnectRulesTests
                 new { proof = "lossless 24-bit", query = "" },
                 new { proof = "lossless 16-bit", query = "?r=176400&b=24&u=4&f=min" },
                 new { proof = "", query = "?r=48000&b=24" },
-                new { proof = "lossy", query = "" },
+                new { proof = "not bit-perfect", query = "" },
             }
         });
         var a = o["allows"]!.AsArray();
@@ -202,10 +211,35 @@ public sealed class SpotifyConnectRulesTests
         Assert.False(a[1]!["is_seek_allowed"]!.GetValue<bool>());   // no length said: no seeking
         Assert.Equal("playing", (string?)a[0]!["state"]);
         var t = o["now_texts"]!.AsArray();
-        Assert.Equal("Spotify Connect · Lossless 24/44.1", (string?)t[0]);
-        Assert.Equal("Spotify Connect · Lossless 16/44.1 · FLAC 24/176.4 ↑×4 · Minimum-phase filter", (string?)t[1]);
-        Assert.Equal("Spotify Connect · FLAC 24/48", (string?)t[2]);
-        Assert.Equal("Spotify Connect · Lossy", (string?)t[3]);
+        Assert.Equal("Spotify Connect · Lossless 24/44.1 ✓", (string?)t[0]);
+        Assert.Equal("Spotify Connect · Lossless 16/44.1 ✓ · FLAC 24/176.4 ↑×4 · Minimum-phase filter", (string?)t[1]);
+        Assert.Equal("Spotify Connect · Lossless · FLAC 24/48", (string?)t[2]);
+        // Not proven bit for bit: the quality asked for, as the Spotify app says it, never "Lossy" (item 506).
+        Assert.Equal("Spotify Connect · Lossless", (string?)t[3]);
+    }
+
+    [Test]
+    public async Task Skips_are_heard_within_a_second_and_the_position_is_what_the_room_plays()
+    {
+        var o = await Ask(new
+        {
+            // A stream open, at the lead the reader keeps: a second may go out at once, the next waits (item 506: three seconds
+            // put every skip three seconds late).
+            paces = new[] { new[] { new long[] { 44100, 0, 1000 }, [44100, 0, 1000] } },
+            heards = new[] { new double[] { 61.0, 1000 }, [61.0, 250], [0.4, 1000] }
+        });
+        Assert.Equal("0 1000", string.Join(" ", o["paces"]![0]!.AsArray().Select(x => x!.GetValue<double>())));
+        Assert.Equal("60 60.75 0", string.Join(" ", o["heards"]!.AsArray().Select(x => x!.GetValue<double>().ToString(System.Globalization.CultureInfo.InvariantCulture))));
+        Assert.Equal(1000, LeadMs());
+    }
+
+    // The reader's lead, as the server has it (SoloistPace.LeadMs): read from its source, the one place it is said.
+    private static int LeadMs()
+    {
+        var dir = AppContext.BaseDirectory;
+        while (dir != null && !File.Exists(Path.Combine(dir, "server", "Mandarin.Server", "Connect", "SoloistPace.cs"))) dir = Path.GetDirectoryName(dir);
+        var src = File.ReadAllText(Path.Combine(dir!, "server", "Mandarin.Server", "Connect", "SoloistPace.cs"));
+        return int.Parse(System.Text.RegularExpressions.Regex.Match(src, @"LeadMs = (\d+);").Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
     }
 
     [Test]

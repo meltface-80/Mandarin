@@ -18,7 +18,8 @@ internal sealed partial class Soloist
     internal static (string Key, string Value)[] PrefsFor(string quality)
     {
         var n = Bitrates.TryGetValue(quality, out var v) ? v : Bitrates["lossless"];
-        return [("audio.play_bitrate_enumeration", n), ("audio.play_bitrate_non_metered_enumeration", n), ("audio.normalize_v2", "false")];
+        // The marker that makes Soloist honour the non-metered value (item 506, as Music Assistant's Soloist notes found).
+        return [("audio.play_bitrate_enumeration", n), ("audio.play_bitrate_non_metered_enumeration", n), ("audio.play_bitrate_non_metered_migrated", "true"), ("audio.normalize_v2", "false")];
     }
 
     /* The quality Soloist was last started with (Settings' choice then). */
@@ -28,12 +29,15 @@ internal sealed partial class Soloist
     internal static bool AskQuality(string data, string quality)
     {
         var Lossless = PrefsFor(quality);
-        var users = Path.Combine(data, "settings", "Users");
-        if (!Directory.Exists(users)) return false;
+        var settings = Path.Combine(data, "settings");
+        var users = Path.Combine(settings, "Users");
+        if (!Directory.Exists(settings)) return false;
         bool changed = false;
-        foreach (var dir in Directory.GetDirectories(users, "*-user"))
+        // Each account's, and the global store too (item 506: an account's own values override it, key by key, and Soloist
+        // rewrites it, so it is asked again before every start, as Music Assistant's Soloist does).
+        var files = (Directory.Exists(users) ? Directory.GetDirectories(users, "*-user").Select(d => Path.Combine(d, "prefs")) : []).Append(Path.Combine(settings, "prefs"));
+        foreach (var file in files)
         {
-            var file = Path.Combine(dir, "prefs");
             var lines = File.Exists(file) ? File.ReadAllLines(file).ToList() : [];
             var kept = lines.Where(l => !Lossless.Any(k => l.StartsWith(k.Key + "=", StringComparison.Ordinal))).ToList();
             var wanted = kept.Concat(Lossless.Select(k => k.Key + "=" + k.Value)).ToList();
@@ -44,7 +48,8 @@ internal sealed partial class Soloist
             var tmp = file + ".new";
             File.WriteAllLines(tmp, wanted);
             File.Move(tmp, file, overwrite: true);
-            changed = true;
+            // An account's own, taken up only as it signs in, is what asks for a restart; the global store is read at each start.
+            changed |= Path.GetFileName(Path.GetDirectoryName(file)) != "settings";
         }
         return changed;
     }
