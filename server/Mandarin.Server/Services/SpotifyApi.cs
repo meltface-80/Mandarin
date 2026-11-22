@@ -25,7 +25,7 @@ namespace Mandarin.Server.Services;
 using static ServiceHttp;
 using Js = Mandarin.Server.Tags.Js;
 
-internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<object?> account, Action<JsObj> onToken)
+internal sealed partial class SpotifyApi(string? baseUrl, string? accountsUrl, Func<object?> account, Action<JsObj> onToken)
 {
     public const string Base = "https://api.spotify.com/v1/";
     public const string Accounts = "https://accounts.spotify.com/";
@@ -168,7 +168,8 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
             }
             var access = await Access(refused);
             (string, string)[] headers = [("Authorization", "Bearer " + access), ("Accept", "application/json")];
-            Counted();
+            await Turn(patient);   // one request at a time, spaced, a page's first (item 518, SpotifyApi.Throttle.cs)
+            Counted(url);
             var (status, text, retryAfter) = await SendTimed(method, url, headers, method == "GET" ? null : body ?? "", "application/json", Timeout);
             if (status == 401 && refused == null) { refused = access; continue; }
             if (status == 429)
@@ -197,9 +198,10 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
     // allowance used up unseen kept Spotify shut for a day).
     private readonly Queue<double> asked = new();
     private int saidAt = 250;
-    private void Counted()
+    private void Counted(string url)
     {
         int n;
+        var kinds = CountKind(url);
         lock (asked)
         {
             var now = NowMs();
@@ -211,7 +213,7 @@ internal sealed class SpotifyApi(string? baseUrl, string? accountsUrl, Func<obje
             if (n < saidAt) return;
             saidAt *= 2;
         }
-        Server.Log($"[spotify] {n} requests to Spotify in the last day");
+        Server.Log($"[spotify] {n} requests to Spotify in the last day: {kinds}");
     }
 
     public Task<object?> GetJson(string path, double ttl = 0, bool patient = false) => Call("GET", path, null, ttl, patient);

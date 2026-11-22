@@ -118,7 +118,7 @@ class FakeSpotify {
     if (!u.pathname.startsWith("/v1/")) return this.send(res, 404, { error: { status: 404, message: "Not found" } });
     const auth = (req.headers.authorization || "").replace(/^Bearer /, "");
     const path = u.pathname.slice(4);
-    this.calls.push({ path: path + u.search, auth });
+    this.calls.push({ path: path + u.search, auth, at: Date.now() });
     if (!this.access.has(auth)) return this.send(res, 401, { error: { status: 401, message: "The access token expired" } });
     if (this.busyAtCall && this.calls.length === this.busyAtCall) { this.busyAtCall = 0; this.busyOnce = true; }
     if (this.busyOnce || this.busyFor) {
