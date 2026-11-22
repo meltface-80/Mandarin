@@ -148,12 +148,16 @@ test("item 512: albums merged into one, the first volume first, kept through sca
     assert.equal(s["Motion I"].merged, false);
   });
   await t.test("the page: Motion I and II picked, Merge albums in the select menu; the merged one picked alone, Unmerge", { skip: noBrowser }, async () => {
+    // A scan under way rightly refuses a merge ("A scan is running"), and the steps before can leave one going (item
+    // 515: the page's merge refused so, now and then): each step waits for the library to be still, as the owner would.
+    await scanned();
     let s = await shelf();
     const b = await Browser.launch({ width: 412, height: 800 });
     try {
       const page = await b.page(base + "/", { cookies: [{ name: "musicd_session", value: token, url: base }], touch: true });
       const merged = await page.eval(PICK([s["Motion II"].offset, s["Motion I"].offset], "merge", ["Motion II", "Motion I"]));
       assert.deepEqual(merged, { items: ["Play now", "Play next", "Add to end of queue", "Listen later", "Merge albums", "Clear selection"], said: "Merged 2 albums into “Motion”" });
+      await scanned();
       s = await shelf();
       assert.deepEqual(s.Motion, { offset: s.Motion.offset, discs: 2, merged: true });
       const apart = await page.eval(PICK([s.Motion.offset], "unmerge", ["Motion"]));
