@@ -35,6 +35,25 @@ internal static class IBroadcastArt
         IBroadcastUploadSent.All().Where(f => f.Value.SentAs != null)
             .GroupBy(f => f.Value.SentAs!, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().Key, StringComparer.Ordinal);
 
+    private static (long At, Dictionary<string, string> Files) sentFrom = (0, []);
+
+    /// <summary>
+    /// The folder album [key] was uploaded from, where Mandarin sent it and the folder is here (item 505: its booklets);
+    /// null otherwise. What was sent is read again a minute at most after it was last read.
+    /// </summary>
+    public static string? FolderOf(string key)
+    {
+        string? from;
+        using (var c = Db.Open())
+            from = Library.Rows(c, "SELECT value FROM cache WHERE ns = 'ibroadcast-kept' AND key = $1", key).FirstOrDefault()?[0] is string v
+                ? IBroadcastApi.Str(JsonNode.Parse(v)?["from"]) : null;
+        if (string.IsNullOrEmpty(from)) return null;
+        var now = Environment.TickCount64;
+        var known = sentFrom;
+        if (now - known.At > 60_000) sentFrom = known = (now, SentFrom());
+        return known.Files.TryGetValue(from, out var file) && Path.GetDirectoryName(file) is { } dir && Directory.Exists(dir) ? dir : null;
+    }
+
     /// <summary>What [sentAs]'s album's cover is to be ([files]: SentFrom's), and the folder picture's path where it is one.</summary>
     public static async Task<(Kind Kind, string? Picture)> Decide(string? sentAs, IReadOnlyDictionary<string, string> files)
     {
