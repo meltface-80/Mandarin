@@ -61,6 +61,18 @@ internal static class SpotifyRoomPlan
         return new RoomSound(rate, bits, factor, shape);
     }
 
+    /*
+     * [sound] as a queue item's plan (item 507): FLAC made here, its rate and depth, the upsampler's factor and filter. The
+     * room keeps what it was sent from it (SentInfo), for the signal path and for the device's word to be checked against.
+     */
+    public static JsObj PlanOf(RoomSound sound)
+    {
+        var p = Jv.Obj(("transcode", true), ("mime", "audio/flac"), ("ext", "flac"), ("rate", (double)sound.Rate), ("bits", (double)sound.Bits));
+        if (sound.Factor > 1) p["upsampled"] = (double)sound.Factor;
+        if (sound.Shape != null) p["shape"] = sound.Shape;
+        return p;
+    }
+
     /* The sound asked for in a stream's address (RoomSound.Query); what it can't be, as it comes. */
     public static RoomSound Read(IQueryCollection q)
     {

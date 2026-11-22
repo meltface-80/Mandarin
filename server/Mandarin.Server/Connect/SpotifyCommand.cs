@@ -16,7 +16,11 @@
 //     port_words: [[port, …]]                         SoloistPorts.Words: what the log says of Soloist's ports
 //     allows: [{ zone, duration }]                    SpotifyNow.Allow (item 503): a zone's flags, Spotify's controls laid over them
 //     now_texts: [{ proof, query }]
-//     heards: [[position, aheadMs]] }                 SpotifyNow.Heard (item 506): Now playing's position, less what is sent ahead                 SpotifyNow.NowText: Now playing's format line for a proof and a room's sound
+//     heards: [[position, aheadMs]]                   SpotifyNow.Heard (item 506): Now playing's position, less what is sent ahead
+//     prefs_normalise: [bool]                         with prefs: Spotify's loudness normalisation asked for too (item 507)
+//     plans: [query]                                  SpotifyRoomPlan.PlanOf (item 507): the plan the room keeps of what it was sent
+//     signals: [{ proof, query, normalise, fed?: { by, kind, rate, bits, volume, untouched, matches }, confirmed }] }
+//                                                     SpotifyNow.Signal: the signal path, the device's word checked                 SpotifyNow.NowText: Now playing's format line for a proof and a room's sound
 //   → { follows, proofs, builds: [{ expires, plan }], prefs: [{ changed, text }], entities, cleans, paces,
 //       rooms: [{ rate, bits, factor, shape, query, words }], reads: [the same], listening: [{ port, inode, loopback } | null],
 //       port_words: [text], allows: [zone], now_texts: [text], heards: [seconds]; prefs also carry the global store's text }
@@ -61,7 +65,8 @@ internal static class SpotifyCommand
             return (object?)x;
         }).ToList();
         var qualities = L(job["prefs_quality"]);
-        o["prefs"] = L(job["prefs"]).Select((t, i) => Prefs(t, i < qualities.Count ? S(qualities[i]) : "lossless")).ToList();
+        var normalise = L(job["prefs_normalise"]);
+        o["prefs"] = L(job["prefs"]).Select((t, i) => Prefs(t, i < qualities.Count ? S(qualities[i]) : "lossless", i < normalise.Count && normalise[i] is true)).ToList();
         o["entities"] = L(job["entities"]).Select(e0 =>
         {
             using var doc = JsonDocument.Parse(S(e0));
@@ -100,9 +105,22 @@ internal static class SpotifyCommand
             var sound = SpotifyRoomPlan.Read(new QueryCollection(Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(S(n["query"]))));
             return (object?)SpotifyNow.NowText(S(n["proof"]), sound);
         }).ToList();
+        o["plans"] = L(job["plans"]).Select(q => (object?)Scan.JsJson.Parse(Tags.Js.Json(SpotifyRoomPlan.PlanOf(Read(S(q)))) ?? "null")).ToList();
+        o["signals"] = L(job["signals"]).Select(g0 =>
+        {
+            var g = O(g0);
+            var sound = Read(S(g["query"]));
+            var sent = new Playback.SentInfo(true, sound.Rate, sound.Bits, sound.Factor > 1 ? sound.Factor : 0, false, 0, "flac", "audio/flac") { Shape = sound.Shape };
+            Playback.Fed? fed = g["fed"] is Tags.JsObj f
+                ? new Playback.Fed(S(f["by"]), S(f["kind"]), Tags.Js.ToNumber(f["rate"]), Tags.Js.ToNumber(f["bits"]), 0, f["volume"] as string, 0, f["untouched"] as bool?, f["matches"] is true)
+                : null;
+            return Scan.JsJson.Parse(SpotifyNow.Signal(S(g["proof"]), sound, g["normalise"] is true, sent, fed, g["confirmed"] is true).ToJsonString());
+        }).ToList();
         o["heards"] = L(job["heards"]).Select(h => { var x = L(h); return (object?)SpotifyNow.Heard(Tags.Js.ToNumber(x[0]), (int)Tags.Js.ToNumber(x[1])); }).ToList();
         return o;
     }
+
+    private static RoomSound Read(string q) => SpotifyRoomPlan.Read(new QueryCollection(Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(q)));
 
     private static object? Sound(RoomSound r)
     {
@@ -112,7 +130,7 @@ internal static class SpotifyCommand
     }
 
     // An account's prefs as Soloist left them ([text], null for none), asked for lossless in a folder of its own.
-    private static object? Prefs(object? text, string quality)
+    private static object? Prefs(object? text, string quality, bool normalise = false)
     {
         var data = Directory.CreateTempSubdirectory("mandarin-spotify-prefs-").FullName;
         try
@@ -122,7 +140,7 @@ internal static class SpotifyCommand
             var file = Path.Combine(account, "prefs");
             if (text is string t) File.WriteAllText(file, t);
             var x = new JsObj();
-            x["changed"] = Soloist.AskQuality(data, quality);
+            x["changed"] = Soloist.AskQuality(data, quality, normalise);
             x["text"] = File.Exists(file) ? File.ReadAllText(file) : null;
             var global = Path.Combine(data, "settings", "prefs");
             x["global"] = File.Exists(global) ? File.ReadAllText(global) : null;
