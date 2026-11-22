@@ -5,7 +5,8 @@
  * files has, and their pages drawn; one iBroadcast has from elsewhere has none. The page and the app ask for them on an
  * iBroadcast album as on one of files (public/app/page-state.js, AlbumScreen.kt). And (item 510) each album's booklets
  * are kept in the data folder while its drive is here, so they show once the drives are taken away; Settings →
- * iBroadcast says how many albums' are kept, and how many wait for their drive.
+ * iBroadcast says how many albums' are kept, and how many wait for their drive. And (item 511) a backup carries the
+ * covers and booklets kept here: lost, a restore puts them back, the folder's cover shown again and the booklets.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -36,6 +37,7 @@ test("item 505: an uploaded iBroadcast album has the booklets of the folder it w
   const dir = path.join(lib.music, "Up", "Slow Snow");
   gen(path.join(dir, "01 Shelter.flac"), { tags: { title: "Shelter", artist: "Tore Brunborg", album: "Slow Snow", track: 1 } });
   fs.writeFileSync(path.join(dir, "booklet.pdf"), pdf(["0 0 1", "1 0 0"]));
+  fs.copyFileSync(path.join(lib.music, "Artist A", "Album One", "cover.jpg"), path.join(dir, "cover.jpg"));
   fs.mkdirSync(path.join(dir, "Scans"));
   fs.writeFileSync(path.join(dir, "Scans", "Inlay.pdf"), pdf(["0 1 0"]));
   // Uploaded before item 480 (item 509): its whole path at iBroadcast, nothing of it in the upload's records.
@@ -94,6 +96,33 @@ test("item 505: an uploaded iBroadcast album has the booklets of the folder it w
   assert.equal(page.status, 200);
   assert.equal(page.headers.get("content-type"), "image/jpeg");
   assert.deepEqual((await call("GET", "album/booklets?offset=" + elsewhere)).booklets, [], "not uploaded from here: none");
+
+  // A backup with the iBroadcast albums' covers and booklets (item 511); all of them then lost; restored: back.
+  const art = () => db.prepare("SELECT art_path, art_hash FROM albums WHERE key = 'ibroadcast:801'").get();
+  const cover = await until(() => { const a = art(); return a && a.art_hash && a.art_hash.startsWith("ibf") && a; }, 20000, "the folder's cover kept");
+  const coverBytes = fs.readFileSync(cover.art_path);
+  const made = await fetch(base + "/api/backup/file", { method: "POST", headers: H, body: JSON.stringify({ include: ["ibroadcast"] }) });
+  assert.equal(made.status, 200);
+  const backup = Buffer.from(await made.arrayBuffer());
+  fs.rmSync(path.join(lib.data, "ibroadcast", "booklets"), { recursive: true, force: true });
+  fs.rmSync(cover.art_path);
+  db.prepare("DELETE FROM cache WHERE ns IN ('ibroadcast-art2', 'ibroadcast-booklets')").run();
+  db.prepare("UPDATE albums SET art_path = NULL, art_hash = NULL WHERE key = 'ibroadcast:801'").run();
+  assert.deepEqual((await call("GET", "album/booklets?offset=" + uploaded)).booklets, [], "lost, with the drives gone");
+  const boot = async () => { try { return (await (await fetch(base + "/server-info")).json()).boot; } catch (e) { return null; } };
+  const boot0 = await boot();
+  const back = await fetch(base + "/api/backup/restore?parts=ibroadcast", { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/gzip" }, body: backup });
+  const restored = await back.json();
+  assert.equal(back.status, 200, JSON.stringify(restored));
+  assert.deepEqual(restored.restored, ["ibroadcast"]);
+  await until(async () => { const b = await boot(); return b && b !== boot0; }, 30000, "the server started again");
+  assert.deepEqual(fs.readFileSync(cover.art_path), coverBytes, "the folder's cover back in the data folder");
+  const again = await until(async () => { const b = await call("GET", "album/booklets?offset=" + uploaded); return b.booklets && b.booklets.length === 2 && b.booklets; }, 20000, "the booklets back");
+  assert.deepEqual(again.map(b => b.name).sort(), ["Scans - Inlay", "booklet"]);
+  // The album's cover from it again at the next reading, its drive still gone.
+  ib.changed();
+  assert.equal((await post("/library")).status, 200);
+  await until(() => { const a = art(); return a && a.art_hash && a.art_hash.startsWith("ibf"); }, 20000, "the folder's cover shown again");
   const older = await offset("ibroadcast:803");
   assert.deepEqual((await call("GET", "album/booklets?offset=" + older)).booklets.map(b => [b.name, b.pages]), [["booklet", 1]], "uploaded before item 480: traced by its whole path");
 
