@@ -23,12 +23,26 @@ namespace Mandarin.Server.Services.IBroadcast;
 internal static class IBroadcastArt
 {
     /// <summary>The cache's namespace for what was decided of each album's cover.</summary>
-    public const string Ns = "ibroadcast-art";
+    // "…2" (item 509): every album decided again once, those uploaded before item 480 among them, which went untraced.
+    public const string Ns = "ibroadcast-art2";
 
     private static readonly string[] Pictures = [".jpg", ".jpeg", ".png", ".webp"];
 
     /// <summary>What an album's cover is to be: from its folder (the picture's path), iBroadcast's, none, or not known yet (its folder away).</summary>
-    public enum Kind { Folder, IBroadcast, None, Later }
+    public enum Kind { Folder, IBroadcast, None, Later, Unknown }
+
+    /*
+     * The file here a track iBroadcast keeps was sent from ([sentAs]: its path at iBroadcast), or null. Since item 480 the
+     * path sent is the file's from its drive, the upload's records saying which file it was ([files]); before, the path
+     * sent was the file's own, whole, and the records said nothing of it (item 509: those albums went untraced, without
+     * their folders' covers and booklets): such a path is the file, where it is here.
+     */
+    internal static string? SourceOf(string? sentAs, IReadOnlyDictionary<string, string> files)
+    {
+        if (string.IsNullOrEmpty(sentAs)) return null;
+        if (files.TryGetValue(sentAs, out var file)) return file;
+        return sentAs.StartsWith('/') && File.Exists(sentAs) ? sentAs : null;
+    }
 
     /// <summary>The folder each sent path came from: what Mandarin uploaded, by the path iBroadcast keeps.</summary>
     public static Dictionary<string, string> SentFrom() =>
@@ -51,13 +65,13 @@ internal static class IBroadcastArt
         var now = Environment.TickCount64;
         var known = sentFrom;
         if (now - known.At > 60_000) sentFrom = known = (now, SentFrom());
-        return known.Files.TryGetValue(from, out var file) && Path.GetDirectoryName(file) is { } dir && Directory.Exists(dir) ? dir : null;
+        return SourceOf(from, known.Files) is { } file && Path.GetDirectoryName(file) is { } dir && Directory.Exists(dir) ? dir : null;
     }
 
     /// <summary>What [sentAs]'s album's cover is to be ([files]: SentFrom's), and the folder picture's path where it is one.</summary>
     public static async Task<(Kind Kind, string? Picture)> Decide(string? sentAs, IReadOnlyDictionary<string, string> files)
     {
-        if (string.IsNullOrEmpty(sentAs) || !files.TryGetValue(sentAs, out var file)) return (Kind.IBroadcast, null);
+        if (SourceOf(sentAs, files) is not { } file) return (Kind.Unknown, null);
         var dir = Path.GetDirectoryName(file);
         if (dir == null || !Directory.Exists(dir)) return (Kind.Later, null);
         var images = Directory.EnumerateFiles(dir).Where(f => Pictures.Contains(Path.GetExtension(f).ToLowerInvariant()) && !Path.GetFileName(f).StartsWith('.')).ToList();
@@ -81,6 +95,8 @@ internal static class IBroadcastArt
             albums = Library.Rows(c, @"SELECT a.id, a.key, k.value, a.art_path, d.value FROM albums a JOIN cache k ON k.ns = $1 AND k.key = a.key
                                        LEFT JOIN cache d ON d.ns = $2 AND d.key = a.key", keptNs, Ns);
         var files = SentFrom();
+        // What was decided before item 509, of the first reckoning's (its "ibroadcast" for every album uploaded before item 480): let go.
+        using (var c = Db.Open()) Library.Rows(c, "DELETE FROM cache WHERE ns = 'ibroadcast-art'");
         int changed = 0, none = 0;
         foreach (var r in albums)
         {
@@ -89,7 +105,8 @@ internal static class IBroadcastArt
             var kept = JsonNode.Parse((string)r[2]!);
             var decided = r[4] as string;
             var artPath = r[3] as string;
-            if (decided != null && (decided != "ibroadcast" || !string.IsNullOrEmpty(artPath))) continue;
+            // Not traced to a file here ("unknown"): looked at again at each reading, a drive with it perhaps here by then.
+            if (decided is "folder" or "none" || decided == "ibroadcast" && !string.IsNullOrEmpty(artPath)) continue;
             var (kind, picture) = decided == "ibroadcast" ? (Kind.IBroadcast, null) : await Decide(IBroadcastApi.Str(kept?["from"]), files);
             try
             {
@@ -112,6 +129,10 @@ internal static class IBroadcastArt
                         break;
                     case Kind.IBroadcast:
                         Decided(key, "ibroadcast");
+                        if (string.IsNullOrEmpty(artPath) && server != null && await Fetch(server, IBroadcastApi.Str(kept?["cover"]), dir, key, id)) changed++;
+                        break;
+                    case Kind.Unknown:
+                        Decided(key, "unknown");
                         if (string.IsNullOrEmpty(artPath) && server != null && await Fetch(server, IBroadcastApi.Str(kept?["cover"]), dir, key, id)) changed++;
                         break;
                     default:

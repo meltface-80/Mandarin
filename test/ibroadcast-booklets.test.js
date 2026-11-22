@@ -36,6 +36,10 @@ test("item 505: an uploaded iBroadcast album has the booklets of the folder it w
   fs.writeFileSync(path.join(dir, "booklet.pdf"), pdf(["0 0 1", "1 0 0"]));
   fs.mkdirSync(path.join(dir, "Scans"));
   fs.writeFileSync(path.join(dir, "Scans", "Inlay.pdf"), pdf(["0 1 0"]));
+  // Uploaded before item 480 (item 509): its whole path at iBroadcast, nothing of it in the upload's records.
+  const old = path.join(lib.root, "Old Drive", "Old Upload");
+  gen(path.join(old, "01 Four.flac"), { tags: { title: "Four", artist: "Old Band", album: "Old Upload", track: 1 } });
+  fs.writeFileSync(path.join(old, "booklet.pdf"), pdf(["1 1 0"]));
 
   const ib = await new FakeIBroadcast().start();
   ib.slowOnce = false;
@@ -66,6 +70,7 @@ test("item 505: an uploaded iBroadcast album has the booklets of the folder it w
   ib.albums = [
     { id: 801, name: "Slow Snow (iBroadcast)", artist: { id: 9, name: "At iBroadcast" }, year: 2015, tracks: [{ id: 8010, title: "Shelter", track: 1, type: "audio/flac", artwork_id: 1, path: sent }] },
     { id: 802, name: "From Elsewhere", artist: { id: 9, name: "At iBroadcast" }, year: 2015, tracks: [{ id: 8020, title: "Away", track: 1, type: "audio/flac", artwork_id: 2, path: "elsewhere/Away.flac" }] },
+    { id: 803, name: "Old Upload", artist: { id: 9, name: "At iBroadcast" }, year: 2015, tracks: [{ id: 8030, title: "Four", track: 1, type: "audio/flac", artwork_id: 3, path: path.join(old, "01 Four.flac") }] },
   ];
   ib.changed();
   assert.equal((await post("/library")).status, 200);
@@ -78,6 +83,8 @@ test("item 505: an uploaded iBroadcast album has the booklets of the folder it w
   assert.equal(page.status, 200);
   assert.equal(page.headers.get("content-type"), "image/jpeg");
   assert.deepEqual((await call("GET", "album/booklets?offset=" + elsewhere)).booklets, [], "not uploaded from here: none");
+  const older = await offset("ibroadcast:803");
+  assert.deepEqual((await call("GET", "album/booklets?offset=" + older)).booklets.map(b => [b.name, b.pages]), [["booklet", 1]], "uploaded before item 480: traced by its whole path");
 
   // The page and the app ask for an iBroadcast album's booklets, as for one of files (they asked only for those).
   const root = path.join(__dirname, "..");
