@@ -15,10 +15,11 @@
 //     listening: [row]                                SoloistPorts.Listening (item 502): a /proc/net/tcp row read
 //     port_words: [[port, …]]                         SoloistPorts.Words: what the log says of Soloist's ports
 //     allows: [{ zone, duration }]                    SpotifyNow.Allow (item 503): a zone's flags, Spotify's controls laid over them
-//     now_texts: [{ proof, query }] }                 SpotifyNow.NowText: Now playing's format line for a proof and a room's sound
+//     now_texts: [{ proof, query }]
+//     heards: [[position, aheadMs]] }                 SpotifyNow.Heard (item 506): Now playing's position, less what is sent ahead                 SpotifyNow.NowText: Now playing's format line for a proof and a room's sound
 //   → { follows, proofs, builds: [{ expires, plan }], prefs: [{ changed, text }], entities, cleans, paces,
 //       rooms: [{ rate, bits, factor, shape, query, words }], reads: [the same], listening: [{ port, inode, loopback } | null],
-//       port_words: [text], allows: [zone], now_texts: [text] }
+//       port_words: [text], allows: [zone], now_texts: [text], heards: [seconds]; prefs also carry the global store's text }
 using System.Globalization;
 using System.Text.Json;
 using Mandarin.Server.Tags;
@@ -99,6 +100,7 @@ internal static class SpotifyCommand
             var sound = SpotifyRoomPlan.Read(new QueryCollection(Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(S(n["query"]))));
             return (object?)SpotifyNow.NowText(S(n["proof"]), sound);
         }).ToList();
+        o["heards"] = L(job["heards"]).Select(h => { var x = L(h); return (object?)SpotifyNow.Heard(Tags.Js.ToNumber(x[0]), (int)Tags.Js.ToNumber(x[1])); }).ToList();
         return o;
     }
 
@@ -122,6 +124,8 @@ internal static class SpotifyCommand
             var x = new JsObj();
             x["changed"] = Soloist.AskQuality(data, quality);
             x["text"] = File.Exists(file) ? File.ReadAllText(file) : null;
+            var global = Path.Combine(data, "settings", "prefs");
+            x["global"] = File.Exists(global) ? File.ReadAllText(global) : null;
             return x;
         }
         finally { Directory.Delete(data, recursive: true); }

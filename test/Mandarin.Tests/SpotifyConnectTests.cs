@@ -157,7 +157,7 @@ public sealed class SpotifyConnectTests
         Assert.Equal(Key, await File.ReadAllTextAsync(Path.Combine(dir, "key.txt")));
 
         // Playing, the samples proven lossless 24-bit; the build's date and when it runs out.
-        await Session.Until(async () => await State(s) is var st && (string?)st["playback"] == "playing" && (string?)st["quality"] == "Spotify · Lossless 24-bit/44.1 kHz",
+        await Session.Until(async () => await State(s) is var st && (string?)st["playback"] == "playing" && (string?)st["quality"] == "Spotify · Lossless 24-bit/44.1 kHz, bit-perfect",
             30000, "playing, the sound proven lossless");
         var now = await State(s);
         Assert.Equal("playing", (string?)now["playback"]);

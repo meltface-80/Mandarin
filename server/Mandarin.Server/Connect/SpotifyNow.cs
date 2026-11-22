@@ -24,31 +24,35 @@ internal static class SpotifyNow
             ["artists"] = new JsonArray(Names.SplitArtists(t.Artists).Select(name => (JsonNode)new JsonObject { ["name"] = name, ["linkable"] = false }).ToArray()),
             ["image_key"] = t.Cover.Length > 0 ? NowPlaying.ForeignKey(t.Cover) : null,
             ["length"] = t.Duration > 0 ? Math.Round(t.Duration, MidpointRounding.AwayFromZero) : null,
-            ["seek_position"] = Math.Round(p.PositionNow(), MidpointRounding.AwayFromZero),
+            ["seek_position"] = Math.Round(Heard(p.PositionNow(), p.AheadMs), MidpointRounding.AwayFromZero),
             ["track_id"] = null,
             ["album_offset"] = null,
             ["source"] = "spotify",
-            ["format"] = new JsonObject { ["kind"] = proof.StartsWith("lossless", StringComparison.Ordinal) ? "lossless" : proof == "lossy" ? "lossy" : "spotify", ["text"] = NowText(proof, SpotifyLive.Sound) }
+            ["format"] = new JsonObject { ["kind"] = "lossless", ["text"] = NowText(proof, SpotifyLive.Sound) }
         };
     }
 
     /*
-     * Now playing's format line (item 503): "Spotify Connect · Lossless 24/44.1", then how the room is sent it where it
-     * isn't as it comes ("· FLAC 24/176.4 ↑×4 · Minimum-phase filter"), as a library track's line says it.
+     * Now playing's format line (items 503, 506): "Spotify Connect · Lossless", the quality Soloist is asked for, as the
+     * Spotify app says it; "Lossless 24/44.1 ✓" where the samples prove it bit for bit (SoloistProof.cs); then how the
+     * room is sent it where it isn't as it comes ("· FLAC 24/176.4 ↑×4 · Minimum-phase filter"), as a library track's line
+     * says it. Never "Lossy" from the samples: they can't tell lossy from lossless that Spotify's volume has touched.
      */
     public static string NowText(string proof, RoomSound sound)
     {
         var text = "Spotify Connect" + proof switch
         {
-            "lossless 24-bit" => " · Lossless 24/44.1",
-            "lossless 16-bit" => " · Lossless 16/44.1",
-            "lossy" => " · Lossy",
-            _ => ""
+            "lossless 24-bit" => " · Lossless 24/44.1 ✓",
+            "lossless 16-bit" => " · Lossless 16/44.1 ✓",
+            _ => " · Lossless"
         };
         if (sound == RoomSound.AsItComes) return text;
         var khz = Tags.Js.Num(sound.Rate / 1000.0);
         return text + $" · FLAC {sound.Bits}/{khz}" + (sound.Factor > 1 ? $" ↑×{sound.Factor}" : "") + (sound.Shape != null ? " · " + Upsample.Shape.Name(sound.Shape) : "");
     }
+
+    /* Where the room is in the track: Soloist's position less what has been sent ahead of what is heard (item 506), never below 0. */
+    public static double Heard(double position, int aheadMs) => Math.Max(0, position - aheadMs / 1000.0);
 
     /* A room playing Spotify Connect (item 503): next, previous and seek are Spotify's, whatever the device's queue says. Each its own value. */
     public static void Allow(JsonObject o, double duration)
@@ -58,12 +62,12 @@ internal static class SpotifyNow
         o["is_seek_allowed"] = duration > 0;
     }
 
-    /* "Spotify · Lossless 24-bit/44.1 kHz", "Spotify · Lossy (not Lossless)", "Spotify" before the samples have said. */
+    /* Settings' line: "Spotify · Lossless 24-bit/44.1 kHz, bit-perfect", "Spotify · Lossless, not bit-perfect" (the log says why), "Spotify · Lossless". */
     public static string FormatText(string proof) => proof switch
     {
-        "lossless 24-bit" => "Spotify · Lossless 24-bit/44.1 kHz",
-        "lossless 16-bit" => "Spotify · Lossless 16-bit/44.1 kHz",
-        "lossy" => "Spotify · Lossy (not Lossless)",
-        _ => "Spotify"
+        "lossless 24-bit" => "Spotify · Lossless 24-bit/44.1 kHz, bit-perfect",
+        "lossless 16-bit" => "Spotify · Lossless 16-bit/44.1 kHz, bit-perfect",
+        "not bit-perfect" => "Spotify · Lossless, not bit-perfect",
+        _ => "Spotify · Lossless"
     };
 }
