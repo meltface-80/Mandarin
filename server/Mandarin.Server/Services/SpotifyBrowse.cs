@@ -113,7 +113,9 @@ internal sealed partial class SpotifyCatalogue
     public override async Task<List<object?>> Featured(string type, Ask ask)
     {
         if (type != "your-albums") throw new ServiceError("Spotify has no such list", 404);
-        var albums = (await Saved()).Select(x => NormAlbum(SpotifyApi.Inner(x, "album"))).Where(a => a != null).Select(a => (object?)a).ToList();
+        // With the import on, from what it keeps, at once (item 516, SpotifyYourAlbums.cs); else the saved list itself.
+        var albums = Settings().Import ? YourAlbums()
+            : (await Saved()).Select(x => NormAlbum(SpotifyApi.Inner(x, "album"))).Where(a => a != null).Select(a => (object?)a).ToList();
         return await Marked(albums, ask);
     }
 

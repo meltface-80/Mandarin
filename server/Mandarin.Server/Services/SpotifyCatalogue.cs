@@ -160,6 +160,7 @@ internal sealed partial class SpotifyCatalogue : Catalogue
             if (!want.ContainsKey(id)) order.Add(id);
             want[id] = hint;
         }
+        KeepList(order.Select(id => want[id]));   // "Your albums" answered from it (item 516, SpotifyYourAlbums.cs)
         return order.Select(id => (id, want[id])).ToList();
     }
 
