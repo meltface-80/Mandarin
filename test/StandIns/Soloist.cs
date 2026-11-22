@@ -14,7 +14,7 @@ namespace Mandarin.StandIns;
 /// ago. Started, it writes down beside the script each start (starts.log), what the account's prefs held as it
 /// started (prefs.log) and the key it was given (key.txt); says the key on a warning line (the server must take it
 /// out); makes the account a phone has paired (settings/Users/tester-user); opens its WebSocket (ws.port, ws.addr
-/// in --data-dir), says it is signed in, chosen and playing a track, and writes down each command (commands.log).
+/// in --data-dir) and its zeroconf server (any address, a port the system hands out), says it is signed in, chosen and playing a track, and writes down each command (commands.log).
 /// Its sound is the PulseAudio stand-in's. It runs until it is killed, as the real one does.
 /// </summary>
 public static class Soloist
@@ -66,6 +66,9 @@ public static class Soloist
             }
         });
         await app.StartAsync();
+        // Its zeroconf server, where the Spotify app reaches it (item 502): on every address, a port the system hands out.
+        var zeroconf = new System.Net.Sockets.TcpListener(IPAddress.Any, 0);
+        zeroconf.Start();
         var port = new Uri(app.Urls.First()).Port;
         File.WriteAllText(Path.Combine(data, "ws.addr"), "127.0.0.1");
         File.WriteAllText(Path.Combine(data, "ws.port"), port.ToString(CultureInfo.InvariantCulture));

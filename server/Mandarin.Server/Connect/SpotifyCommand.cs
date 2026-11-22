@@ -11,9 +11,12 @@
 //     cleans: [[line, key]]                           Soloist.Clean
 //     paces: [[[frames, nowMs, leadMs], …]]          SoloistPace (item 146): each read's wait, a pace per list
 //     rooms: [target | null]                          SpotifyRoomPlan.For (item 501): what a room with that target is sent
-//     reads: [query] }                                SpotifyRoomPlan.Read: the sound a stream's address asks for
+//     reads: [query]                                  SpotifyRoomPlan.Read: the sound a stream's address asks for
+//     listening: [row]                                SoloistPorts.Listening (item 502): a /proc/net/tcp row read
+//     port_words: [[port, …]] }                       SoloistPorts.Words: what the log says of Soloist's ports
 //   → { follows, proofs, builds: [{ expires, plan }], prefs: [{ changed, text }], entities, cleans, paces,
-//       rooms: [{ rate, bits, factor, shape, query, words }], reads: [the same] }
+//       rooms: [{ rate, bits, factor, shape, query, words }], reads: [the same], listening: [{ port, inode, loopback } | null],
+//       port_words: [text] }
 using System.Globalization;
 using System.Text.Json;
 using Mandarin.Server.Tags;
@@ -72,6 +75,14 @@ internal static class SpotifyCommand
         }).ToList();
         o["rooms"] = L(job["rooms"]).Select(t => Sound(SpotifyRoomPlan.For(t is JsObj ? t : null))).ToList();
         o["reads"] = L(job["reads"]).Select(q => Sound(SpotifyRoomPlan.Read(new QueryCollection(Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(S(q)))))).ToList();
+        o["listening"] = L(job["listening"]).Select(r =>
+        {
+            if (SoloistPorts.Listening(S(r)) is not { } l) return null;
+            var x = new JsObj();
+            x["port"] = (double)l.Port; x["inode"] = l.Inode; x["loopback"] = l.Loopback;
+            return (object?)x;
+        }).ToList();
+        o["port_words"] = L(job["port_words"]).Select(p => (object?)SoloistPorts.Words(L(p).Select(v => (int)Tags.Js.ToNumber(v)).ToList(), "Mandarin")).ToList();
         return o;
     }
 

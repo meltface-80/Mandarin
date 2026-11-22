@@ -154,6 +154,31 @@ public sealed class SpotifyConnectRulesTests
     }
 
     [Test]
+    public async Task Soloists_ports_are_read_from_proc_and_said_against_what_the_firewall_opens()
+    {
+        var o = await Ask(new
+        {
+            listening = new[]
+            {
+                "   0: 00000000:B0A3 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1000        0 12345 1 0000000000000000 100 0 0 10 0",
+                "   1: 0100007F:9C40 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1000        0 23456 1 0000000000000000 100 0 0 10 0",
+                "   2: 0201A8C0:B0A3 0301A8C0:D431 01 00000000:00000000 00:00000000 00000000  1000        0 34567 1 0000000000000000 20 4 30 10 -1",
+                "   3: 00000000000000000000000001000000:1F90 00000000000000000000000000000000:0000 0A 00000000:00000000 00:00000000 00000000  1000        0 45678 1 0000000000000000 100 0 0 10 0",
+            },
+            port_words = new[] { new[] { 45219 }, new[] { 4070 }, Array.Empty<int>() }
+        });
+        var l = o["listening"]!.AsArray();
+        Assert.Equal((45219, "12345", false), (l[0]!["port"]!.GetValue<int>(), (string?)l[0]!["inode"], l[0]!["loopback"]!.GetValue<bool>()));
+        Assert.True(l[1]!["loopback"]!.GetValue<bool>());   // 127.0.0.1: its WebSocket
+        Assert.Null(l[2]);                                   // a connection, not a listening socket
+        Assert.True(l[3]!["loopback"]!.GetValue<bool>());   // ::1
+        var w = o["port_words"]!.AsArray();
+        Assert.Equal("Soloist answers the Spotify app on TCP 45219", (string?)w[0]);
+        Assert.Equal("Soloist answers the Spotify app on TCP 4070; Mandarin OS's firewall lets in 32768–60999 only, so Mandarin may not show in the Spotify app", (string?)w[1]);
+        Assert.StartsWith("Soloist isn't listening for the Spotify app yet", (string?)w[2]);
+    }
+
+    [Test]
     public async Task The_quality_chosen_is_asked_of_Spotify_in_its_own_numbers()
     {
         var p = (await Ask(new { prefs = new object?[] { null, null, null, null }, prefs_quality = new[] { "very_high", "high", "normal", "nonsense" } }))["prefs"]!.AsArray();

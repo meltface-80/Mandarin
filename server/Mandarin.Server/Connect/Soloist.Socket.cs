@@ -31,6 +31,7 @@ internal sealed partial class Soloist
         if (w.State != WebSocketState.Open) throw new InvalidOperationException("couldn't reach Soloist's WebSocket");
         SetStatus(Unpaired);
         lastError = "";
+        SayPorts();
 
         var buf = new byte[1 << 16];
         using var msg = new MemoryStream();
@@ -50,6 +51,22 @@ internal sealed partial class Soloist
             catch (JsonException) { /* not JSON: skip it */ }
             msg.SetLength(0);
         }
+    }
+
+    // The ports the Spotify app reaches Soloist on, said once it has had a moment to open them (SoloistPorts.cs, item 502).
+    private void SayPorts()
+    {
+        var p = soloist;
+        if (p == null || !OperatingSystem.IsLinux()) return;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(5000, stop.Token);
+                if (!p.HasExited) Log(SoloistPorts.Words(SoloistPorts.Of(p.Id), Name));
+            }
+            catch (Exception e) when (e is OperationCanceledException or InvalidOperationException) { /* stopped meanwhile */ }
+        });
     }
 
     /* A command to Soloist: {"type":"command","command":…} with [extra] fields ("" for none). Dropped when it isn't up. */

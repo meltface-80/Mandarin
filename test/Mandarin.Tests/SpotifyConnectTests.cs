@@ -184,6 +184,13 @@ public sealed class SpotifyConnectTests
         Assert.Equal(176400, rate);
         Assert.InRange(peakHz, 430, 450);
 
+        // The port the Spotify app reaches Soloist on, said in the log (item 502): its zeroconf server's, not its WebSocket's.
+        await Session.Until(() => Task.FromResult(s.Server.Logs.Any(l => l.Contains("Soloist answers the Spotify app on TCP", StringComparison.Ordinal))), 15000, "Soloist's port said");
+        var said = s.Server.Logs.First(l => l.Contains("Soloist answers the Spotify app on TCP", StringComparison.Ordinal));
+        var port = int.Parse(System.Text.RegularExpressions.Regex.Match(said, @"TCP (\d+)").Groups[1].Value, CultureInfo.InvariantCulture);
+        Assert.InRange(port, 1024, 65535);
+        Assert.DoesNotContain(",", said[said.IndexOf("TCP", StringComparison.Ordinal)..].Split(';')[0]);   // one port: the WebSocket, on loopback, left out
+
         // The key, said by Soloist, taken out before it is logged or kept.
         var logs = string.Join("\n", s.Server.Logs);
         Assert.Contains("started with api key [key]", logs);
