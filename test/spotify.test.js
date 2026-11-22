@@ -116,7 +116,7 @@ test("Spotify: signing in, your saved albums in the library, the token kept", { 
       assert.equal(r.status, 200, r.text);
       await until(async () => (await get("settings/spotify")).j.kept === 3 && !(await get("settings/spotify")).j.importing, 30000, "the import");
       assert.ok(spotify.calls.some(c => c.path.startsWith("me/albums?offset=2")), "the second page followed");
-      assert.ok(spotify.calls.some(c => c.path.startsWith("albums/sp2/tracks?offset=3")), "the album's tracks past the first page");
+      assert.ok(!spotify.calls.some(c => c.path.startsWith("albums/")), "nothing asked of any album by the import: the saved list alone (item 519)");
       const albums = await until(async () => { const l = (await get("library/albums?sort=album&count=50")).j.albums.filter(a => a.source === "spotify"); return l.length === 3 && l; }, 15000, "on the walls");
       const by = Object.fromEntries(albums.map(a => [a.title, a]));
       assert.deepEqual(Object.keys(by).sort(), ["Blue Lines", "Dummy", "Maxinquaye"], "the 'item' entry too");
@@ -124,6 +124,7 @@ test("Spotify: signing in, your saved albums in the library, the token kept", { 
       assert.ok(by["Dummy"].image_key, "its cover kept");
       const one = (await get("album?offset=" + by["Dummy"].offset)).j;
       assert.equal((one.tracks || []).length, 5, JSON.stringify(one).slice(0, 300));
+      assert.ok(spotify.calls.some(c => c.path.startsWith("albums/sp2")), "opened: its tracks past the first page fetched now (item 519)");
       assert.deepEqual((await get("library/cleanup")).j.spotify, { albums: 0, signed_in: true }, "counted once in use");
     });
 

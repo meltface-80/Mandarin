@@ -121,21 +121,70 @@ internal sealed partial class SpotifyCatalogue : Catalogue
 
     /*
      * The album and its tracks; the cover (the largest Spotify has) kept beside the database, side by side with the
-     * tracks. An album the import's listing gave is taken as given (item 499: asking Spotify for each of six hundred
-     * saved albums again ran into its limit); only tracks past its first page are asked for.
+     * tracks. In the import (item 519, as Music Assistant brings a library in), an album is taken as the saved list gave
+     * it and Spotify is asked nothing more of it: its tracks as listed, and where the list gave none or only the first
+     * page, what is missing is fetched once, when the album is opened (Opened). Asked for any other way (a favourite saved
+     * from the page, the watch, an album opened), it is asked for whole: one or two requests.
      */
     protected override async Task<(JsObj Album, List<JsObj> Tracks)> FullAlbum(string id, object? hint)
     {
-        var a = listed.TryRemove(id, out var given) && Js.Truthy(AndP(given, "tracks")) ? given : await Api.Album(id, patient: true);
+        if (listed.TryRemove(id, out var given) && given is JsObj g)
+        {
+            var listedAlbum = NormAlbum(g) ?? throw new ServiceError("Spotify has no such album", 404);
+            var page = AndP(g, "tracks");
+            var items = Items(AndP(page, "items")).Where(t => Js.Truthy(t) && !(P(t, "is_playable") is false)).ToList();
+            Owed(id, items.Count == 0 || AndP(page, "next") is string n && n.Length > 0);
+            try { await FetchArt(id, listedAlbum["image"]); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* asked again by EnsureAlbum */ }
+            listedAlbum["duration"] = items.Sum(t => Math.Round(NumOr(P(t, "duration_ms"), 0) / 1000));
+            return (listedAlbum, items.Select(t => NormTrack(t, g)).ToList());
+        }
+        var patient = !onDemand.Value;
+        var a = await Api.Album(id, patient);
         var album = NormAlbum(a) ?? throw new ServiceError("Spotify has no such album", 404);
-        var tracks = Api.AlbumTracks(a, patient: true);
+        var tracks = Api.AlbumTracks(a, patient);
         var art = FetchArt(id, album["image"]);
         var list = await tracks;
         try { await art; } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* asked again by EnsureAlbum */ }
+        Owed(id, false);
         album["duration"] = list.Sum(t => Math.Round(NumOr(P(t, "duration_ms"), 0) / 1000));
         return (album, list.Where(t => Js.Truthy(t) && !(P(t, "is_playable") is false)).Select(t => NormTrack(t, a)).ToList());
     }
 
+    // An album opened: asked for at once, not waited out in the background's way (a page waits six seconds).
+    private readonly AsyncLocal<bool> onDemand = new();
+    private const string OwedNs = "spotify-owed";
+
+    /* Whether album [id]'s tracks are still owed (the import's list gave none, or only the first page): kept, or let go. */
+    private static void Owed(string id, bool owed)
+    {
+        using var c = Db.Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = owed ? "INSERT INTO cache(ns, key, value, ts) VALUES($ns, $k, '1', $ts) ON CONFLICT(ns, key) DO NOTHING" : "DELETE FROM cache WHERE ns = $ns AND key = $k";
+        cmd.Parameters.AddWithValue("$ns", OwedNs);
+        cmd.Parameters.AddWithValue("$k", id);
+        cmd.Parameters.AddWithValue("$ts", NowMs());
+        cmd.ExecuteNonQuery();
+    }
+
+    private static bool IsOwed(string id)
+    {
+        using var c = Db.Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT 1 FROM cache WHERE ns = $ns AND key = $k";
+        cmd.Parameters.AddWithValue("$ns", OwedNs);
+        cmd.Parameters.AddWithValue("$k", id);
+        return cmd.ExecuteScalar() != null;
+    }
+
+    /* An album of the library opened: its tracks fetched now where the import's list left them owed, then kept. */
+    public override async Task Opened(string id)
+    {
+        if (!IsOwed(id)) return;
+        onDemand.Value = true;
+        try { await EnsureAlbum(id); }
+        catch (ServiceError e) { Server.Log($"[spotify] album {id}: its tracks couldn't be fetched yet ({e.Message})"); }
+        finally { onDemand.Value = false; }
+    }
 
     // ------------------------------------------------------------ the import
 

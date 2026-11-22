@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - Bringing your Spotify favourites into the library asks Spotify for the list of your saved albums and nothing more, as Music Assistant does: a thousand albums is twenty requests. It asked Spotify again for each album the list gave without its tracks, one request an album (and again every week), which is what had Spotify shut Mandarin out for a day. An album whose tracks the list didn't give has them fetched once, the first time you open it
 - Fixed - Mandarin asks Spotify one thing at a time, at most once every two seconds, as Music Assistant does, so nothing it does can burst: your import of a thousand favourites made 500 requests in 13 minutes, and Spotify shut Mandarin out for a day. What you are waiting on (a search, an album opened) goes ahead of the import in the background. The log's daily count of Spotify requests now says what they were for
 - Fixed - Spotify's Your albums opens at once, newest saved first, from the albums Mandarin keeps, without asking Spotify. It read every saved album from Spotify each time it was opened, which took longer than the app waits ("Couldn't load: timeout") and spent Spotify's allowance again on each opening
 - Fixed - When Spotify asks Mandarin to wait a long while, Mandarin remembers it through a restart and doesn't ask Spotify again until the wait is over, saying how long is left. It forgot the wait at each restart and asked Spotify straight away: the day Spotify shut it out, each of five restarts asked again and was refused, which risks Spotify making the wait longer

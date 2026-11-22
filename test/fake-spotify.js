@@ -24,6 +24,7 @@ class FakeSpotify {
     this.user = user;
     this.page = page;                  // saved albums per page
     this.trackPage = trackPage;        // tracks on an album's first page
+    this.listTracks = true;            // the saved list gives each album's first page of tracks (false: none, as Spotify may)
     this.codes = new Map();            // code -> { challenge, redirect, client }
     this.access = new Set();           // access tokens that work
     this.refreshTokens = new Set();    // refresh tokens that work (each once)
@@ -132,7 +133,9 @@ class FakeSpotify {
       const offset = Number(u.searchParams.get("offset") || 0), limit = this.page;
       const items = this.saved.slice(offset, offset + limit).map(s => {
         const a = this.albums.find(x => x.id === s.id);
-        return { added_at: s.added_at, [s.as || "album"]: this.albumJson(a, true) };
+        const album = this.albumJson(a, true);
+        if (!this.listTracks) delete album.tracks;
+        return { added_at: s.added_at, [s.as || "album"]: album };
       });
       const more = offset + limit < this.saved.length;
       const next = !more ? null : this.nextElsewhere || this.apiUrl + "me/albums?offset=" + (offset + limit) + "&limit=" + limit;
