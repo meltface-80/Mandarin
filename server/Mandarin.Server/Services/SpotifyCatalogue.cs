@@ -16,9 +16,9 @@ internal sealed partial class SpotifyCatalogue : Catalogue
 {
     public SpotifyApi Api { get; }
 
-    public SpotifyCatalogue(string? baseUrl, string? accountsUrl, int busyWaitMs = 5000) : base("spotify", "Spotify")
+    public SpotifyCatalogue(string? baseUrl, string? accountsUrl, int busyWaitMs = 5000, int intervalMs = 2000) : base("spotify", "Spotify")
     {
-        Api = new SpotifyApi(baseUrl, accountsUrl, Account, OnToken) { BusyWaitMs = busyWaitMs };
+        Api = new SpotifyApi(baseUrl, accountsUrl, Account, OnToken) { BusyWaitMs = busyWaitMs, IntervalMs = intervalMs };
     }
 
     /* In use: signed in, or with albums here. Clean up and the prune count Spotify only then (their answers as before for everyone else). */

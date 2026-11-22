@@ -120,7 +120,9 @@ internal static partial class Jobs
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
         Spotify = new Services.SpotifyCatalogue(Text(cfg["spotify_url"]), Text(cfg["spotify_auth_url"]),
-            cfg["spotify_busy_wait_ms"] is JsonValue bw && bw.TryGetValue<double>(out var bwv) && bwv > 0 ? (int)bwv : 5000)
+            cfg["spotify_busy_wait_ms"] is JsonValue bw && bw.TryGetValue<double>(out var bwv) && bwv > 0 ? (int)bwv : 5000,
+            // One request to Spotify every two seconds at most (item 518); the tests' own gap.
+            cfg["spotify_interval_ms"] is JsonValue si && si.TryGetValue<double>(out var siv) && siv >= 0 ? (int)siv : 2000)
         { DataDir = dataDir, PaceMs = cfg["spotify_pace_ms"] is JsonValue sp && sp.TryGetValue<double>(out var spv) && spv >= 0 ? (int)spv : 1000 };
         IBroadcast = new Services.IBroadcast.IBroadcast(Text(cfg["ibroadcast_url"]));
         // The uploaded albums' booklets kept here (item 510), shown from the start.

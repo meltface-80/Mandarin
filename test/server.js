@@ -141,6 +141,8 @@ const CONFIG = {
   localDevices: "local_devices", massRemoval: "mass_removal", tailscaleWatchdog: "tailscale_watchdog",
   // Spotify's gaps (item 499): an artist a second while new from those followed is gathered; a 429 without a wait said.
   spotifyPaceMs: "spotify_pace_ms", spotifyBusyWaitMs: "spotify_busy_wait_ms",
+  // The least gap between two requests to Spotify (item 518): none in a test unless it asks for one (createServer below).
+  spotifyIntervalMs: "spotify_interval_ms",
   // Loudness measured with the Album Scanner on (Jobs.cs, item 411): only where a test asks for it.
   loudness: "loudness",
   // Each track looked at for MQA (Mqa/MqaPass.cs, item 418): likewise only where a test asks, and how often it looks.
@@ -170,7 +172,8 @@ function createServer(overrides = {}) {
   // Loopback a trusted proxy (item 362), so a test may say who asked with X-Forwarded-For as a proxy here would:
   // trustedProxies: "" for the server as it is installed, believing only the Tailscale engine's own port.
   const env = { TRUSTED_PROXIES: "127.0.0.1,::1" };
-  const cfg = {};
+  // Spotify's requests unspaced unless a test asks for its gap (item 518: two seconds as installed).
+  const cfg = { spotify_interval_ms: 0 };
   for (const [k, v] of Object.entries(overrides)) {
     if (v === undefined) continue;
     if (ENV[k]) env[ENV[k]] = Array.isArray(v) ? v.join(",") : String(v);
