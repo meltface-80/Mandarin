@@ -44,7 +44,7 @@ internal static class SpotifyLive
         Player.Expired += () => _ = Fetch();
         // Soloist itself: fetched once a key is set, and again before its build runs out (looked at every six hours).
         builds = new Timer(_ => _ = KeepCurrent(), null, TimeSpan.FromSeconds(15), TimeSpan.FromHours(6));
-        levels = new Timer(_ => Relevel(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+        levels = new Timer(_ => Relevel(), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
     }
 
     private static Timer? levels;
@@ -58,17 +58,19 @@ internal static class SpotifyLive
     }
 
     /*
-     * The room's levelling switched on or off since Soloist started (item 507): Soloist reads its normalisation only as it
-     * starts, so it is started again, once nothing is playing on it (Spotify not this device's, or stopped), never mid-track.
+     * The room's levelling switched on or off since Soloist started (items 507, 508): Soloist reads its normalisation only
+     * as it starts, so it is started again at once, looked at every five seconds. Waiting for nothing to play left Spotify
+     * normalised for as long as it played (the owner switched levelling off and it stayed on). Playing or paused on
+     * Mandarin, it is handed back the account's playback as it starts again (Soloist.RestartAndResume): a gap of seconds.
      */
     private static void Relevel()
     {
         var p = Player;
-        if (p == null || Settings().ApiKey == "" || !p.SignedIn || p.Playback != "idle" || p.Active) return;
+        if (p == null || Settings().ApiKey == "" || !p.SignedIn) return;
         var want = LevelsOn(Settings().Room);
         if (want == p.Normalising) return;
         Server.Log($"[spotify] the room's volume levelling is {(want ? "on" : "off")}: Soloist started again with Spotify's loudness normalisation {(want ? "on" : "off")}");
-        p.Restart();
+        p.RestartAndResume(p.Active, p.Active && p.Playback == "playing");
     }
 
     public static void Stop()
