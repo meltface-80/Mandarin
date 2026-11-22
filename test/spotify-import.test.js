@@ -105,9 +105,10 @@ test("Spotify's import: from the listing alone, a busy moment waited out, a long
       assert.match(r.j.error, /^Spotify asked Mandarin to wait: it is asked again in 60 min$/);
       const n = spotify.calls.length;
       spotify.busyFor = 0;
+      // Your albums from what Mandarin keeps (item 516): answered while Spotify has it wait, Spotify not asked.
       const page = await get("spotify/featured?type=your-albums");
-      assert.equal(page.status, 503);
-      assert.match(page.j.error, /asked again in \d+ min/);
+      assert.equal(page.status, 200, page.text);
+      assert.equal((page.j.albums || page.j.items || page.j).length, 12);
       assert.equal(spotify.calls.length, n, "nothing asked of Spotify while it said to wait");
       assert.equal((await get("settings/spotify")).j.kept, 12, "the albums kept as they were");
     });
