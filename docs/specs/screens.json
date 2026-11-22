@@ -202,6 +202,8 @@
         "select-play-next": { "kind": "action", "label": "Play next", "in": "select-menu" },
         "select-queue": { "kind": "action", "label": "Add to end of queue", "in": "select-menu" },
         "select-later": { "kind": "action", "label": "Listen later", "in": "select-menu" },
+        "select-merge": { "kind": "action", "label": "Merge albums", "in": "select-menu", "when": "two albums or more picked, of your own files or all of iBroadcast's (bug list item 512): one album, the first volume or disc first" },
+        "select-unmerge": { "kind": "action", "label": "Unmerge", "in": "select-menu", "when": "one album picked that is a merge of albums (item 512)" },
         "select-clear": { "kind": "action", "label": "Clear selection", "in": "select-menu" }
       }
     },
@@ -230,6 +232,8 @@
         "select-play-next": { "kind": "action", "label": "Play next", "in": "select-menu" },
         "select-queue": { "kind": "action", "label": "Add to end of queue", "in": "select-menu" },
         "select-later": { "kind": "action", "label": "Listen later", "in": "select-menu" },
+        "select-merge": { "kind": "action", "label": "Merge albums", "in": "select-menu", "when": "two albums or more picked, of your own files or all of iBroadcast's (bug list item 512): one album, the first volume or disc first" },
+        "select-unmerge": { "kind": "action", "label": "Unmerge", "in": "select-menu", "when": "one album picked that is a merge of albums (item 512)" },
         "select-clear": { "kind": "action", "label": "Clear selection", "in": "select-menu" }
       }
     },
@@ -282,6 +286,8 @@
         "select-play-next": { "kind": "action", "label": "Play next", "in": "select-menu" },
         "select-queue": { "kind": "action", "label": "Add to end of queue", "in": "select-menu" },
         "select-later": { "kind": "action", "label": "Listen later", "in": "select-menu" },
+        "select-merge": { "kind": "action", "label": "Merge albums", "in": "select-menu", "when": "two albums or more picked, of your own files or all of iBroadcast's (bug list item 512): one album, the first volume or disc first" },
+        "select-unmerge": { "kind": "action", "label": "Unmerge", "in": "select-menu", "when": "one album picked that is a merge of albums (item 512)" },
         "select-clear": { "kind": "action", "label": "Clear selection", "in": "select-menu" }
       }
     },

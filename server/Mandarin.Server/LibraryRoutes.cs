@@ -106,6 +106,9 @@ internal static partial class Library
         ["/api/album/split"] = SplitAlbumRoute,
         ["/api/album/join"] = JoinAlbumRoute,
         ["/api/album/look-again"] = LookAgainRoute,
+        // Albums merged into one from the selection menu, and apart again (item 512, AlbumMergeRoutes.cs).
+        ["/api/albums/merge"] = MergeAlbumsRoute,
+        ["/api/albums/unmerge"] = UnmergeAlbumRoute,
         ["/api/dsp/headphones/parse"] = ParseHeadphoneProfile,
         ["/api/download/albums"] = DownloadAlbums,
         ["/api/phone/plays"] = PhonePlays,
@@ -255,6 +258,7 @@ internal static partial class Library
         if (q.Hires) o["hires"] = true;
         if (al.Year != null) o["year"] = al.Year;
         if (al.Discs > 1) o["discs"] = al.Discs;
+        if (IsMerged(s, al.Key)) o["merged"] = true;   // albums merged into it (item 512, AlbumMergeRoutes.cs)
         if (al.Box != null) o["box"] = new JsonObject { ["name"] = al.Box.Name, ["disc"] = al.Box.Disc, ["of"] = al.Box.Of };
         if (al.ActNote != null) { o["artist_id"] = al.ActId ?? 0; if (al.ActNote.Length > 0) o["artist_note"] = al.ActNote; }   // its act, where acts share its name (item 330)
         if (Mqa.MqaStore.Albums(s).TryGetValue(al.Id, out var mqa)) o["mqa"] = Mqa.MqaStore.Json(mqa.Studio, mqa.OriginalRate, mqa.Bits);   // MQA, every track of it (item 418)

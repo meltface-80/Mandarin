@@ -50,7 +50,9 @@ data class AlbumSummary(
     /** Its title without its version's words ("Metallic 'KO" of "Metallic 'KO (2015 Remaster)"): its page's, whichever version is shown (item 349). */
     val baseTitle: String? = null,
     /** MQA, every track of it (item 418). */
-    val mqa: Mqa? = null
+    val mqa: Mqa? = null,
+    /** Albums merged into it from the selection menu (item 512): Unmerge offered. */
+    val merged: Boolean = false
 ) {
     /** The service's name as the page writes it ("Qobuz", "Tidal"); null for the library's own files. */
     val serviceName: String? get() = when (source) { "qobuz" -> "Qobuz"; "tidal" -> "Tidal"; "spotify" -> "Spotify"; else -> null }
@@ -72,7 +74,8 @@ data class AlbumSummary(
             serviceId = j.str("service_id"),
             serviceFavourite = if (j.opt("service_favourite") is Boolean) j.getBoolean("service_favourite") else null,
             artistId = if (j.has("artist_id")) j.optLong("artist_id") else null, artistNote = j.str("artist_note"),
-            versions = j.int("versions"), version = j.str("version"), baseTitle = j.str("base_title"), mqa = Mqa.parse(j.optJSONObject("mqa"))
+            versions = j.int("versions"), version = j.str("version"), baseTitle = j.str("base_title"), mqa = Mqa.parse(j.optJSONObject("mqa")),
+            merged = j.optBoolean("merged", false)
         )
     }
 }

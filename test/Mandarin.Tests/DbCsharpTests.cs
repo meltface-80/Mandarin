@@ -63,8 +63,8 @@ public sealed partial class DbCsharpTests(DbCsharpTests.Book book) : IClassFixtu
 
     // Its own indexes beyond the Node server's (Schema.Indexes.cs): made, then taken out of the dump as its columns are.
     private static readonly string[] OurIndexes = ["plays_album_ts"];
-    // Its own tables beyond the Node server's (Schema.Indexes.cs: Edit album's hand splits and joins, item 424): made, then taken out whole.
-    private static readonly string[] OurTables = ["album_splits", "album_joins"];
+    // Its own tables beyond the Node server's (Schema.Indexes.cs: Edit album's hand splits and joins, item 424; the albums merged, item 512): made, then taken out whole.
+    private static readonly string[] OurTables = ["album_splits", "album_joins", "album_merges"];
 
     private static JsonNode Db(string dir)
     {

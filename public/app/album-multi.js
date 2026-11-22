@@ -102,6 +102,7 @@ if (selMenu) {
       else exitAlbumSelectMode();
       return;
     }
+    if (act === "merge" || act === "unmerge") { mergeAlbums(act); return; }   // item 512, album-merge.js
     if (act === "later") {
       if (selMenuKind === "tracks") { if (currentAlbum) setListenLater(currentAlbum.offset, true); exitTrackSelectMode(); }
       else { setListenLater(albumSelected.map(a => a.offset), true); exitAlbumSelectMode(); }

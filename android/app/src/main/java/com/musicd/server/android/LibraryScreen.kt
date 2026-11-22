@@ -136,7 +136,7 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
             "clear" -> { selecting = false; picks = emptyList() }
             else -> {
                 val c = client() ?: return
-                if (what != "later" && zone.isEmpty()) { toast("Pick a zone first"); return }
+                if (what !in NoRoomActs && zone.isEmpty()) { toast("Pick a zone first"); return }
                 val made = ServerWrites.write { selectAct(c, chosen, zone, room.zoneName, what) }   // Listen later before Home reads (item 85)
                 scope.launch { toast(ServerWrites.await(made).getOrElse { com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }); selecting = false; picks = emptyList() }
             }
@@ -152,7 +152,7 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
         }
         WallBack(onBack)
         // Top right: the ⋯ while albums are picked; the filter's field while filtering; else Focus and Sort.
-        if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp))
+        if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp), picks)
         else if (filtering) FilterField(typed, { typed = it }, onClear = { if (typed.isEmpty()) { filtering = false; change(view.copy(prefix = "")) } else typed = "" })
         else LibraryPills(view.focusCount, onFocus = { focusOpen = true }, onSort = { sortOpen = true })
         Column(Modifier.align(Alignment.BottomCenter)) {

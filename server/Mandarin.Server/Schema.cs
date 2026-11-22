@@ -298,7 +298,7 @@ CREATE TABLE IF NOT EXISTS audio_devices (
 
     // What is worth keeping from a database that has to be replaced (db.js KEEP).
     private static readonly string[] Keep = ["album_edits", "plays", "settings", "account", "devices", "audio_devices", "favourites", "listen_later",
-        "track_edits", "album_matches", "label_merges", "label_logos", "label_lookups", "album_splits", "album_joins"];
+        "track_edits", "album_matches", "label_merges", "label_logos", "label_lookups", "album_splits", "album_joins", "album_merges"];
 
     private const string EditsFile = "album-edits.json";
 

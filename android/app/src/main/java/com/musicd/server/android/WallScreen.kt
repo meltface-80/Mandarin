@@ -103,7 +103,7 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
             "clear" -> { selecting = false; picks = emptyList() }
             else -> {
                 val c = client() ?: return
-                if (what != "later" && zone.isEmpty()) { toast("Pick a zone first"); return }
+                if (what !in NoRoomActs && zone.isEmpty()) { toast("Pick a zone first"); return }
                 scope.launch { toast(withContext(Dispatchers.IO) { runCatching { selectAct(c, chosen, zone, room.zoneName, what) }.getOrElse { com.musicd.server.client.Failure.said(it, "Couldn't reach the server") } }); selecting = false; picks = emptyList() }
             }
         }
@@ -127,7 +127,7 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
         }
         WallBack(onBack)
         // Top right: the ⋯ while albums are picked; Focus and Sort on the phone's wall; the random wall's (and a genre's) reshuffle otherwise (the bar's button).
-        if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp))
+        if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp), picks)
         else if (kind == "phone") LibraryPills(local.focusCount, onFocus = { focusOpen = true }, onSort = { sortOpen = true })
         else if (kind == "random" || kind == "genre") FilledIconButton(onClick = { wall.loaded = false; load() }, enabled = wall.loaded, colors = barDisc(),
             modifier = Modifier.parity("wall.reshuffle", Contract.label("wall.reshuffle")).align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp).size(40.dp)) {

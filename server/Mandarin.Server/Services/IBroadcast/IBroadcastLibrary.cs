@@ -5,6 +5,8 @@
 // tracks "ibroadcast://track/<id>", kept (the cache's "ibroadcast-kept") and on the walls while "iBroadcast albums in
 // the library" is on (the setting "ibroadcastSettings", on unless switched off). Written as the files say them:
 //   - an album iBroadcast keeps a disc an entry ("disc": 1, 2…, one name, one artist) one album again, its discs;
+//   - and the discs of one title its name says ("The Wall (Disc 1)", "The Wall (Disc 2)") one album too (item 512);
+//   - albums merged into one from the library's selection menu kept so (album_merges, IBroadcastMerges.cs, item 512);
 //   - its format from the file's type: FLAC, WAV and AIFF lossless, MP3, AAC and the rest not; its ReplayGain kept;
 //   - in the trash, never;
 //   - one you have here too (one title and one artist, as Mandarin Migration compares them): left out, the files here
@@ -142,6 +144,9 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
 
     private static string Text(JsonNode? n) => IBroadcastApi.Str(n) ?? "";
     private static double? Number(JsonNode? n) => n is JsonValue v && (v.TryGetValue<double>(out var d) || (v.TryGetValue<string>(out var s) && double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out d))) ? d : null;
+    /* An album entry's disc: iBroadcast's, else the one its name says ("(Disc 2)"), else 1. */
+    private static double DiscOf(Dictionary<string, JsonNode?> a) =>
+        Number(a.GetValueOrDefault("disc")) is double d && d > 1 ? d : Scanner.DiscOfTitle(Text(a.GetValueOrDefault("name")))?.Disc ?? (Number(a.GetValueOrDefault("disc")) is double e && e > 0 ? e : 1);
     private static bool Trashed(Dictionary<string, JsonNode?> r) => r.GetValueOrDefault("trashed") is JsonValue v && v.TryGetValue<bool>(out var b) && b;
 
     /* A file's format from its type: codec, container, lossless. */
@@ -167,10 +172,25 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
         using var c = Rows();
         var here = new HashSet<string>(Library.Rows(c, "SELECT title, artist FROM albums WHERE dir IS NULL OR dir NOT LIKE '%://%'")
             .Select(r => Library.ExportCanon((string?)r[0] ?? "") + "|" + Library.ExportCanon((string?)r[1] ?? "")), StringComparer.Ordinal);
-        // An album a disc an entry: one album again (one name, one artist), under its first id.
+        // An album a disc an entry: one album again (one name, one artist), under its first id; and the discs of one title
+        // named in it ("The Wall (Disc 1)", "The Wall CD2") one album, as a folder's are (item 512, Scan/Scanner.Discs.cs).
         var sets = albums.Where(a => !Trashed(a.Value))
-            .GroupBy(a => Library.ExportCanon(Text(a.Value.GetValueOrDefault("name"))) + "|" + Text(a.Value.GetValueOrDefault("artist_id")))
-            .Select(g => g.OrderBy(a => Number(a.Value.GetValueOrDefault("disc")) ?? 1).ThenBy(a => a.Key, StringComparer.Ordinal).ToList()).ToList();
+            .GroupBy(a => Library.ExportCanon(Scanner.DiscOfTitle(Text(a.Value.GetValueOrDefault("name")))?.Title ?? Text(a.Value.GetValueOrDefault("name"))) + "|" + Text(a.Value.GetValueOrDefault("artist_id")))
+            .Select(g => g.OrderBy(a => DiscOf(a.Value)).ThenBy(a => a.Key, StringComparer.Ordinal).ToList()).ToList();
+        // The albums merged into one from the library's selection menu (item 512, IBroadcastMerges.cs): a merged album
+        // written under the one it was merged into, while that is here, its discs after the same disc.
+        var merges = IBroadcastMerges.Read(c);
+        var setAt = sets.Select((set, i) => ("ibroadcast:" + set[0].Key, i)).ToDictionary(x => x.Item1, x => x.i, StringComparer.Ordinal);
+        (string Title, string Artist) NamesAt(int at)
+        {
+            var title = Text(sets[at][0].Value.GetValueOrDefault("name"));
+            var artist = ArtistName(sets[at][0].Value.GetValueOrDefault("artist_id"));
+            if (sets[at].Count > 1 && Scanner.DiscOfTitle(title) is { } named) title = named.Title;
+            return (title, artist.Length > 0 ? artist : "Unknown artist");
+        }
+        bool AlsoHere(int at) => NamesAt(at) is var n && here.Contains(Library.ExportCanon(n.Title) + "|" + Library.ExportCanon(n.Artist));
+        bool Folded(string k) => merges.TryGetValue(k, out var m) && m.Into != k && setAt.TryGetValue(m.Into, out var i) && !AlsoHere(i);
+        var alive = sets.SelectMany(set => set.Select(a => "ibroadcast:" + a.Key)).ToHashSet(StringComparer.Ordinal);
         var written = new List<string>();
         int alsoHere = 0, trackCount = 0, moved = 0;
         var now = IBroadcastApi.Now();
@@ -191,18 +211,21 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
         var all = Library.Rows(c, "SELECT path, id, album_id FROM tracks WHERE path LIKE 'ibroadcast://track/%'")
             .ToDictionary(r => (string)r[0]!, r => (Id: (long)r[1]!, Album: r[2] as long? ?? 0), StringComparer.Ordinal);
         var kept = new HashSet<string>(StringComparer.Ordinal);
+        List<(double Disc, string Id, Dictionary<string, JsonNode?> T)> RowsAt(int at) =>
+            [.. sets[at].SelectMany(a => (a.Value.GetValueOrDefault("tracks") as JsonArray ?? []).Select(id => (Disc: DiscOf(a.Value), Id: Text(id))))
+                .Where(t => under.TryGetValue(t.Id, out var u) && u == at).DistinctBy(t => t.Id).Select(t => (t.Disc, t.Id, T: tracks[t.Id]))];
         for (int at = 0; at < sets.Count; at++)
         {
             var set = sets[at];
             var first = set[0].Value;
-            var title = Text(first.GetValueOrDefault("name"));
-            var artist = ArtistName(first.GetValueOrDefault("artist_id"));
-            if (artist.Length == 0) artist = "Unknown artist";
-            if (here.Contains(Library.ExportCanon(title) + "|" + Library.ExportCanon(artist))) { alsoHere++; continue; }
-            var rows = set.SelectMany(a => (a.Value.GetValueOrDefault("tracks") as JsonArray ?? []).Select(id => (Disc: Number(a.Value.GetValueOrDefault("disc")) is double d && d > 0 ? d : 1, Id: Text(id))))
-                .Where(t => under.TryGetValue(t.Id, out var u) && u == at).DistinctBy(t => t.Id).Select(t => (t.Disc, t.Id, T: tracks[t.Id])).ToList();
-            if (rows.Count == 0) continue;
+            var (title, artist) = NamesAt(at);
+            if (AlsoHere(at)) { alsoHere++; continue; }
             var key = "ibroadcast:" + set[0].Key;
+            if (Folded(key)) continue;
+            var rows = RowsAt(at);
+            foreach (var (mk, m) in merges.Where(m => m.Value.Into == key && m.Key != key && setAt.ContainsKey(m.Key)).OrderBy(m => m.Value.Disc))
+                rows.AddRange(RowsAt(setAt[mk]).Select(t => (t.Disc + m.Disc, t.Id, t.T)));
+            if (rows.Count == 0) continue;
             var formats = rows.Select(t => Format(Text(t.T.GetValueOrDefault("type")))).ToList();
             var year = Number(first.GetValueOrDefault("year")) is double y && y > 0 ? y : rows.Select(t => Number(t.T.GetValueOrDefault("year"))).FirstOrDefault(v => v > 0);
             var genres = new JsonArray([.. rows.Select(t => Text(t.T.GetValueOrDefault("genre"))).Where(g => g.Length > 0).Distinct().Select(g => (JsonNode?)g)]).ToJsonString();
@@ -263,6 +286,7 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
         foreach (var gone in Library.Rows(c, "SELECT key FROM albums WHERE key LIKE 'ibroadcast:%'").Select(r => (string)r[0]!).Where(k => !keep.Contains(k)).ToList())
         {
             Run(c, "DELETE FROM albums WHERE key = $k", ("$k", gone));
+            if (alive.Contains(gone)) continue;   // a disc of another album now, or merged into one (item 512): what is kept of it stays
             Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", KeptNs), ("$k", gone));
             Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", IBroadcastArt.Ns), ("$k", gone));
             Run(c, "DELETE FROM cache WHERE ns = $ns AND key = $k", ("$ns", IBroadcastBooklets.Ns), ("$k", gone));
