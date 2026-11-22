@@ -161,7 +161,7 @@ function resetBooklets() {
   closeBooklet();
 }
 async function loadBooklets(album) {
-  if (!bookletBtn || currentSource === "now-playing" || typeof album.offset !== "number" || (album.source && album.source !== "local")) return;
+  if (!bookletBtn || currentSource === "now-playing" || typeof album.offset !== "number" || (album.source && album.source !== "local" && album.source !== "ibroadcast")) return;
   let list = [];
   try {
     const r = await fetch(`/api/album/booklets?offset=${album.offset}`, { cache: "no-store" });

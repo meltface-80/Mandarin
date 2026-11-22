@@ -8,7 +8,8 @@
 // level inside any of those that hold no music ("Scans", "Booklet", "Artwork").
 // A folder with music in it is another album's, so a single loose in an
 // artist's folder never shows the booklets of the artist's albums; nor is a
-// music folder itself looked through. Twenty at most.
+// music folder itself looked through. Twenty at most. An iBroadcast album Mandarin uploaded: the folder it was sent
+// from, and the folder above a disc's, as for a file of the library (item 505, Services/IBroadcast/IBroadcastArt.cs).
 //
 // Drawn with poppler (pdfinfo for the page count, pdftoppm for a page), as
 // covers are drawn with ffmpeg: two at a time, in the background's place
@@ -101,9 +102,18 @@ internal static partial class Booklets
     /* An album's booklets, looked for afresh (a folder's PDFs can come and go between scans); `roots`: the music folders. */
     public static async Task<List<Booklet>> Of(Album al, IEnumerable<string> roots)
     {
-        if (!Ready || al.Service != null) return [];
+        if (!Ready || al.Service is not (null or "ibroadcast")) return [];
         var places = new List<string>();
-        using (var c = Db.Open())
+        // An iBroadcast album Mandarin uploaded (item 505): the folder it was sent from, where it is here.
+        if (al.Service == "ibroadcast")
+        {
+            if (Services.IBroadcast.IBroadcastArt.FolderOf(al.Key) is { } from)
+            {
+                places.Add(from);
+                if (DiscFolder().IsMatch(System.IO.Path.GetFileName(from)) && System.IO.Path.GetDirectoryName(from) is { Length: > 0 } up) places.Add(up);
+            }
+        }
+        else using (var c = Db.Open())
         {
             using (var a = c.CreateCommand())
             {

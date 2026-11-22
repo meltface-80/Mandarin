@@ -162,7 +162,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
         again = album == null && got.exceptionOrNull()?.let(Failure::worthAgain) == true
         val a = album ?: return@LaunchedEffect
         // Its booklets, as the page asks: an album of your own files only.
-        if (a.album.source == null || a.album.source == "local") booklets = withContext(Dispatchers.IO) { runCatching { lib.booklets(offset) }.getOrNull().orEmpty() }
+        if (a.album.source == null || a.album.source == "local" || a.album.source == "ibroadcast") booklets = withContext(Dispatchers.IO) { runCatching { lib.booklets(offset) }.getOrNull().orEmpty() }
         extras = withContext(Dispatchers.IO) { runCatching { lib.albumExtras(a.album.title, a.album.subtitle) }.getOrNull() }
         // Its credits (item 132): the server may find them there and then, for a few seconds; the rows under them meanwhile.
         coroutineScope {
