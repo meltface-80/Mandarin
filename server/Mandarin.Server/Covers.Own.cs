@@ -40,6 +40,8 @@ internal static partial class Covers
             // Its folder gone: a drive away, not a cover gone.
             if (!Directory.Exists(Path.GetDirectoryName(artPath))) return Ownership.Unknown;
         }
+        // A streamed album (iBroadcast's, item 504) with no cover kept: none of its own, its tracks no files to look in.
+        if (tracks.Count > 0 && tracks.All(t => t.Contains("://", StringComparison.Ordinal))) return Ownership.No;
         if (tracks.Count == 0) return Ownership.Unknown;
         foreach (var path in tracks)
         {
@@ -53,6 +55,9 @@ internal static partial class Covers
         }
         return Ownership.No;
     }
+
+    /* Whether [track] holds a picture, and whether ffprobe could tell at all (item 504: an uploaded file's, IBroadcastArt.cs). */
+    internal static Task<(bool Read, int? At)> PictureIn(string track) => PictureOf(track);
 
     /*
      * The width and height a JPEG says it is (its frame header), or null: a
