@@ -3,8 +3,8 @@
  * Spotify's import without asking for each album again (item 499), against a Spotify on loopback (test/fake-spotify.js)
  * whose albums give their tracks as Spotify does, without an ISRC: the owner's first import of six hundred saved
  * albums failed on every one (the ISRC read unguarded), then ran into Spotify's limit asking for each album again.
- *   - the saved albums imported from the listing alone: no album asked for again, only tracks past an album's first
- *     page; every album in the library, its tracks with it;
+ *   - the saved albums imported from the listing alone: nothing asked of any album (item 519: not even the tracks
+ *     past a long album's first page, fetched when it is opened); every album in the library;
  *   - Spotify busy a moment (429, Retry-After: 1): waited out, the import goes on;
  *   - Spotify busy for a few seconds: the page's asks answered at once that it is busy (the phone gives up after six
  *     seconds; the owner's page timed out), while the import waits it out and goes on;
@@ -58,19 +58,19 @@ test("Spotify's import: from the listing alone, a busy moment waited out, a long
     const begun = await post("settings/spotify/signin");
     assert.equal((await post("settings/spotify/signin/finish", { address: spotify.approve(begun.j.url) })).status, 200);
 
-    await t.test("from the listing alone: no album asked for again, only tracks past a first page; every album in", async () => {
+    await t.test("from the listing alone: nothing asked of any album; every album in; a long one's tracks when opened", async () => {
       const n = spotify.calls.length;
-      spotify.busyAtCall = n + 4;
+      spotify.busyAtCall = n + 2;   // the saved list's second page refused once: a busy moment, waited out
       assert.equal((await post("settings/spotify", { import: true })).status, 200);
       const st = await imported();
       const asked = spotify.calls.slice(n).map(c => c.path);
       assert.deepEqual(asked.filter(p => /^albums\/[^/?]+$/.test(p)), [], "no album asked for again");
-      assert.deepEqual([...new Set(asked.filter(p => p.startsWith("albums/")).map(p => p.split("?")[0]))], ["albums/a0/tracks"], "the long album's tracks past its first page");
+      assert.deepEqual(asked.filter(p => p.startsWith("albums/")), [], "nothing asked of any album, not even a long one's tracks (item 519)");
       assert.deepEqual([st.last_import.albums, st.last_import.failed, st.kept], [12, 0, 12], "every album, none failed (a busy moment waited out)");
       const albums = (await get("library/albums?sort=album&count=50")).j.albums.filter(a => a.source === "spotify");
       assert.equal(albums.length, 12);
       const first = (await get("album?offset=" + albums.find(a => a.title === "Album 00").offset)).j;
-      assert.equal((first.tracks || []).length, 7, "all seven tracks, without ISRCs");
+      assert.equal((first.tracks || []).length, 7, "opened: all seven tracks, those past the first page fetched now (item 519)");
     });
 
     await t.test("busy a few seconds: the page told at once, the import waits it out", async () => {

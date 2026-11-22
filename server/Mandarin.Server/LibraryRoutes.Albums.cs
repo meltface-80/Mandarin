@@ -316,6 +316,7 @@ internal static partial class Library
         if (al.Service is { } sv && sv != "ibroadcast")
         {
             if (CatalogueOf(al.Service) is not { } svc) return false;
+            await svc.Opened(AlbumIdOf(al.Key, svc.Id));   // what the service still owes of it, fetched now (Spotify's tracks, item 519)
             service = await ServiceFields(svc, al, st);
         }
         using var c = Db.Open();

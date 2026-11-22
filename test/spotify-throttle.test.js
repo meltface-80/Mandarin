@@ -17,12 +17,12 @@ const { until } = require("./helpers");
 
 const GAP = 400;
 const tracks = (id, n) => Array.from({ length: n }, (_, i) => ({ id: id + "t" + (i + 1), name: "Song " + (i + 1) }));
-// Albums of 60 tracks: each asked for its tracks past the first page, so the import makes a request an album.
+// Saved albums listed one a page: the import makes a request an album (item 519: it asks for the saved list alone).
 const ALBUMS = Array.from({ length: 8 }, (_, i) => ({ id: "album" + String(i).padStart(12, "0"), name: "Album " + i, artist: "Artist", date: "2020-01-01", tracks: tracks("a" + i, 60) }));
 const SAVED = ALBUMS.map((a, i) => ({ id: a.id, added_at: new Date(Date.UTC(2026, 0, 1 + i)).toISOString() }));
 
 test("item 518: Spotify asked one request at a time, spaced; a page's ask before the import's", { skip: built(), timeout: 180000 }, async (t) => {
-  const spotify = await new FakeSpotify({ albums: ALBUMS, saved: SAVED, page: 50 }).start();
+  const spotify = await new FakeSpotify({ albums: ALBUMS, saved: SAVED, page: 1 }).start();
   t.after(() => spotify.stop());
   const lib = makeLibrary();
   const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
@@ -41,10 +41,10 @@ test("item 518: Spotify asked one request at a time, spaced; a page's ask before
   const begun = await call("POST", "settings/spotify/signin");
   assert.equal((await call("POST", "settings/spotify/signin/finish", { address: spotify.approve(begun.j.url) })).status, 200);
 
-  // The import: a request an album (each of sixty tracks, the second page asked for), the gap apart.
+  // The import: a page of the saved list an album, the gap apart.
   await t.test("a search while the import runs: answered ahead of the import's next requests", async () => {
     assert.equal((await call("POST", "settings/spotify", { import: true })).status, 200);
-    await until(() => spotify.calls.some(c => c.path.startsWith("albums/") && c.path.includes("/tracks")), 30000, "the import under way");
+    await until(() => spotify.calls.some(c => c.path.startsWith("me/albums?offset=")), 30000, "the import under way");
     const n = spotify.calls.length;
     const t0 = Date.now();
     const found = await call("GET", "spotify/search?q=now&offset=0");
@@ -52,7 +52,7 @@ test("item 518: Spotify asked one request at a time, spaced; a page's ask before
     assert.ok(Date.now() - t0 < GAP * 2.5, "answered within a turn or two: " + (Date.now() - t0) + " ms");
     const next = spotify.calls.slice(n).map(c => c.path.split("?")[0]);
     assert.ok(next.indexOf("search") >= 0 && next.indexOf("search") <= 1, "the search the next request or the one after: " + next.join(" "));
-    assert.ok(spotify.calls.slice(n).some(c => c.path.startsWith("albums/")), "the import still had requests to make: " + next.join(" "));
+    assert.ok(spotify.calls.slice(n).some(c => c.path.startsWith("me/albums")), "the import still had requests to make: " + next.join(" "));
     await until(async () => { const st = (await call("GET", "settings/spotify")).j; return !st.importing && st.kept === 8; }, 60000, "the import");
   });
 
