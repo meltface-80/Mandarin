@@ -211,8 +211,8 @@ public sealed class SpotifyConnectRulesTests
         Assert.False(a[1]!["is_seek_allowed"]!.GetValue<bool>());   // no length said: no seeking
         Assert.Equal("playing", (string?)a[0]!["state"]);
         var t = o["now_texts"]!.AsArray();
-        Assert.Equal("Spotify Connect · Lossless 24/44.1 ✓", (string?)t[0]);
-        Assert.Equal("Spotify Connect · Lossless 16/44.1 ✓ · FLAC 24/176.4 ↑×4 · Minimum-phase filter", (string?)t[1]);
+        Assert.Equal("Spotify Connect · Lossless 24/44.1", (string?)t[0]);
+        Assert.Equal("Spotify Connect · Lossless 16/44.1 · FLAC 24/176.4 ↑×4 · Minimum-phase filter", (string?)t[1]);
         Assert.Equal("Spotify Connect · Lossless · FLAC 24/48", (string?)t[2]);
         // Not proven bit for bit: the quality asked for, as the Spotify app says it, never "Lossy" (item 506).
         Assert.Equal("Spotify Connect · Lossless", (string?)t[3]);
@@ -240,6 +240,50 @@ public sealed class SpotifyConnectRulesTests
         while (dir != null && !File.Exists(Path.Combine(dir, "server", "Mandarin.Server", "Connect", "SoloistPace.cs"))) dir = Path.GetDirectoryName(dir);
         var src = File.ReadAllText(Path.Combine(dir!, "server", "Mandarin.Server", "Connect", "SoloistPace.cs"));
         return int.Parse(System.Text.RegularExpressions.Regex.Match(src, @"LeadMs = (\d+);").Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    [Test]
+    public async Task The_signal_path_says_every_step_and_the_devices_word_is_checked_as_for_a_file()
+    {
+        // Item 507: Spotify Connect's stream verified end to end, as a library track is: what the room was sent kept (its
+        // plan), the device's word on what its DAC is fed beside it, the ✓ only where it says so and leaves the samples be.
+        var bridge = new { by = "Mandarin Bridge", kind = "pcm", rate = 176400, bits = 32, volume = "fixed", untouched = true, matches = true };
+        var o = await Ask(new
+        {
+            plans = new[] { "?r=176400&b=24&u=4&f=min", "" },
+            signals = new object[]
+            {
+                new { proof = "lossless 24-bit", query = "?r=176400&b=24&u=4&f=min", normalise = false, fed = bridge, confirmed = true },
+                new { proof = "not bit-perfect", query = "", normalise = true, confirmed = false },
+                new { proof = "not bit-perfect", query = "", normalise = false, confirmed = false },
+                new { proof = "", query = "?r=48000&b=24", normalise = false, confirmed = false },
+            }
+        });
+        var plans = o["plans"]!.AsArray();
+        Assert.Equal("""{"transcode":true,"mime":"audio/flac","ext":"flac","rate":176400,"bits":24,"upsampled":4,"shape":"min"}""", plans[0]!.ToJsonString());
+        Assert.Equal("""{"transcode":true,"mime":"audio/flac","ext":"flac","rate":44100,"bits":24}""", plans[1]!.ToJsonString());
+
+        string Steps(JsonNode? s) => string.Join(" | ", s!["steps"]!.AsArray().Select(x => $"{x!["kind"]}: {x["detail"]} ({x["quality"]})"));
+        string Lines(JsonNode? s) => string.Join(" / ", s!["lines"]!.AsArray().Select(x => (string?)x));
+        var g = o["signals"]!.AsArray();
+        Assert.Equal("Spotify Connect · Lossless 24/44.1 · FLAC 24/176.4 ↑×4 · Minimum-phase filter ✓ / Minimum-phase ×4 · 24/176.4 kHz", Lines(g[0]));
+        Assert.StartsWith("source: Spotify · FLAC 24-bit 44.1 kHz, bit for bit from Spotify’s player (lossless) | float: 24-bit to 64-bit float (enhanced) | upsample: Minimum-phase ×4 · 24/176.4 kHz (enhanced) | fed: ", Steps(g[0]));
+        Assert.Contains("Mandarin Bridge", Steps(g[0]));
+        // Levelling on: Spotify's own normalisation, a step of its own; the samples changed on purpose.
+        Assert.Equal("Spotify Connect · Lossless / Spotify’s loudness normalisation", Lines(g[1]));
+        Assert.Equal("source: Spotify · Lossless, as asked of Spotify, its loudness normalised by Spotify’s player (enhanced) | gain: Spotify’s own loudness normalisation, as this room’s volume levelling is on (enhanced) | output: FLAC 24/44.1 kHz, Spotify’s samples as they came (lossless)", Steps(g[1]));
+        Assert.StartsWith("source: Spotify · Lossless, as asked of Spotify; not shown to reach Mandarin bit for bit (the log says why) (pending)", Steps(g[2]));
+        Assert.Equal("source: Spotify · Lossless, as asked of Spotify (pending) | resample: 44.1 → 48 kHz, by SoX at its finest (enhanced) | output: FLAC 24/48 kHz (enhanced)", Steps(g[3]));
+        Assert.DoesNotContain("✓", Lines(g[3]));
+    }
+
+    [Test]
+    public async Task The_rooms_volume_levelling_asks_Soloist_for_Spotifys_loudness_normalisation()
+    {
+        var p = (await Ask(new { prefs = new object?[] { null, null }, prefs_normalise = new[] { true, false } }))["prefs"]!.AsArray();
+        Assert.Contains("audio.normalize_v2=true", (string)p[0]!["text"]!);
+        Assert.Contains("audio.normalize_v2=true", (string)p[0]!["global"]!);
+        Assert.Contains("audio.normalize_v2=false", (string)p[1]!["text"]!);
     }
 
     [Test]

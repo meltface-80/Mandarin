@@ -28,13 +28,57 @@ internal static class SpotifyNow
             ["track_id"] = null,
             ["album_offset"] = null,
             ["source"] = "spotify",
-            ["format"] = new JsonObject { ["kind"] = "lossless", ["text"] = NowText(proof, SpotifyLive.Sound) }
+            ["format"] = new JsonObject { ["kind"] = "lossless", ["text"] = NowText(proof, SpotifyLive.Sound) + (st.Confirmed ? " ✓" : "") },
+            // Every step of the way (item 507), as a library track's (Playback/SignalPath.cs).
+            ["signal"] = Signal(proof, SpotifyLive.Sound, p.Normalising, st.Sent, st.Fed, st.Confirmed)
         };
     }
 
     /*
-     * Now playing's format line (items 503, 506): "Spotify Connect · Lossless", the quality Soloist is asked for, as the
-     * Spotify app says it; "Lossless 24/44.1 ✓" where the samples prove it bit for bit (SoloistProof.cs); then how the
+     * The signal path of Spotify Connect's stream (item 507): Spotify's audio as it reached Mandarin (bit for bit or not,
+     * as the samples say), Spotify's loudness normalisation where the room's levelling put it on, what Mandarin made of it
+     * for the room (upsampled in its filter, resampled, or as it came), and the device's own word on what its DAC is fed,
+     * checked against what it was sent, as for a file: the ✓ only where the device says so and its samples go untouched.
+     */
+    public static JsonObject Signal(string proof, RoomSound sound, bool normalising, SentInfo? sent, Fed? fed, bool confirmed)
+    {
+        var steps = new JsonArray();
+        steps.Add(proof switch
+        {
+            "lossless 24-bit" or "lossless 16-bit" => SignalPath.Step("source", "Source", $"Spotify · FLAC {proof[9..11]}-bit 44.1 kHz, bit for bit from Spotify’s player", "lossless"),
+            "not bit-perfect" when normalising => SignalPath.Step("source", "Source", "Spotify · Lossless, as asked of Spotify, its loudness normalised by Spotify’s player", "enhanced"),
+            "not bit-perfect" => SignalPath.Step("source", "Source", "Spotify · Lossless, as asked of Spotify; not shown to reach Mandarin bit for bit (the log says why)", "pending"),
+            _ => SignalPath.Step("source", "Source", "Spotify · Lossless, as asked of Spotify", "pending"),
+        });
+        string? how = null;
+        if (normalising)
+        {
+            steps.Add(SignalPath.Step("gain", "Volume levelling", "Spotify’s own loudness normalisation, as this room’s volume levelling is on", "enhanced"));
+            how = "Spotify’s loudness normalisation";
+        }
+        var khz = Tags.Js.Num(sound.Rate / 1000.0);
+        if (sound.Factor > 1)
+        {
+            steps.Add(SignalPath.Step("float", "Bit depth conversion", "24-bit to 64-bit float", "enhanced"));
+            var up = $"{SignalPath.Filter(sound.Shape)} ×{sound.Factor} · {sound.Bits}/{khz} kHz";
+            steps.Add(SignalPath.Step("upsample", "Upsampling", up, "enhanced"));
+            how = how == null ? up : up + " · " + how;
+        }
+        else if (sound.Rate != Soloist.Rate)
+        {
+            steps.Add(SignalPath.Step("resample", "Resampling", $"44.1 → {khz} kHz, by SoX at its finest", "enhanced"));
+            steps.Add(SignalPath.Step("output", "Output", $"FLAC {sound.Bits}/{khz} kHz", "enhanced"));
+        }
+        else steps.Add(SignalPath.Step("output", "Output", $"FLAC {sound.Bits}/44.1 kHz, Spotify’s samples as they came", sound.Bits >= 24 ? "lossless" : "enhanced"));
+        if (fed != null && sent != null) steps.Add(SignalPath.Fed(fed, sent));
+        var lines = new JsonArray(JsonValue.Create(NowText(proof, sound) + (confirmed ? " ✓" : "")));
+        if (how != null) lines.Add(JsonValue.Create(how));
+        return new JsonObject { ["lines"] = lines, ["steps"] = steps };
+    }
+
+    /*
+     * Now playing's format line (items 503, 506, 507): "Spotify Connect · Lossless", the quality Soloist is asked for, as the
+     * Spotify app says it; "Lossless 24/44.1" where the samples prove it bit for bit (SoloistProof.cs); then how the
      * room is sent it where it isn't as it comes ("· FLAC 24/176.4 ↑×4 · Minimum-phase filter"), as a library track's line
      * says it. Never "Lossy" from the samples: they can't tell lossy from lossless that Spotify's volume has touched.
      */
@@ -42,8 +86,8 @@ internal static class SpotifyNow
     {
         var text = "Spotify Connect" + proof switch
         {
-            "lossless 24-bit" => " · Lossless 24/44.1 ✓",
-            "lossless 16-bit" => " · Lossless 16/44.1 ✓",
+            "lossless 24-bit" => " · Lossless 24/44.1",
+            "lossless 16-bit" => " · Lossless 16/44.1",
             _ => " · Lossless"
         };
         if (sound == RoomSound.AsItComes) return text;

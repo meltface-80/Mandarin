@@ -44,11 +44,37 @@ internal static class SpotifyLive
         Player.Expired += () => _ = Fetch();
         // Soloist itself: fetched once a key is set, and again before its build runs out (looked at every six hours).
         builds = new Timer(_ => _ = KeepCurrent(), null, TimeSpan.FromSeconds(15), TimeSpan.FromHours(6));
+        levels = new Timer(_ => Relevel(), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    private static Timer? levels;
+
+    /* Whether [room]'s volume levelling is on (Audio Devices → the room → Volume levelling: track, album or auto). */
+    internal static bool LevelsOn(string room)
+    {
+        if (room == "") return false;
+        try { using var c = Db.Open(); return Items.LevellingFor(c, room)["mode"] is string m && m != "off"; }
+        catch (Microsoft.Data.Sqlite.SqliteException) { return false; }
+    }
+
+    /*
+     * The room's levelling switched on or off since Soloist started (item 507): Soloist reads its normalisation only as it
+     * starts, so it is started again, once nothing is playing on it (Spotify not this device's, or stopped), never mid-track.
+     */
+    private static void Relevel()
+    {
+        var p = Player;
+        if (p == null || Settings().ApiKey == "" || !p.SignedIn || p.Playback != "idle" || p.Active) return;
+        var want = LevelsOn(Settings().Room);
+        if (want == p.Normalising) return;
+        Server.Log($"[spotify] the room's volume levelling is {(want ? "on" : "off")}: Soloist started again with Spotify's loudness normalisation {(want ? "on" : "off")}");
+        p.Restart();
     }
 
     public static void Stop()
     {
         builds?.Dispose();
+        levels?.Dispose();
         Player?.Dispose();
     }
 
@@ -74,7 +100,7 @@ internal static class SpotifyLive
     {
         var s = Settings();
         var program = SoloistDownload.Program(dataDir);
-        return new SoloistSetup(File.Exists(program) ? program : "", PulseAudio(), s.ApiKey, s.DeviceName);
+        return new SoloistSetup(File.Exists(program) ? program : "", PulseAudio(), s.ApiKey, s.DeviceName, Normalise: LevelsOn(s.Room));
     }
 
     /* PulseAudio's program, where it is installed (Mandarin OS has it from 0.1.13); "" when it isn't. */
@@ -201,7 +227,9 @@ internal static class SpotifyLive
         lock (gate) Sound = sound;
         var uri = Signing.SignExpiring(secret, hub.BaseUrl + StreamPath + sound.Query());
         var meta = Didl.Build(uri, Jv.Obj(("itemId", "mandarin-spotify"), ("title", "Spotify"), ("artist", ""), ("album", ""), ("mime", "audio/flac")));
-        return new PlayItem { Uri = uri, Meta = meta };
+        // What it is sent, as a library track's plan says it (item 507): the room keeps it, and a Mandarin Bridge's word on what
+        // its DAC is fed is checked against it, as for a file (Renderers/Players.MandarinBridge.cs): end to end.
+        return new PlayItem { Uri = uri, Meta = meta, Plan = SpotifyRoomPlan.PlanOf(sound) };
     }
 
     /* What the room playing Spotify is sent, as last planned. */
