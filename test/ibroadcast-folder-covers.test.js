@@ -103,6 +103,11 @@ test("item 504: an uploaded iBroadcast album's cover is its folder's, iBroadcast
   const bare = await cover(603, r => r.art_path === null);
   assert.equal(bare.art_hash, null, "the stand-in: no cover kept");
   assert.ok(!ib.artworkAsks.includes("/artwork/artwork/701-1000") && !ib.artworkAsks.includes("/artwork/artwork/703-1000"), JSON.stringify(ib.artworkAsks));
+  // With no cover of its own yet, its tile the drawn stand-in (its title's colour), not an empty square (item 526).
+  const listed = await until(async () => (await (await fetch(base + "/api/library/albums?count=200", { headers: H })).json()).albums.find(a => a.title === "Bare"), 20000, "Bare listed");
+  const tile = await fetch(base + "/api/image/" + encodeURIComponent(listed.image_key) + "?size=300", { headers: H });
+  assert.equal(tile.status, 200, "Bare's tile drawn");
+  assert.match(tile.headers.get("content-type") || "", /^image\//);
 
   // The stand-in kept on a box from before (its picture as the cover, nothing decided): put right at the next reading.
   db.prepare("UPDATE albums SET art_path = ?, art_hash = 'ib703' WHERE key = 'ibroadcast:603'").run(withCover.art_path);

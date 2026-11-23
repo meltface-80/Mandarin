@@ -22,6 +22,10 @@ const crypto = require("crypto");
 
 const hex = n => crypto.randomBytes(n).toString("hex");
 
+/* A track's path as iBroadcast keeps it: the folder of the path it was sent as, its file's name not kept (item 526: a
+   track sent as "Music/Artist/Album/01 Song.flac" is listed with "Music/Artist/Album"). */
+function folderOf(p) { const slash = p.lastIndexOf("/"); return slash > 0 ? p.slice(0, slash) : p; }
+
 class FakeIBroadcast {
   /* albums: [{ id, name, artist: { id, name }, disc, year, trashed, tracks: [{ id, title, track, length, type, genre, artwork_id, replay_gain, trashed }] }] */
   constructor({ user = { id: 4242, username: "tester", email_address: "tester@example.com", premium: true }, albums = [] } = {}) {
@@ -86,7 +90,7 @@ class FakeIBroadcast {
       albums[a.id] = [a.name, a.tracks.map(t => t.id), a.artist.id, !!a.trashed, 0, a.disc || 0, a.year || 0];
       artists[a.artist.id] = [a.artist.name, [], false, 0];
       for (const t of a.tracks) tracks[t.id] = [t.track, a.year || 0, t.title, t.genre || "", t.length || 60, t.album_id || a.id, t.artwork_id || 0, a.artist.id, "", "2026-11-16", !!t.trashed,
-        t.size || 1000, t.path || "", "", 0, 0, "/128/a/b/" + t.id, t.type || "audio/flac", t.replay_gain || "", "12:00:00"];
+        t.size || 1000, folderOf(t.path || ""), "", 0, 0, "/128/a/b/" + t.id, t.type || "audio/flac", t.replay_gain || "", "12:00:00"];
     }
     return { albums, artists, tracks, playlists: { map: { name: 0, tracks: 1 } }, tags: {}, trash: { map: { name: 0, tracks: 1 } } };
   }

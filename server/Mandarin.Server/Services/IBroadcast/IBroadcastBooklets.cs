@@ -67,9 +67,11 @@ internal static class IBroadcastBooklets
             var key = (string)r[0]!;
             var from = IBroadcastApi.Str(JsonNode.Parse((string)r[1]!)?["from"]);
             if (string.IsNullOrEmpty(from)) continue;
-            // The file it was sent from: as the upload's records say (item 480 on), else the whole path sent (before it).
-            var file = files.TryGetValue(from, out var f) ? f : from.StartsWith('/') ? from : null;
-            if (file == null || Path.GetDirectoryName(file) is not { } folder) continue;   // not uploaded from here
+            // The folder it was sent from: as the upload's records say (item 480 on), else the whole path sent (before it); its
+            // folder alone as iBroadcast keeps it, traced as its cover is (item 526, IBroadcastArt.SourceOf).
+            var folder = IBroadcastArt.SourceOf(from, files) is { } file ? Path.GetDirectoryName(file)
+                : from.StartsWith('/') ? (Path.HasExtension(from) ? Path.GetDirectoryName(from) : from) : null;
+            if (folder == null) continue;   // not uploaded from here
             if (!Directory.Exists(folder)) { away++; continue; }
             try
             {

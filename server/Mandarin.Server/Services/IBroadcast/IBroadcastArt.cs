@@ -11,8 +11,10 @@
 // An album uploaded some other way has iBroadcast's picture, as before: nothing here says which it is. One whose folder is
 // on a drive that isn't here is looked at again at the next reading, iBroadcast's picture meanwhile.
 //
-// The folder is found from what was sent: each iBroadcast track keeps the path it was sent as ("path"), and Mandarin's
-// record of its uploads (IBroadcastUploadSent.cs) the file each path was sent from. Decided once an album, kept in the
+// The folder is found from what was sent: each iBroadcast track keeps the folder of the path it was sent as ("path":
+// the folder alone, its file's name not kept, item 526), and Mandarin's record of its uploads (IBroadcastUploadSent.cs)
+// the file each path was sent from, so the folder's own. (Until item 526 a track's path was taken for the whole path sent,
+// as the tests' iBroadcast kept it: no album was ever traced, and none had its folder's cover or booklets.) Decided once an album, kept in the
 // cache's "ibroadcast-art" (folder, ibroadcast or none); a cover chosen in Edit album is the owner's and stays.
 //
 // Every album is reached (item 513). The run went through the library's albums in one go after each reading, and any
@@ -48,10 +50,22 @@ internal static class IBroadcastArt
     {
         if (string.IsNullOrEmpty(sentAs)) return null;
         // As sent, or as iBroadcast may give it back: its letters composed otherwise ("é" one letter or two), a "/" before it.
-        foreach (var asked in new[] { sentAs, Same(sentAs), Same(sentAs).TrimStart('/') })
+        var forms = new[] { sentAs, Same(sentAs), Same(sentAs).TrimStart('/') };
+        foreach (var asked in forms)
             if (files.TryGetValue(asked, out var file)) return file;
-        return sentAs.StartsWith('/') && File.Exists(sentAs) ? sentAs : null;
+        // The folder alone, as iBroadcast keeps a track's path (item 526): a file sent from that folder.
+        foreach (var asked in forms)
+            if (files.TryGetValue(FolderKey + asked.TrimEnd('/'), out var file)) return file;
+        if (!sentAs.StartsWith('/')) return null;
+        if (File.Exists(sentAs)) return sentAs;
+        // Before item 480, the whole path sent: its folder here, as iBroadcast keeps it; a file of its, which tells its pictures.
+        return Directory.Exists(sentAs) ? Directory.EnumerateFiles(sentAs).Where(f => !Path.GetFileName(f).StartsWith('.') && !NotMusic.Contains(Path.GetExtension(f).ToLowerInvariant()))
+            .Order(StringComparer.Ordinal).FirstOrDefault() : null;
     }
+
+    // A sent folder's key in SentFrom's map, apart from the files' own.
+    private const string FolderKey = "\u0001folder:";
+    private static readonly string[] NotMusic = [.. Pictures, ".pdf", ".txt", ".cue", ".log", ".m3u", ".m3u8", ".nfo", ".md5", ".sfv", ""];
 
     private static string Same(string path) => path.Normalize(System.Text.NormalizationForm.FormC);
 
@@ -60,7 +74,12 @@ internal static class IBroadcastArt
     {
         var d = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var (file, was) in IBroadcastUploadSent.All())
-            if (was.SentAs is { } s) { d.TryAdd(s, file); d.TryAdd(Same(s), file); }
+            if (was.SentAs is { } s)
+            {
+                d.TryAdd(s, file); d.TryAdd(Same(s), file);
+                // And its folder, as iBroadcast keeps a track's path (item 526): the first file sent from it.
+                if (s.LastIndexOf('/') is > 0 and var slash) { d.TryAdd(FolderKey + s[..slash], file); d.TryAdd(FolderKey + Same(s[..slash]), file); }
+            }
         return d;
     }
 
