@@ -5,7 +5,7 @@ Written by `node tools/api-map.js write` from the C# sources (`server/Mandarin.S
 where the code decides it away from the address (the handler says). "…" ends an address the route takes
 the rest of; a pattern is as the code writes it. What each answers is said beside its handler.
 
-199 routes.
+200 routes.
 
 | Method | Address | Who may ask | Answered in |
 |---|---|---|---|
@@ -84,6 +84,7 @@ the rest of; a pattern is as the code writes it. What each answers is said besid
 | GET | `/api/home/genre-groups` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/home/history` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/home/unplayed` | signed in | `LibraryRoutes.cs` |
+| POST | `/api/ibroadcast/delete-albums` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/identify` | signed in | `LibraryRoutes.cs` |
 | POST | `/api/identify/accept` | signed in | `LibraryRoutes.cs` |
 | GET | `/api/identify/candidates` | signed in | `LibraryRoutes.cs` |

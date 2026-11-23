@@ -113,6 +113,8 @@ internal static partial class Library
         // Albums merged into one from the selection menu, and apart again (item 512, AlbumMergeRoutes.cs).
         ["/api/albums/merge"] = MergeAlbumsRoute,
         ["/api/albums/unmerge"] = UnmergeAlbumRoute,
+        // iBroadcast's albums deleted at iBroadcast from the selection menu (item 527, IBroadcastDeleteRoutes.cs).
+        ["/api/ibroadcast/delete-albums"] = DeleteIBroadcastAlbumsRoute,
         ["/api/dsp/headphones/parse"] = ParseHeadphoneProfile,
         ["/api/download/albums"] = DownloadAlbums,
         ["/api/phone/plays"] = PhonePlays,

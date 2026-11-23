@@ -49,6 +49,8 @@ class FakeIBroadcast {
     this.deviceExpiresIn = 600;
     this.apiBodies = [];
     this.md5s = [];                    // the MD5 of every file iBroadcast has
+    this.deletes = [];                 // { mode: "trash" | "empty_trash", tracks: [id…] } (item 527)
+    this.keepTrash = false;            // the trash not emptied, as iBroadcast might refuse it
     this.uploads = [];                 // { name, file_path, method, size, md5, data }
     this.md5Asks = 0;
     this.busy = 0;                     // how many uploads are answered 503 before one is taken
@@ -224,6 +226,21 @@ class FakeIBroadcast {
           settings: { streaming_server: this.base + "/streaming", artwork_server: this.base + "/artwork" }, status: { timestamp: this.lastmodified, lastmodified: this.lastmodified } };
         if (b.supported_types) o.supported = this.supported;
         return json(200, o);
+      }
+      // Tracks deleted (item 527), as iBroadcast's apps ask it: moved to the trash ("trash"), then the trash emptied of them
+      // ("empty_trash"): gone from the library. An album whose tracks are all trashed is trashed too.
+      if (b.mode === "trash" || b.mode === "empty_trash") {
+        const ids = new Set((b.tracks || []).map(String));
+        this.deletes.push({ mode: b.mode, tracks: [...ids].sort() });
+        if (b.mode === "empty_trash" && this.keepTrash) return json(200, { result: false, message: "The trash couldn't be emptied" });
+        for (const a of this.albums) {
+          if (b.mode === "trash") for (const t of a.tracks) { if (ids.has(String(t.id))) t.trashed = true; }
+          else a.tracks = a.tracks.filter(t => !(t.trashed && ids.has(String(t.id))));
+          if (a.tracks.every(t => t.trashed)) a.trashed = true;
+        }
+        if (b.mode === "empty_trash") this.albums = this.albums.filter(a => a.tracks.length > 0);
+        this.changed();
+        return json(200, { result: true, message: b.mode === "trash" ? "Tracks moved to trash" : "Trash emptied" });
       }
       return json(200, { result: false, message: "Unknown mode " + b.mode });
     }
