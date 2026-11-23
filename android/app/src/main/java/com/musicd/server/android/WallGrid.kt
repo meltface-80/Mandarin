@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,9 +16,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,6 +62,12 @@ import kotlin.math.min
 /** A run of albums under a heading of its own ([title]: none for the only run). */
 internal class GridBlock(val title: String?, val albums: List<AlbumSummary>)
 
+/**
+ * Tiles of another kind among the blocks, under [title] ahead of block [before] (past the last: after them all): an
+ * artist's albums on the default service (item 522). [count] of them, [key] and [tile] each.
+ */
+internal class GridExtra(val before: Int, val title: String, val count: Int, val key: (Int) -> Any, val tile: @Composable (Int) -> Unit)
+
 /** The page's room for the bar above (its 64 and main's 14) and for the mini player and the row below (main's padding-bottom). */
 internal val WALL_PADDING = PaddingValues(start = 14.dp, top = 78.dp, end = 14.dp, bottom = 164.dp)
 
@@ -85,23 +94,26 @@ internal fun randomWallCount(prefs: WallPrefs): Int {
 /**
  * The wall: [head] first across every column, then [blocks]' tiles (or rows, [prefs].list), [loaded] false drawing
  * skeletons after them; a tile's tap [onOpen] with its place among every album, a long press [onLongPress] likewise;
- * [selected] the offsets picked; [foot] after all of them once loaded. [grid] and [list] keep the place for Back.
+ * [selected] the offsets picked; [foot] after all of them once loaded; [extra] other tiles among the blocks, at the
+ * columns in the list as well. [grid] and [list] keep the place for Back.
  */
 @Composable
 internal fun AlbumGrid(blocks: List<GridBlock>, prefs: WallPrefs, cols: Int, coverPx: Int, client: () -> ServerClient?, loaded: Boolean, selected: Set<Long>,
                        grid: LazyGridState, list: LazyListState, onOpen: (Int) -> Unit, onLongPress: (Int) -> Unit, dl: (AlbumSummary) -> String? = { null },
-                       foot: (@Composable () -> Unit)? = null, head: @Composable () -> Unit) {
+                       foot: (@Composable () -> Unit)? = null, extra: GridExtra? = null, head: @Composable () -> Unit) {
     // Each album's place among all of them, for the list an album page steps through.
     var at = 0
     if (prefs.list) LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = WALL_PADDING) {
         // A column: a lazy item lays its children over each other, and an artist's picture lay over the heading (item 135).
         item { Column(Modifier.fillMaxWidth()) { head() } }
-        for (b in blocks) {
+        for ((n, b) in blocks.withIndex()) {
+            if (extra != null && extra.before == n) extraRows(extra, cols)
             if (b.title != null) item { BlockTitle(b.title) }
             val from = at
             items(b.albums.size, key = { i -> b.albums[i].offset }) { i -> val a = b.albums[i]; val p = from + i; AlbumRow(a, prefs, coverPx, client, a.offset in selected, { onLongPress(p) }, dl = dl(a)) { onOpen(p) } }
             at += b.albums.size
         }
+        if (extra != null && extra.before >= blocks.size) extraRows(extra, cols)
         if (!loaded) items(12) { SkeletonRow() }
         // What follows all the albums: an artist's similar artists and albums (item 140).
         else if (foot != null) item { Column(Modifier.fillMaxWidth()) { foot() } }
@@ -109,14 +121,32 @@ internal fun AlbumGrid(blocks: List<GridBlock>, prefs: WallPrefs, cols: Int, cov
     else LazyVerticalGrid(GridCells.Fixed(cols), Modifier.fillMaxSize(), state = grid, contentPadding = WALL_PADDING,
         horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item(span = { GridItemSpan(maxLineSpan) }) { Column(Modifier.fillMaxWidth()) { head() } }
-        for (b in blocks) {
+        for ((n, b) in blocks.withIndex()) {
+            if (extra != null && extra.before == n) extraTiles(extra)
             if (b.title != null) item(span = { GridItemSpan(maxLineSpan) }) { BlockTitle(b.title) }
             val from = at
             items(b.albums.size, key = { i -> b.albums[i].offset }) { i -> val a = b.albums[i]; val p = from + i; AlbumTile(a, prefs, coverPx, client, a.offset in selected, { onLongPress(p) }, dl = dl(a)) { onOpen(p) } }
             at += b.albums.size
         }
+        if (extra != null && extra.before >= blocks.size) extraTiles(extra)
         if (!loaded) items(cols * 8) { SkeletonTile() }
         else if (foot != null) item(span = { GridItemSpan(maxLineSpan) }) { Column(Modifier.fillMaxWidth()) { foot() } }
+    }
+}
+
+/** [x] in the grid: its heading across the columns, then its tiles. */
+private fun LazyGridScope.extraTiles(x: GridExtra) {
+    item(span = { GridItemSpan(maxLineSpan) }) { BlockTitle(x.title) }
+    items(x.count, key = x.key) { i -> x.tile(i) }
+}
+
+/** [x] in the list: its heading, then its tiles [cols] to a row, as the search's service albums are drawn beside the library's rows. */
+private fun LazyListScope.extraRows(x: GridExtra, cols: Int) {
+    item { BlockTitle(x.title) }
+    items((x.count + cols - 1) / cols, key = { r -> "x" + x.key(r * cols) }) { r ->
+        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (c in 0 until cols) Box(Modifier.weight(1f)) { if (r * cols + c < x.count) x.tile(r * cols + c) }
+        }
     }
 }
 

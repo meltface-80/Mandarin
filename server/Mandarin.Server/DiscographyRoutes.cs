@@ -28,7 +28,7 @@ internal static partial class Library
         {
             var b = await Auth.Body(ctx);
             var id = b?["service"] is JsonValue v && v.TryGetValue<string>(out var given) ? given : null;
-            if (id == null || (id != "" && !Discography.Ids.Contains(id))) return await JsError(ctx, 400, "Choose Qobuz, Tidal, Spotify or none");
+            if (id == null || (id != "" && !Discography.Ids.Contains(id))) return await JsError(ctx, 400, "Choose Qobuz, Tidal or none");
             using var c = Db.Open();
             Playback.QueueStore.SetSetting(c, Discography.Setting, id == "" ? null : JsonValue.Create(id));
         }

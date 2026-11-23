@@ -7,7 +7,9 @@
  *     brought into the library, another edition of the album of your own files ("Album One (2015 Remaster)"), and all
  *     but the plain edition of one ("Second Wind (Deluxe Edition)"); kept: a live album of the same name, which is
  *     another album, and "Third Way - Remastered 2011", the only edition of it;
- *   - asked again, Qobuz isn't (kept for a day); none chosen again: empty.
+ *   - asked again, Qobuz isn't (kept for a day); none chosen again: empty;
+ *   - on the artist's page in a browser (where one is found): "More on Qobuz" right after the library's Albums, the
+ *     Qobuz browser's tiles in that order, Discography's.
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -16,6 +18,7 @@ const path = require("path");
 const { haveFfmpeg, makeLibrary } = require("./fixtures");
 const { FakeQobuz } = require("./fake-qobuz");
 const { signIn } = require("./auth-helper");
+const { Browser, findBrowser } = require("./browser-harness");
 
 const skip = !haveFfmpeg() && "ffmpeg is not installed";
 const PORT = ports.port(), B = "http://127.0.0.1:" + PORT;
@@ -63,7 +66,7 @@ test("item 522: the default service's albums of an artist, after the library's",
 
     const first = await api("settings/default-service");
     assert.equal(first.service, "", "none chosen at first");
-    assert.deepEqual(first.choices.map(c => c.id + ":" + c.connected), ["qobuz:true", "tidal:false", "spotify:false"]);
+    assert.deepEqual(first.choices.map(c => c.id + ":" + c.connected), ["qobuz:true", "tidal:false"]);
     assert.deepEqual((await discography()).albums, [], "no default service: nothing but the library's");
 
     assert.equal((await api("settings/default-service", { service: "napster" })).status, 400);
@@ -80,6 +83,31 @@ test("item 522: the default service's albums of an artist, after the library's",
     assert.ok(asked >= 1);
     assert.equal((await discography()).albums.length, 3);
     assert.equal(qobuz.calls["artist/get"], asked, "kept: Qobuz not asked again");
+
+    if (findBrowser()) {
+      const b = await Browser.launch({ width: 390, height: 844 });
+      try {
+        const page = await b.page(B + "/", { cookies: [{ name: "musicd_session", value: token, url: B }], touch: true });
+        const seen = await page.eval(`(async () => {
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          const until = async (fn, ms = 15000) => { const t0 = Date.now(); while (!fn()) { if (Date.now() - t0 > ms) throw new Error("timed out"); await sleep(50); } };
+          await until(() => document.querySelector("#home-view .album"));
+          const grid = document.getElementById("album-grid");
+          window.__showArtistAlbums("Artist A");
+          const heads = () => [...grid.querySelectorAll(":scope > .artist-section-header")];
+          await until(() => heads().some(h => h.textContent === "More on Qobuz"));
+          const more = heads().find(h => h.textContent === "More on Qobuz");
+          const tiles = [];
+          for (let el = more.nextElementSibling; el && !el.classList.contains("artist-section-header") && !el.classList.contains("artist-tail"); el = el.nextElementSibling) tiles.push(el.textContent);
+          return { heads: heads().map(h => h.textContent), tiles, disc: more.classList.contains("artist-disc") };
+        })()`);
+        assert.deepEqual(page.errors, []);
+        assert.deepEqual(seen.heads.slice(0, 2), ["Albums", "More on Qobuz"], JSON.stringify(seen.heads));
+        assert.equal(seen.tiles.length, 3);
+        ["Second Wind", "Album One (Live)", "Third Way"].forEach((t, i) => assert.ok(seen.tiles[i].includes(t), seen.tiles[i]));
+        assert.ok(seen.disc, "on the Discography tab");
+      } finally { await b.close(); }
+    }
 
     assert.equal((await api("settings/default-service", { service: "" })).service, "");
     assert.deepEqual((await discography()).albums, []);

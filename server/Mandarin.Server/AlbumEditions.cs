@@ -1,6 +1,6 @@
 // AlbumEditions.cs — an album's title as the album and its edition (bug list items 522, 523): "Second Wind (Deluxe
-// Edition)", "Second Wind [2011 Remaster]" and "Second Wind - Remastered 2011" are all Second Wind, as Qobuz, Tidal
-// and Spotify write the same album's editions. Taken off the end only, a part at a time: a bracketed part or a part
+// Edition)", "Second Wind [2011 Remaster]" and "Second Wind - Remastered 2011" are all Second Wind, as the stores
+// write the same album's editions. Taken off the end only, a part at a time: a bracketed part or a part
 // after " - " that names an edition (Music Assistant's VERSION_PARTS, and a year alone), or credits another artist
 // ("feat. …", dropped without being kept as the edition). The title itself is never cut: "Live at Leeds" stays.
 using System.Text.RegularExpressions;

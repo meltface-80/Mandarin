@@ -3,8 +3,7 @@
 // Discography is the artist's whole catalogue, not only what is a favourite somewhere.
 //
 // The artist is found on the service by name (its search's artists, the first whose name folds the same as the
-// page's), and their albums read a page at a time (Spotify's ten a page, at most five pages: its allowance is small;
-// the others' fifty, at most two). Left out: what the library has (the album itself, or another edition of it:
+// page's), and their albums read a page at a time (fifty a page, at most two). Left out: what the library has (the album itself, or another edition of it:
 // AlbumEditions.Key), and all but one edition of each album (the plain one first, else the first given). Kept for a
 // day by service and name, so an artist's page opened again asks the service nothing.
 using Mandarin.Server.Extras;
@@ -14,9 +13,9 @@ namespace Mandarin.Server.Services;
 
 internal static class Discography
 {
-    /* The setting: the id of the default service (qobuz, tidal, spotify), absent for none. */
+    /* The setting: the id of the default service (qobuz, tidal), absent for none. */
     public const string Setting = "defaultService";
-    public static readonly string[] Ids = ["qobuz", "tidal", "spotify"];
+    public static readonly string[] Ids = ["qobuz", "tidal"];
     public const double KeptMs = 24 * 3600 * 1000.0;
     private const string Ns = "discography";
 
@@ -73,9 +72,8 @@ internal static class Discography
         var id = Str(ar["id"]);
         o["artist"] = Obj(("id", id), ("name", ar["name"]));
         var albums = new List<object?>();
-        int pages = svc.Id == "spotify" ? 5 : 2;
         double offset = 0;
-        for (int p = 0; p < pages; p++)
+        for (int p = 0; p < 2; p++)
         {
             var page = await svc.ArtistAlbums(id, offset, ask);
             var got = page["albums"] as List<object?> ?? [];

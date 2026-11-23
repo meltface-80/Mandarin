@@ -1495,6 +1495,15 @@
             </span>
           </button>
         </nav>
+
+        <!-- The default service (item 522, app/settings-default-service.js): its albums on artists' pages, after the library's. -->
+        <div class="settings-divider"></div>
+        <div class="settings-block">
+          <div class="settings-row"><span class="settings-label" data-parity="settings-services.default-name">Default service <button data-parity="settings-services.default-info" class="settings-info-btn" data-info="The service whose albums an artist's page shows after the library's, on its Discography tab: every album of theirs that service has and your library doesn't (an album you already have in another edition is left out). Read from the service when you first open an artist's page, then kept for a day. A service you're not signed in to shows nothing." aria-label="Info">&#9432;</button></span>
+            <div class="settings-select-wrap"><select id="default-service" data-parity="settings-services.default" aria-label="Default service" class="settings-select">
+              <option value="">None</option>
+            </select></div></div>
+        </div>
       </div>
 
       <!-- Qobuz's page (item 449): one of Services' (app/settings-services.js). -->
