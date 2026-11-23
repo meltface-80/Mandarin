@@ -74,8 +74,8 @@ import java.util.Date
 
 
 /**
- * Settings' Services ([onBack]: back to Settings, [onOpen]: a service's own page): Qobuz, Tidal, Spotify and iBroadcast, a row
- * each (items 443, 449, 497); under them the default service with its ⓘ (item 522, [DefaultServiceBlock]).
+ * Settings' Services ([onBack]: back to Settings, [onOpen]: a service's own page): Qobuz, Tidal and iBroadcast, a row
+ * each (items 443, 449); under them the default service with its ⓘ (item 522, [DefaultServiceBlock]).
  */
 @Composable
 internal fun SettingsServices(client: () -> ServerClient?, onBack: () -> Unit, onOpen: (String) -> Unit) {
@@ -90,8 +90,6 @@ internal fun SettingsServices(client: () -> ServerClient?, onBack: () -> Unit, o
                 SettingsNavRow(qobuz, Modifier.parity("settings-services.qobuz", Contract.label("settings-services.qobuz")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(qobuz.pane) })
                 val tidal = com.musicd.server.client.SettingsRow("tidal", "Tidal")
                 SettingsNavRow(tidal, Modifier.parity("settings-services.tidal", Contract.label("settings-services.tidal")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(tidal.pane) })
-                val spotify = com.musicd.server.client.SettingsRow("spotify", "Spotify")
-                SettingsNavRow(spotify, Modifier.parity("settings-services.spotify", Contract.label("settings-services.spotify")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(spotify.pane) })
                 val ib = com.musicd.server.client.SettingsRow("ibroadcast", "iBroadcast")
                 SettingsNavRow(ib, Modifier.parity("settings-services.ibroadcast", Contract.label("settings-services.ibroadcast")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(ib.pane) })
             }
@@ -270,7 +268,7 @@ internal fun ServiceTitle(text: String, modifier: Modifier, info: Modifier) {
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun ServiceRow(name: String, info: Modifier, control: @Composable () -> Unit) {
+private fun ServiceRow(name: String, info: Modifier, control: @Composable () -> Unit) {
     Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         FlowRow(Modifier.weight(1f), itemVerticalAlignment = Alignment.CenterVertically) {
             Text(name, Modifier.parity("settings-service.name"), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
@@ -288,7 +286,7 @@ internal fun StatusLine(text: String, modifier: Modifier) {
 
 /** A field's ground (.settings-token-input): 34 tall, 8 round on the raised ground, 10 and 7 in, its [hint] faint while empty. */
 @Composable
-internal fun FieldBox(empty: Boolean, hint: String, inner: @Composable () -> Unit) {
+private fun FieldBox(empty: Boolean, hint: String, inner: @Composable () -> Unit) {
     val shape = RoundedCornerShape(8.dp)
     Box(Modifier.fillMaxWidth().height(34.dp).clip(shape).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(Palette.BORDER), shape).padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart) {

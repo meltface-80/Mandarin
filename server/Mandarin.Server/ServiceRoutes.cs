@@ -13,7 +13,7 @@
 //   POST /api/<s>/open { album_id } → { ok, offset, album }: the album's page here
 //   POST /api/<s>/favorite { album_id } · /unfavorite → { ok, album_id, favourite }:
 //                                   on the service, and kept in (or let go from) the library
-//   POST /api/library/cleanup { kind: "qobuz" | "tidal" | "spotify" }: the albums no longer wanted
+//   POST /api/library/cleanup { kind: "qobuz" | "tidal" }: the albums no longer wanted
 //                                   (where the scans are this server's, Scans.cs)
 //
 // A streamed album's page (GET /api/album) is LibraryRoutes.cs's, with its
@@ -56,10 +56,10 @@ using SH = Mandarin.Server.Services.ServiceHttp;
 
 internal static partial class Library
 {
-    [GeneratedRegex(@"^/api/(qobuz|tidal|spotify)/(lists|new-releases|featured|search|artist-albums|album|state)$")]
+    [GeneratedRegex(@"^/api/(qobuz|tidal)/(lists|new-releases|featured|search|artist-albums|album|state)$")]
     private static partial Regex ServicePath();
 
-    private static Catalogue? CatalogueOf(string id) => !Jobs.Held ? null : id == "qobuz" ? Jobs.Qobuz : id == "tidal" ? Jobs.Tidal : id == "spotify" ? Jobs.Spotify : null;
+    private static Catalogue? CatalogueOf(string id) => !Jobs.Held ? null : id == "qobuz" ? Jobs.Qobuz : id == "tidal" ? Jobs.Tidal : null;
 
     private static JsObj Assigned(JsObj first, JsObj rest)
     {
@@ -94,7 +94,7 @@ internal static partial class Library
                     return await SendJs(ctx, Jso(("connected", true), ("lists", await lists)));
                 case "new-releases":
                     var days = Math.Max(1, Math.Min(90, SH.NumOr(Num(Q(ctx, "days")), 30)));
-                    return await SendJs(ctx, Gathering(svc, Jso(("connected", true), ("days", days), ("albums", await svc.NewReleases(days, ask)))));
+                    return await SendJs(ctx, Jso(("connected", true), ("days", days), ("albums", await svc.NewReleases(days, ask))));
                 case "featured":
                     return await SendJs(ctx, Jso(("connected", true), ("albums", await svc.Featured(Q(ctx, "type") ?? "", ask))));
                 case "search":
@@ -136,7 +136,7 @@ internal static partial class Library
 
     // ------------------------------------------------------------ the library's rows (v0.8.44)
 
-    [GeneratedRegex(@"^/api/(qobuz|tidal|spotify)/(open|favorite|unfavorite|play)$")]
+    [GeneratedRegex(@"^/api/(qobuz|tidal)/(open|favorite|unfavorite|play)$")]
     private static partial Regex ServiceWritePath();
 
     [GeneratedRegex(@"^SQLite Error \d+: '(.*)'\.$", RegexOptions.Singleline)]
@@ -285,11 +285,11 @@ internal static partial class Library
 
     // ------------------------------------------------------------ the import (v0.8.45), and the accounts (v0.8.47)
 
-    [GeneratedRegex(@"^/api/settings/(qobuz|tidal|spotify)(/import|/signin|/signin/cancel|/signout|/disconnect)?$")]
+    [GeneratedRegex(@"^/api/settings/(qobuz|tidal)(/import|/signin|/signin/cancel|/signout|/disconnect)?$")]
     private static partial Regex ServiceSettingsPath();
 
     /* The service, once the import is set up (Jobs.cs, at the start). */
-    private static Catalogue? ImportOf(string id) => !Jobs.Holds("import") ? null : id == "qobuz" ? Jobs.Qobuz : id == "tidal" ? Jobs.Tidal : id == "spotify" ? Jobs.Spotify : null;
+    private static Catalogue? ImportOf(string id) => !Jobs.Holds("import") ? null : id == "qobuz" ? Jobs.Qobuz : id == "tidal" ? Jobs.Tidal : null;
     /* The service, once its account is set up too (v0.8.47): signed in or not. */
     private static Catalogue? AccountOf(string id) => !Jobs.Holds("services") ? null : ImportOf(id);
 

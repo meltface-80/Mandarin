@@ -137,7 +137,7 @@ window.__musicdNative = function (what, arg) {
       try { localStorage.setItem("rra-menu-reopen", String(Date.now())); } catch (e) { /* storage refused: the menu stays shut */ }
       return true;
     }
-    const b = /^(pitchfork|qobuz|tidal|spotify|shelf|settings|power-restart|power-shutdown)$/.test(arg || "") ? document.querySelector('[data-parity="menu.' + arg + '"]') : null;
+    const b = /^(pitchfork|qobuz|tidal|shelf|settings|power-restart|power-shutdown)$/.test(arg || "") ? document.querySelector('[data-parity="menu.' + arg + '"]') : null;
     if (!b) return false;
     b.click();
     return true;

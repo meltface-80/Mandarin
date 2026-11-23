@@ -21,7 +21,7 @@
 /* ------------------------------------------------------------------ */
 (function requestLimits() {
   const real = window.fetch;
-  const LONG = /^\/api\/(reindex|backup|update\/apply|settings\/(qobuz|tidal|spotify)\/import|identify\/pack)/;
+  const LONG = /^\/api\/(reindex|backup|update\/apply|settings\/(qobuz|tidal)\/import|identify\/pack)/;
   const live = new Set();
   // The first ask since the server last answered (0: none waiting), and the latest ask.
   let askingSince = 0, askedAt = 0;

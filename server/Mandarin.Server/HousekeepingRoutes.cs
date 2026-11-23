@@ -129,8 +129,7 @@ internal static partial class Library
     {
         var f = StaleFilesNow();
         var o = new JsonObject { ["files"] = new JsonObject { ["albums"] = f.Albums.Count, ["tracks"] = f.Tracks, ["folders"] = f.Dirs.Count } };
-        // Spotify counted once it is in use (item 497): signed in, or with albums here.
-        foreach (var id in Jobs.Spotify?.InUse() == true ? [.. ServiceIds, "spotify"] : ServiceIds)
+        foreach (var id in ServiceIds)
         {
             var svc = CatalogueOf(id);
             o[id] = new JsonObject { ["albums"] = svc?.Stale() ?? 0, ["signed_in"] = svc?.Connected() ?? false };
@@ -146,7 +145,7 @@ internal static partial class Library
         if (!ok) return false;
         var kind = Prop(b, "kind");
         if (Scans.Running) return await JsError(ctx, 409, ScanUnderWay);
-        if (kind is string k && (ServiceIds.Contains(k) || k == "spotify")) return false;
+        if (kind is string k && ServiceIds.Contains(k)) return false;
         if (!TJs.StrictEq(kind, "files")) return await JsError(ctx, 400, "kind must be files, " + string.Join(" or ", ServiceIds));
         if (await Current() is not var (s, _)) return false;
         var f = StaleFilesNow();

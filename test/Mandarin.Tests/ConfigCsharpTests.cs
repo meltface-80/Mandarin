@@ -15,7 +15,7 @@ public sealed class ConfigCsharpTests
         "SCAN_INTERVAL_HOURS", "MUSICDNET_BIN", "MUSICBRAINZ_URL", "ITUNES_URL", "MBPACK_URL", "MBPACK_DIR", "AUTOEQ_URL",
         "FANART_URL", "DEEZER_URL", "WIKIPEDIA_URL", "PITCHFORK_URL", "QOBUZ_WEB_URL", "IDENTIFY", "IDENTIFY_TICK_MS",
         "LOUDNESS_TICK_MS", "LOCAL_AUDIO", "UPDATE_REPO", "UPDATE_API", "UPDATE_CHECK", "QOBUZ_URL", "TIDAL_URL",
-        "TIDAL_AUTH_URL", "TIDAL_IMAGES_URL", "IBROADCAST_URL", "SPOTIFY_URL", "SPOTIFY_AUTH_URL", "ART_HOSTS", "TRUSTED_PROXIES", "MANDARIN_CONFIG"];
+        "TIDAL_AUTH_URL", "TIDAL_IMAGES_URL", "IBROADCAST_URL", "ART_HOSTS", "TRUSTED_PROXIES", "MANDARIN_CONFIG"];
 
     private static Task<ServerCommand.Result> Run(Dictionary<string, string> env)
     {
@@ -41,7 +41,7 @@ public sealed class ConfigCsharpTests
           "music_dir": "/music", "mass_removal": 500, "scan_hours": 6,
           "sonos_hosts": [], "server_ip": null, "sonos_include": [], "sonos_exclude": [], "upnp_hosts": [], "upnp_multicast": true, "upnp_offline_ms": null,
           "local_audio": true, "local_devices": null,
-          "qobuz_url": null, "tidal_url": null, "tidal_images_url": null, "tidal_auth_url": null, "ibroadcast_url": null, "spotify_url": null, "spotify_auth_url": null, "service_sync_delay_ms": null, "service_watch_ms": null,
+          "qobuz_url": null, "tidal_url": null, "tidal_images_url": null, "tidal_auth_url": null, "ibroadcast_url": null, "service_sync_delay_ms": null, "service_watch_ms": null,
           "art_hosts": [], "trusted_proxies": [] }
         """;
 
@@ -68,7 +68,7 @@ public sealed class ConfigCsharpTests
             ["WIKIPEDIA_URL"] = "http://127.0.0.1:9/wp", ["PITCHFORK_URL"] = "http://127.0.0.1:9/pf", ["QOBUZ_WEB_URL"] = "http://127.0.0.1:9/qw",
             ["IDENTIFY"] = "0", ["IDENTIFY_TICK_MS"] = "250", ["LOUDNESS_TICK_MS"] = "300", ["LOCAL_AUDIO"] = "0",
             ["UPDATE_REPO"] = "someone/elsewhere", ["UPDATE_API"] = "http://127.0.0.1:9/gh", ["UPDATE_CHECK"] = "false",
-            ["QOBUZ_URL"] = "http://127.0.0.1:9/qb", ["TIDAL_URL"] = "http://127.0.0.1:9/td", ["TIDAL_AUTH_URL"] = "http://127.0.0.1:9/ta", ["TIDAL_IMAGES_URL"] = "http://127.0.0.1:9/ti/", ["IBROADCAST_URL"] = "http://127.0.0.1:9/ib", ["SPOTIFY_URL"] = "http://127.0.0.1:9/sp", ["SPOTIFY_AUTH_URL"] = "http://127.0.0.1:9/sa",
+            ["QOBUZ_URL"] = "http://127.0.0.1:9/qb", ["TIDAL_URL"] = "http://127.0.0.1:9/td", ["TIDAL_AUTH_URL"] = "http://127.0.0.1:9/ta", ["TIDAL_IMAGES_URL"] = "http://127.0.0.1:9/ti/", ["IBROADCAST_URL"] = "http://127.0.0.1:9/ib",
             ["ART_HOSTS"] = "radio.lan, 192.168.1.40,", ["TRUSTED_PROXIES"] = "127.0.0.1, 192.168.1.0/24"
         });
         JsonAssert.Same(Over("""
@@ -79,7 +79,7 @@ public sealed class ConfigCsharpTests
               "wikipedia_url": "http://127.0.0.1:9/wp", "pitchfork_url": "http://127.0.0.1:9/pf", "qobuz_web_url": "http://127.0.0.1:9/qw",
               "identify": false, "identify_tick_ms": 250, "loudness_tick_ms": 300, "local_audio": false,
               "update_repo": "someone/elsewhere", "update_api": "http://127.0.0.1:9/gh", "update_check": false,
-              "qobuz_url": "http://127.0.0.1:9/qb", "tidal_url": "http://127.0.0.1:9/td", "tidal_auth_url": "http://127.0.0.1:9/ta", "tidal_images_url": "http://127.0.0.1:9/ti/", "ibroadcast_url": "http://127.0.0.1:9/ib", "spotify_url": "http://127.0.0.1:9/sp", "spotify_auth_url": "http://127.0.0.1:9/sa",
+              "qobuz_url": "http://127.0.0.1:9/qb", "tidal_url": "http://127.0.0.1:9/td", "tidal_auth_url": "http://127.0.0.1:9/ta", "tidal_images_url": "http://127.0.0.1:9/ti/", "ibroadcast_url": "http://127.0.0.1:9/ib",
               "art_hosts": ["radio.lan", "192.168.1.40"], "trusted_proxies": ["127.0.0.1", "192.168.1.0/24"] }
             """), c);
         // BRIDGE_IP, the older name, behind SERVER_IP; a number that isn't one, or 0, is the default (Number(v) || d).

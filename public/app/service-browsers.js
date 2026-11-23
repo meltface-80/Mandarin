@@ -1,4 +1,4 @@
-/* The streaming-service browsers, one for each service: Qobuz's, Tidal's and Spotify's (app/service-browser.js). */
+/* The streaming-service browsers, one for each service: Qobuz's and Tidal's (app/service-browser.js). */
 initServiceBrowser({
   service:     "qobuz",
   serviceName: "Qobuz",
@@ -27,21 +27,5 @@ initServiceBrowser({
   dynamicTabs: true,   // the lists Tidal features, from /api/tidal/lists, after New Releases
   tabs: [
     { id: "new-releases", label: "New Releases", kind: "new-releases" }
-  ]
-});
-
-initServiceBrowser({
-  service:     "spotify",
-  serviceName: "Spotify",
-  idPrefix:    "spotify",
-  apiBase:     "/api/spotify",
-  historyKey:  "sp",
-  closeAttr:   "data-spotify-close",
-  notConnectedMsg: "Sign in to Spotify in Settings → Services to browse Spotify.",
-  // Spotify has no New Releases for apps like this since February 2026: the albums and singles of the artists you
-  // follow, from the last three months, made by the server (item 498).
-  tabs: [
-    { id: "new-releases", label: "New from artists you follow", kind: "new-releases", days: 90 },
-    { id: "your-albums",  label: "Your albums", kind: "featured" }
   ]
 });

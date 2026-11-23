@@ -477,7 +477,7 @@ internal static class Prune
     {
         if (!Jobs.Holds("prune")) return null;
         var o = new JsObj();
-        foreach (var svc in new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal, Jobs.Spotify?.InUse() == true ? Jobs.Spotify : null })
+        foreach (var svc in new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal })
         {
             if (svc == null) continue;
             try { o[svc.Id] = (double)await svc.PruneTransient(); }

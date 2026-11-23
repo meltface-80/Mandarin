@@ -88,37 +88,6 @@ internal static class ServiceHttp
     }
 
     /*
-     * A request as Send makes it, with what the service said of waiting: its Retry-After, in seconds, when it gave
-     * one (Spotify's 429, item 499). A GET when [body] is null and [method] says so.
-     */
-    public static async Task<(int Status, string Text, double? RetryAfterS)> SendTimed(string method, string url, IEnumerable<(string Name, string Value)> headers, string? body, string contentType, int timeoutMs)
-    {
-        using var cts = new CancellationTokenSource(timeoutMs);
-        try
-        {
-            using var req = new HttpRequestMessage(new HttpMethod(method), url);
-            foreach (var (n, v) in headers) req.Headers.TryAddWithoutValidation(n, v);
-            if (body != null)
-            {
-                req.Content = new ByteArrayContent(Encoding.UTF8.GetBytes(body));
-                req.Content.Headers.TryAddWithoutValidation("Content-Type", contentType);
-            }
-            using var res = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-            var text = await res.Content.ReadAsStringAsync(cts.Token);
-            var wait = res.Headers.RetryAfter is { } ra ? ra.Delta?.TotalSeconds ?? (ra.Date is { } d ? Math.Max(0, (d - DateTimeOffset.UtcNow).TotalSeconds) : null) : null;
-            return ((int)res.StatusCode, text, wait);
-        }
-        catch (OperationCanceledException) when (cts.IsCancellationRequested)
-        {
-            throw new JsError("The operation was aborted due to timeout");
-        }
-        catch (Exception e) when (e is HttpRequestException or UriFormatException or InvalidOperationException or IOException)
-        {
-            throw new JsError("fetch failed");
-        }
-    }
-
-    /*
      * fetch(url, { signal: AbortSignal.timeout(ms) }) and r.arrayBuffer(): a
      * cover (streaming.js fetchArt, v0.8.44), its status and its bytes. Kept to
      * this machine where the tests say so (MANDARIN_LOOPBACK_ONLY), as the Node

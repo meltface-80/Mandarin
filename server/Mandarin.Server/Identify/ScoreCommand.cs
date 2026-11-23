@@ -26,7 +26,6 @@
 //      (v0.8.50): a date tag, a track's release date, an album's, a looked-up day laid over it, the sort's key
 //      (Tags/TagReader.cs, Scan/Scanner.cs, Library.cs) → { dates, releases: [{ year, date }], albums, days, keys }
 //   { "fn": "credits", … } (bug list item 129): the credits and an act's facts read from tags and answers (Credits/CreditCommand.cs)
-//   { "fn": "spotify", … } (item 501): Spotify Connect's rules (Connect/SpotifyCommand.cs)
 //   { "fn": "mbask", "base", "asks": [{ at, path }] } (item 417): MusicBrainz asked at once by many, in its slot (MbSlot.cs)
 using Mandarin.Server.Scan;
 using Mandarin.Server.Tags;
@@ -117,10 +116,6 @@ internal static class ScoreCommand
                         break;
                     case "share" or "similar" or "days" or "writeups" or "blob" or "backup" or "artfind":
                         o = Extras.ExtrasCommand.Run(Js.Str(job["fn"]), job);
-                        break;
-                    // Spotify Connect's rules (item 501, Connect/SpotifyCommand.cs).
-                    case "spotify":
-                        o = Connect.SpotifyCommand.Run(job);
                         break;
                     // The Sonos ports of stage 2 (v0.8.37, Playback/SonosCommand.cs).
                     case "xml" or "didl" or "moves" or "topology" or "soap":

@@ -175,15 +175,12 @@ function serviceBrowserViews(sb) {
       const tabDef = view.kind === "tab" ? cfg.tabs.find(t => t.id === view.tab) : null;
       if (view.kind === "tab" && tabDef && tabDef.kind === "new-releases") {
         if (statusEl) statusEl.textContent = "Loading new releases…";
-        const j = await sb.qFetch(cfg.apiBase + "/new-releases?days=" + (tabDef.days || 30));
+        const j = await sb.qFetch(cfg.apiBase + "/new-releases?days=30");
         if (seq !== sb.reqSeq) return; // a newer view/request superseded this one
         resetListContainers();
         const albums = j.albums || [];
         view.loaded = true;
-        // Spotify's, gathered by the server from the artists you follow, the first time (item 499): said, not "none".
-        if (statusEl) statusEl.textContent = j.building
-          ? "Gathering new albums from the artists you follow… " + (albums.length ? albums.length + " so far. " : "") + "Look again in a minute."
-          : albums.length
+        if (statusEl) statusEl.textContent = albums.length
           ? (albums.length + " releases in the last " + (j.days || 30) + " days")
           : ("No new releases found in the last " + (j.days || 30) + " days.");
         sb.appendAlbumRows(albums);

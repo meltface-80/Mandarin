@@ -70,10 +70,10 @@ function scannerCleanupBlock() {
   const head = '<div class="scan-row"><span class="scan-lab" data-parity="settings-scanner.name">Library clean-up' + info(CLEANUP_INFO) + "</span></div>";
   if (!cleanup) return '<div class="scan-sec">' + head + '<div class="settings-note" data-parity="settings-scanner.note">' + scanWaitNote + "</div></div>";
   const albums = (n, what) => num(n) + " " + what + (n === 1 ? "" : "s");
-  const f = cleanup.files || {}, qz = cleanup.qobuz || {}, td = cleanup.tidal || {}, sp = cleanup.spotify || {};
+  const f = cleanup.files || {}, qz = cleanup.qobuz || {}, td = cleanup.tidal || {};
   const kinds = [["files", f, albums(f.albums, "album") + " whose files are gone"],
     ["qobuz", qz, albums(qz.albums, "Qobuz album") + (qz.signed_in ? " no longer wanted" : " (signed out of Qobuz)")],
-    ["tidal", td, albums(td.albums, "Tidal album") + " no longer wanted"], ["spotify", sp, albums(sp.albums, "Spotify album") + " no longer wanted"]].filter(k => k[1].albums);
+    ["tidal", td, albums(td.albums, "Tidal album") + " no longer wanted"]].filter(k => k[1].albums);
   const rows = kinds.map(([kind, , words]) => '<div class="scan-row"><span class="scan-sub" data-parity="settings-scanner.note">' + words + "</span>" +
     '<button type="button" data-parity="settings-scanner.cleanup" class="id-btn scan-danger" data-cleanup="' + kind + '"' + (scanBusy ? " disabled" : "") + ">Remove</button></div>").join("");
   // And the albums that look like two copies merged (item 424, settings-scanner-merged.js), to split.

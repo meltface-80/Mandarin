@@ -103,7 +103,7 @@ internal static partial class Library
     /* Lc, by sort keys. */
     public static int Kc(byte[] a, byte[] b) => Math.Sign(a.AsSpan().SequenceCompareTo(b));
 
-    private static readonly string[] Services = ["qobuz", "tidal", "spotify", "ibroadcast"];
+    private static readonly string[] Services = ["qobuz", "tidal", "ibroadcast"];
     private static string? ServiceOf(string key) => Services.FirstOrDefault(s => key.StartsWith(s + ":", StringComparison.Ordinal));
     private static string AlbumIdOf(string key, string svc) => key[(svc.Length + 1)..];
 
@@ -347,7 +347,7 @@ internal static partial class Library
         BoxSets(c, all);
 
         // A service's albums on the walls only when kept and its import is on.
-        var kept = new HashSet<string>(Rows(c, "SELECT key FROM cache WHERE ns IN ('qobuz-kept', 'tidal-kept', 'spotify-kept', 'ibroadcast-kept')").Select(r => (string)r[0]!));
+        var kept = new HashSet<string>(Rows(c, "SELECT key FROM cache WHERE ns IN ('qobuz-kept', 'tidal-kept', 'ibroadcast-kept')").Select(r => (string)r[0]!));
         var shown = new Dictionary<string, bool>();
         foreach (var id in Services)
             shown[id] = Js.Truthy(Db.Setting(c, id)) && (Db.Setting(c, id + "Settings") is JsonObject so ? so["import"] is JsonValue iv && iv.TryGetValue<bool>(out var ib) && ib : id == "ibroadcast");   // iBroadcast's on unless switched off (item 444)

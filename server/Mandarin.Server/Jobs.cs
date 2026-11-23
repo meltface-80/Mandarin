@@ -42,8 +42,6 @@ internal static partial class Jobs
     // Qobuz's and Tidal's catalogue (v0.8.39, ServiceRoutes.cs): where each is asked.
     public static Services.QobuzCatalogue? Qobuz { get; private set; }
     public static Services.TidalCatalogue? Tidal { get; private set; }
-    // Spotify (item 497): its account and saved albums, as Tidal's; where it is asked as set up (the tests' fakes).
-    public static Services.SpotifyCatalogue? Spotify { get; private set; }
     // iBroadcast (item 443, Services/IBroadcast/): where it is asked (the tests' stand-in).
     public static Services.IBroadcast.IBroadcast? IBroadcast { get; private set; }
     // Its library in Mandarin's (item 444): read when iBroadcast says it changed.
@@ -119,11 +117,6 @@ internal static partial class Jobs
         // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database. Tidal's sign-in (v0.8.47): where it is asked.
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
-        Spotify = new Services.SpotifyCatalogue(Text(cfg["spotify_url"]), Text(cfg["spotify_auth_url"]),
-            cfg["spotify_busy_wait_ms"] is JsonValue bw && bw.TryGetValue<double>(out var bwv) && bwv > 0 ? (int)bwv : 5000,
-            // One request to Spotify every two seconds at most (item 518); the tests' own gap.
-            cfg["spotify_interval_ms"] is JsonValue si && si.TryGetValue<double>(out var siv) && siv >= 0 ? (int)siv : 2000)
-        { DataDir = dataDir, PaceMs = cfg["spotify_pace_ms"] is JsonValue sp && sp.TryGetValue<double>(out var spv) && spv >= 0 ? (int)spv : 1000 };
         IBroadcast = new Services.IBroadcast.IBroadcast(Text(cfg["ibroadcast_url"]));
         // The uploaded albums' booklets kept here (item 510), shown from the start.
         Services.IBroadcast.IBroadcastBooklets.Init(dataDir);
@@ -142,8 +135,9 @@ internal static partial class Jobs
         };
         IBroadcastSchedule = new Services.IBroadcast.IBroadcastSchedule(IBroadcastUpload)
             { TickMs = cfg["ibroadcast_schedule_tick_ms"] is JsonValue ibt && ibt.TryGetValue<double>(out var tick) && tick > 0 ? (int)tick : 30_000 };
-        // Gone albums and tracks (item 179): gone before the library is read.
+        // What a service no longer here left behind (items 152, 525: Spotify's), and gone albums and tracks (item 179): gone before the library is read.
         Orphans.Sweep(Log);
+        if (Services.Leftovers.Remove(dataDir, Log)) _ = Library.Tell(new JsonObject { ["services"] = "changed" });
         // The playlists' settings and the albums they held, gone with the playlists.
         Services.Leftovers.RemovePlaylists(Log);
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the configuration says.
@@ -186,8 +180,6 @@ internal static partial class Jobs
         Scans.Start(cfg, dataDir);
         // Playback whole (v0.8.49, stage 6): the hub.
         await Playback.Hub.Start(Playback.HubConfig.Of(cfg, dataDir, frontPort), Log);
-        // Spotify Connect through Soloist (item 501): with the hub, which plays it into a room.
-        Connect.SpotifyLive.Start(dataDir);
         // The month's prune of the services' albums only ever played from the browser (v0.8.44): daily.
         Services.Prune.Start();
         // Their import and the favourites' watch (v0.8.45): on the Node server's timers.
@@ -234,7 +226,6 @@ internal static partial class Jobs
 
     public static void Stop()
     {
-        Connect.SpotifyLive.Stop();
         Playback.Hub.Stop();
         Updater?.Stop();
         Scans.Stop();

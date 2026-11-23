@@ -142,8 +142,6 @@ internal static partial class Library
             if (await ServiceRoute(ctx)) return;
             // And their albums opened, favourited and cleaned up (v0.8.44, ServiceRoutes.cs), likewise.
             if (await ServiceWrite(ctx)) return;
-            // Spotify's sign-in (item 497, SpotifyRoutes.cs); the rest of its page is the services' below.
-            if (await SpotifyRoute(ctx) || await SpotifyConnectRoute(ctx)) return;
             // And Settings → Services' state and switches, Update library now and the favourites' watch
             // (v0.8.45, ServiceRoutes.cs).
             if (await ServiceImport(ctx)) return;

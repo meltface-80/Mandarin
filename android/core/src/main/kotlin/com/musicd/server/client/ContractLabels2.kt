@@ -4,22 +4,6 @@ package com.musicd.server.client
 /** The screens contract's labels, part 2 of 2 (Contract.kt joins them). */
 internal object ContractLabels2 {
     val labels: Map<String, List<String>> = mapOf(
-        "settings-service.back" to listOf("Back to Services"),
-        "settings-service.info" to listOf("About {setting}"),
-        "settings-service.email" to listOf("Qobuz email"),
-        "settings-service.password" to listOf("Qobuz password"),
-        "settings-service.signin" to listOf("Sign in", "Sign in on tidal.com", "Sign in on Spotify", "…"),
-        "settings-service.tidal-link" to listOf("{link}"),
-        "settings-service.tidal-cancel" to listOf("Cancel"),
-        "settings-service.quality" to listOf("{service} stream quality"),
-        "settings-service.import" to listOf("Favourites and purchases in the library", "Favourites in the library", "Saved albums in the library"),
-        "settings-service.update" to listOf("Update library now", "…"),
-        "settings-service.signout" to listOf("Sign out"),
-        "settings-service.connect-key" to listOf("Soloist API key"),
-        "settings-service.connect-name" to listOf("Name in the Spotify app"),
-        "settings-service.connect-save" to listOf("Save"),
-        "settings-service.connect-download" to listOf("Download Soloist", "Update Soloist", "Downloading…"),
-        "settings-service.connect-room" to listOf("Spotify Connect room"),
         "settings-ibroadcast.back" to listOf("Back to Services"),
         "settings-ibroadcast.info" to listOf("About {setting}"),
         "settings-ibroadcast.signin" to listOf("Sign in on iBroadcast"),
