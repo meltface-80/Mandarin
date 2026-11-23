@@ -8,12 +8,15 @@
 const MERGE_ITEMS = {
   merge: { label: "Merge albums", parity: "library.select-merge wall.select-merge artist.select-merge" },
   unmerge: { label: "Unmerge", parity: "library.select-unmerge wall.select-unmerge artist.select-unmerge" },
+  // iBroadcast's albums deleted at iBroadcast, asked twice (item 527, album-ib-delete.js).
+  ibdelete: { label: "Delete from iBroadcast", parity: "library.select-ib-delete wall.select-ib-delete artist.select-ib-delete" },
 };
 function mergeMenuShown(kind, n) {
   if (!selMenu) return;
   const server = kind === "albums" ? albumSelected.filter(a => !isPhoneAlbum(a)) : [];
   const want = { merge: kind === "albums" && n >= 2 && server.length === n,
-    unmerge: kind === "albums" && n === 1 && server.length === 1 && !!server[0].merged };
+    unmerge: kind === "albums" && n === 1 && server.length === 1 && !!server[0].merged,
+    ibdelete: kind === "albums" && n >= 1 && server.length === n && server.every(a => a.source === "ibroadcast") };
   for (const act of Object.keys(MERGE_ITEMS)) {
     const had = selMenu.querySelector('[data-sel-act="' + act + '"]');
     if (!want[act]) { if (had) had.remove(); continue; }

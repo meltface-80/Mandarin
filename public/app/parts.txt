@@ -29,6 +29,7 @@ app/album-tiles.js
 app/album-tile-press.js
 app/album-grid.js
 app/album-merge.js
+app/album-ib-delete.js
 app/album-modal.js
 app/album-open.js
 app/queue.js
