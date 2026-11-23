@@ -51,6 +51,7 @@ class FakeIBroadcast {
     this.md5s = [];                    // the MD5 of every file iBroadcast has
     this.deletes = [];                 // { mode: "trash" | "empty_trash", tracks: [id…] } (item 527)
     this.keepTrash = false;            // the trash not emptied, as iBroadcast might refuse it
+    this.lagDeletes = false;           // deleted, but still listed by the library a while, as iBroadcast does (item 528)
     this.uploads = [];                 // { name, file_path, method, size, md5, data }
     this.md5Asks = 0;
     this.busy = 0;                     // how many uploads are answered 503 before one is taken
@@ -233,6 +234,8 @@ class FakeIBroadcast {
         const ids = new Set((b.tracks || []).map(String));
         this.deletes.push({ mode: b.mode, tracks: [...ids].sort() });
         if (b.mode === "empty_trash" && this.keepTrash) return json(200, { result: false, message: "The trash couldn't be emptied" });
+        // As iBroadcast does a while after (item 528): done, yet the library still lists them.
+        if (this.lagDeletes) return json(200, { result: true, message: b.mode === "trash" ? "Tracks moved to trash" : "Trash emptied" });
         for (const a of this.albums) {
           if (b.mode === "trash") for (const t of a.tracks) { if (ids.has(String(t.id))) t.trashed = true; }
           else a.tracks = a.tracks.filter(t => !(t.trashed && ids.has(String(t.id))));

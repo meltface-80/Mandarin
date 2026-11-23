@@ -3,7 +3,8 @@
 //
 //   POST /api/ibroadcast/delete-albums { offsets }   the albums (each of iBroadcast's) deleted at iBroadcast: their
 //        tracks moved to iBroadcast's trash ("trash") and the trash emptied of them ("empty_trash"), as iBroadcast's
-//        own apps do; then the library read again from iBroadcast, which no longer has them. { ok, albums, tracks,
+//        own apps do; then the library read again from iBroadcast, at once, a few seconds and half a minute later, the
+//        tracks left out of every reading for a day meanwhile (item 528: iBroadcast lists them a while after). { ok, albums, tracks,
 //        emptied }; emptied false where iBroadcast kept them in its trash (said, from its own words, in "note").
 //        400 for an album not iBroadcast's, 401 signed out, 404 an album gone; nothing is deleted then.
 //
@@ -58,13 +59,27 @@ internal static partial class Library
             note = $"They are in iBroadcast's trash: {e.Message}";
             Server.Log($"[ibroadcast] delete: left in iBroadcast's trash, not emptied: {e.Message}");
         }
-        // The library as iBroadcast has it now: without them.
-        if (Jobs.IBroadcastLibrary is { } lib)
-            try { await lib.Read(force: true); }
-            catch (Exception e) when (e is ServiceError or HttpRequestException or TaskCanceledException) { Server.Log($"[ibroadcast] delete: the library not read again yet: {e.Message}"); }
+        // Gone from the library at once, whatever iBroadcast goes on listing a while (item 528, IBroadcastDeleted.cs); the
+        // library read again now, then a few seconds and half a minute later, for what iBroadcast says by then.
+        Mandarin.Server.Services.IBroadcast.IBroadcastDeleted.Keep(ids);
+        await ReadAgain(0);
+        _ = Task.Run(async () => { foreach (var ms in AgainAfterMs) { await Task.Delay(ms); await ReadAgain(ms); } });
         var o = new JsonObject { ["ok"] = true, ["albums"] = albums.Count, ["tracks"] = ids.Count, ["emptied"] = emptied };
         if (note != null) o["note"] = note;
         return await Send(ctx, o);
+    }
+
+    /* When the library is read again after a delete (ms after the one read at once). */
+    internal static readonly int[] AgainAfterMs = [5_000, 25_000];
+
+    private static async Task ReadAgain(int afterMs)
+    {
+        if (Jobs.IBroadcastLibrary is not { } lib) return;
+        try { await lib.Read(force: true); }
+        catch (Exception e) when (e is ServiceError or HttpRequestException or TaskCanceledException)
+        {
+            Server.Log($"[ibroadcast] delete: the library not read again{(afterMs > 0 ? $" ({afterMs / 1000} s after)" : "")}: {e.Message}");
+        }
     }
 
     private static string Said(JsonObject j) => j["message"] is JsonValue m && m.TryGetValue<string>(out var t) && t.Length > 0 ? t : "done";
