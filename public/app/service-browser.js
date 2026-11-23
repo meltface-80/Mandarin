@@ -17,7 +17,7 @@
 /*    closeAttr        data attribute on the overlay's close targets   */
 /*    notConnectedMsg  status text when the API says "not connected"   */
 /*    tabs             [{ id, label, kind }] — kind "new-releases"     */
-/*                     hits /new-releases?days=<days, 30>, "featured"   */
+/*                     hits /new-releases?days=30, kind "featured"     */
 /*                     hits /featured?type=<id>. tabs[0] is the        */
 /*                     default tab shown when the overlay opens.       */
 /*  }                                                                  */

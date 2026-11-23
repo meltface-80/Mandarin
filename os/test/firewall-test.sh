@@ -2,7 +2,7 @@
 # os/test/firewall-test.sh [nftables.conf] — Mandarin OS's firewall (etc/nftables.conf) between two network namespaces,
 # the box and a speaker on the home network (item 389): a speaker answers Mandarin's search for it (M-SEARCH) from a
 # port of its own, as Sonos does, and the answer must reach the box (it didn't, and Sonos was never found); Mandarin's
-# port answers; a port the system hands out answers (Spotify Connect, item 502); nothing answers on SSH's. Needs root, ip, nft, python3.
+# port answers; nothing answers on SSH's. Needs root, ip, nft, python3.
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 CONF="${1:-$here/../mkosi.extra/etc/nftables.conf}"
@@ -58,10 +58,6 @@ for p in 3500 445; do
   [ "$(ip netns exec fw-lan python3 "$T/connect.py" "$p")" = open ] || fail "port $p isn't reachable from home"
   wait; echo "ok: port $p reachable from home"
 done
-# Spotify Connect (item 502): Soloist answers the Spotify app on a port the system hands it, from the ephemeral range.
-ip netns exec fw-box python3 "$T/listen.py" 45123 & sleep 0.5
-[ "$(ip netns exec fw-lan python3 "$T/connect.py" 45123)" = open ] || fail "a port the system hands out (Soloist's, for the Spotify app) isn't reachable from home"
-wait; echo "ok: a port the system hands out reachable from home (Spotify Connect)"
 ip netns exec fw-box python3 "$T/listen.py" 22 & sleep 0.5
 [ "$(ip netns exec fw-lan python3 "$T/connect.py" 22)" = closed ] || fail "SSH's port is reachable, even with something listening on it"
 kill %1 2>/dev/null; wait 2>/dev/null; echo "ok: SSH's port closed, even with something listening on it"

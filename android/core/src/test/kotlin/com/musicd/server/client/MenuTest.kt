@@ -56,11 +56,6 @@ class MenuTest {
         assertEquals(Menu.Items(qobuz = false, tidal = false, shelf = true), Menu.items(null, null, null))
         assertEquals(Menu.Items(qobuz = true, tidal = true, shelf = false),
             Menu.items(JSONObject("""{"connected":true}"""), JSONObject("""{"connected":true}"""), JSONObject("""{"enabled":false}""")))
-        // Spotify's row once signed in (item 498), kept for the next opening; its answer missing, as it was.
-        val withSpotify = Menu.items(null, null, null, Menu.Items(), JSONObject("""{"connected":true}"""))
-        assertEquals(true, withSpotify.spotify)
-        assertEquals(withSpotify, Menu.keptItems(Menu.keep(withSpotify, null)))
-        assertEquals(true, Menu.items(null, null, null, withSpotify, null).spotify)
     }
 
     @Test fun `the menu opens as it was last seen, not as the page's markup has it`() {

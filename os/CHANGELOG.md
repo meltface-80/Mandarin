@@ -1,5 +1,9 @@
 # Mandarin OS changelog
 
+## v0.1.15
+
+- Removed - Spotify Connect (item 525): Mandarin no longer has Spotify, so the box no longer carries PulseAudio and libatomic for Spotify's Soloist, and the firewall no longer lets the Spotify app reach Soloist's port (0.1.13, 0.1.14).
+
 ## v0.1.14
 
 - Fixed - Spotify Connect (item 502): Mandarin didn't show in the Spotify app's devices. Spotify's Soloist answers the Spotify app on a port the system hands it, and the firewall let in only Mandarin's fixed ports. The ports the system hands out (32768–60999) now come in from the home network; SSH and every other fixed port stay closed, and nothing comes in from outside

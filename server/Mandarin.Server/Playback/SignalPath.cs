@@ -173,7 +173,7 @@ internal static class SignalPath
      * its volume does to them, and who says so. Lossless only where it says the samples go untouched in the format
      * sent; lossy where it says otherwise; pending where it says nothing of the samples.
      */
-    internal static JsonObject Fed(Fed f, SentInfo s)
+    private static JsonObject Fed(Fed f, SentInfo s)
     {
         var parts = new List<string>();
         if (f.Kind is "dsd" or "dop") parts.Add($"DSD{N(f.Dsd)} {(f.Kind == "dop" ? "as DoP" : "natively")}");
@@ -203,11 +203,11 @@ internal static class SignalPath
         return Step("fed", title, string.Join(", ", parts) + $" — as {f.By} reports it", quality);
     }
 
-    internal static JsonObject Step(string kind, string title, string detail, string quality) =>
+    private static JsonObject Step(string kind, string title, string detail, string quality) =>
         new() { ["kind"] = kind, ["title"] = title, ["detail"] = detail, ["quality"] = quality };
 
     /* A filter by its name alone ("Gaussian steep", "Long, minimum phase", "Standard"), and a modulator by its order. */
-    internal static string Filter(string? shape) => Upsample.Shape.Name(shape).Replace(" filter", "", StringComparison.Ordinal);
+    private static string Filter(string? shape) => Upsample.Shape.Name(shape).Replace(" filter", "", StringComparison.Ordinal);
     private static string Modulator(string? mod) => mod == "9" ? "9th-order" : "7th-order";
 
     private static string Service(string id) => id == "qobuz" ? "Qobuz" : id == "tidal" ? "Tidal" : id == "ibroadcast" ? "iBroadcast" : id;

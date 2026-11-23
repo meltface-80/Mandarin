@@ -73,8 +73,6 @@ app/settings-services.js
 app/settings-default-service.js
 app/settings-ibroadcast-bandwidth.js
 app/settings-ibroadcast.js
-app/settings-spotify.js
-app/settings-spotify-connect.js
 app/settings-views.js
 app/settings-home.js
 app/service-browser.js

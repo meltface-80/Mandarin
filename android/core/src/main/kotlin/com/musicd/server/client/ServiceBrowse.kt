@@ -4,7 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /*
- * The Qobuz, Tidal and Spotify (item 498) browsers, typed (the group B of old/plan-android-native.md, B2; bug list item 73): a
+ * The Qobuz and Tidal browsers, typed (the group B of old/plan-android-native.md, B2; bug list item 73): a
  * service's tabs, a page of albums (new releases, a featured list, a search's, an artist's) with what the status line
  * says of it, and an artist's head; as the page's service-browser*.js read and say them.
  */
@@ -14,14 +14,13 @@ data class ServiceTab(val id: String, val label: String, val kind: String)
 
 /** A page of a service's albums: the albums, the artists a search found, how many in all, whether more follow and how many a page holds; an artist's head. */
 data class ServicePage(val albums: List<ServiceAlbum>, val artists: List<ServiceArtist>, val total: Int, val hasMore: Boolean, val limit: Int,
-                       val days: Int, val artistName: String, val artistImage: String?, val biography: String, val building: Boolean = false) {
+                       val days: Int, val artistName: String, val artistImage: String?, val biography: String) {
     companion object {
         fun parse(service: String, j: JSONObject): ServicePage {
             val ar = j.optJSONObject("artist")
             return ServicePage(ServiceBrowse.albums(service, j.optJSONArray("albums")), ServiceBrowse.artists(service, j.optJSONArray("artists")),
                 j.optInt("total", 0), j.optBoolean("has_more"), j.optInt("limit", ServiceBrowse.PAGE_SIZE).takeIf { it > 0 } ?: ServiceBrowse.PAGE_SIZE,
-                j.optInt("days", 30), ar?.optString("name").orEmpty(), ar?.optString("image")?.takeIf { it.isNotEmpty() && it != "null" }, j.optString("biography"),
-                j.optBoolean("building"))
+                j.optInt("days", 30), ar?.optString("name").orEmpty(), ar?.optString("image")?.takeIf { it.isNotEmpty() && it != "null" }, j.optString("biography"))
         }
     }
 }
@@ -30,11 +29,10 @@ object ServiceBrowse {
     const val PAGE_SIZE = 50
 
     /** The service's name as the browser shows it. */
-    fun name(service: String) = when (service) { "tidal" -> "Tidal"; "spotify" -> "Spotify"; else -> "Qobuz" }
+    fun name(service: String) = if (service == "tidal") "Tidal" else "Qobuz"
 
     /** The tabs the browser opens with: Qobuz's five; Tidal's New Releases, its own lists following when it says them ([lists]). */
-    fun tabs(service: String): List<ServiceTab> = if (service == "spotify") listOf(ServiceTab("new-releases", "New from artists you follow", "new-releases"), ServiceTab("your-albums", "Your albums", "featured"))
-        else if (service == "tidal") listOf(ServiceTab("new-releases", "New Releases", "new-releases"))
+    fun tabs(service: String): List<ServiceTab> = if (service == "tidal") listOf(ServiceTab("new-releases", "New Releases", "new-releases"))
         else listOf(ServiceTab("new-releases", "New Releases", "new-releases"), ServiceTab("best-sellers", "Best Sellers", "featured"), ServiceTab("most-streamed", "Most Streamed", "featured"),
             ServiceTab("press-awards", "Press Awards", "featured"), ServiceTab("editor-picks", "Editor's Picks", "featured"))
 
@@ -47,17 +45,13 @@ object ServiceBrowse {
     }
 
     /** The address a view asks: a tab's list, a search's page, an artist's page, from [offset]. */
-    fun tabPath(service: String, tab: ServiceTab) = if (tab.kind == "new-releases") "/api/$service/new-releases?days=" + days(service) else "/api/$service/featured?type=" + enc(tab.id)
-    /** How far back a service's new releases go: Spotify's, the artists you follow, three months (item 498). */
-    fun days(service: String) = if (service == "spotify") 90 else 30
+    fun tabPath(service: String, tab: ServiceTab) = if (tab.kind == "new-releases") "/api/$service/new-releases?days=30" else "/api/$service/featured?type=" + enc(tab.id)
     fun searchPath(service: String, q: String, offset: Int) = "/api/$service/search?q=" + enc(q) + "&offset=$offset"
     fun artistPath(service: String, artistId: String, offset: Int) = "/api/$service/artist-albums?artist_id=" + enc(artistId) + "&offset=$offset"
 
     /** What the status line says of a page: a tab's, a search's for [q], an artist's. */
     fun tabStatus(tab: ServiceTab, p: ServicePage): String = if (tab.kind == "new-releases") {
-        // Spotify's, gathered from the artists you follow the first time (item 499): said, not "none".
-        if (p.building) "Gathering new albums from the artists you follow… " + (if (p.albums.isNotEmpty()) "${p.albums.size} so far. " else "") + "Look again in a minute."
-        else if (p.albums.isNotEmpty()) "${p.albums.size} releases in the last ${p.days} days" else "No new releases found in the last ${p.days} days."
+        if (p.albums.isNotEmpty()) "${p.albums.size} releases in the last ${p.days} days" else "No new releases found in the last ${p.days} days."
     } else if (p.albums.isNotEmpty()) "${p.albums.size} albums" else "No albums found."
 
     fun searchStatus(q: String, p: ServicePage): String = when {
@@ -70,8 +64,7 @@ object ServiceBrowse {
 
     /** A failure as the status line says it: not signed in, the service's own words. */
     fun failure(service: String, message: String?): String = if (message?.contains("not connected", ignoreCase = true) == true)
-        (when (service) { "tidal" -> "Sign in to Tidal in Settings → Services to browse Tidal."; "spotify" -> "Sign in to Spotify in Settings → Services to browse Spotify."
-            else -> "Connect your Qobuz account in Settings to browse Qobuz." })
+        (if (service == "tidal") "Sign in to Tidal in Settings → Services to browse Tidal." else "Connect your Qobuz account in Settings to browse Qobuz.")
         else "Couldn't load: " + (message ?: "no answer")
 
     /** What the status line says while a view is read. */

@@ -113,7 +113,7 @@ const ENV = {
   fanartBaseUrl: "FANART_URL", deezerBaseUrl: "DEEZER_URL", wikipediaBaseUrl: "WIKIPEDIA_URL",
   pitchforkBaseUrl: "PITCHFORK_URL", qobuzWebUrl: "QOBUZ_WEB_URL",
   identifyTickMs: "IDENTIFY_TICK_MS", loudnessTickMs: "LOUDNESS_TICK_MS", qobuzBaseUrl: "QOBUZ_URL", tidalBaseUrl: "TIDAL_URL",
-  tidalAuthUrl: "TIDAL_AUTH_URL", tidalImagesUrl: "TIDAL_IMAGES_URL", ibroadcastBaseUrl: "IBROADCAST_URL", spotifyBaseUrl: "SPOTIFY_URL", spotifyAuthUrl: "SPOTIFY_AUTH_URL",
+  tidalAuthUrl: "TIDAL_AUTH_URL", tidalImagesUrl: "TIDAL_IMAGES_URL", ibroadcastBaseUrl: "IBROADCAST_URL",
   // A pause between a making's turn and its start (Upsample/MadeAsPlayed.cs, items 246, 259).
   makeWaitMs: "MANDARIN_MAKE_WAIT_MS",
   // How long a room loading a track counts as music playing for the Album Scanner (Playback/Hub.Heard.cs, item 417).
@@ -139,10 +139,6 @@ const FLAGS = { upnpMulticast: "UPNP_DISCOVERY", identify: "IDENTIFY", localAudi
 const CONFIG = {
   qobuzSyncDelayMs: "service_sync_delay_ms", serviceWatchMs: "service_watch_ms", ibroadcastWatchMs: "ibroadcast_watch_ms", ibroadcastUploadLimit: "ibroadcast_upload_limit", acoustidBuiltIn: "acoustid_built_in", fanartBuiltIn: "fanart_built_in", ibroadcastUploadWaitMs: "ibroadcast_upload_wait_ms", ibroadcastUploadAgainMs: "ibroadcast_upload_again_ms", ibroadcastScheduleTickMs: "ibroadcast_schedule_tick_ms", upnpOfflineMs: "upnp_offline_ms",
   localDevices: "local_devices", massRemoval: "mass_removal", tailscaleWatchdog: "tailscale_watchdog",
-  // Spotify's gaps (item 499): an artist a second while new from those followed is gathered; a 429 without a wait said.
-  spotifyPaceMs: "spotify_pace_ms", spotifyBusyWaitMs: "spotify_busy_wait_ms",
-  // The least gap between two requests to Spotify (item 518): none in a test unless it asks for one (createServer below).
-  spotifyIntervalMs: "spotify_interval_ms",
   // Loudness measured with the Album Scanner on (Jobs.cs, item 411): only where a test asks for it.
   loudness: "loudness",
   // Each track looked at for MQA (Mqa/MqaPass.cs, item 418): likewise only where a test asks, and how often it looks.
@@ -172,8 +168,7 @@ function createServer(overrides = {}) {
   // Loopback a trusted proxy (item 362), so a test may say who asked with X-Forwarded-For as a proxy here would:
   // trustedProxies: "" for the server as it is installed, believing only the Tailscale engine's own port.
   const env = { TRUSTED_PROXIES: "127.0.0.1,::1" };
-  // Spotify's requests unspaced unless a test asks for its gap (item 518: two seconds as installed).
-  const cfg = { spotify_interval_ms: 0 };
+  const cfg = {};
   for (const [k, v] of Object.entries(overrides)) {
     if (v === undefined) continue;
     if (ENV[k]) env[ENV[k]] = Array.isArray(v) ? v.join(",") : String(v);

@@ -429,7 +429,7 @@ internal static class Import
     private static Timer? first, every, watch;
     private const long SixHours = 6 * 3600 * 1000;
 
-    internal static IEnumerable<Catalogue> Services() => new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal, Jobs.Spotify }.OfType<Catalogue>();
+    internal static IEnumerable<Catalogue> Services() => new Catalogue?[] { Jobs.Qobuz, Jobs.Tidal }.OfType<Catalogue>();
     /* Signed in, with the import on. */
     internal static bool Wants(Catalogue s) => s.Connected() && s.Settings().Import;
 
@@ -470,7 +470,7 @@ internal static class Import
         try
         {
             if (!Jobs.Holds("import")) return;
-            var todo = Services().Where(s => Wants(s) && !(s is SpotifyCatalogue sp && sp.ImportedWithin(3600e3))).ToList();   // Spotify's allowance (item 500)
+            var todo = Services().Where(Wants).ToList();
             if (todo.Count == 0) return;
             _ = Task.Run(async () =>
             {
@@ -497,7 +497,7 @@ internal static class Import
         try
         {
             if (!Jobs.Holds("import")) return;
-            foreach (var s in Services().Where(s => s is not SpotifyCatalogue))   // Spotify's allowance: no watch (item 500)
+            foreach (var s in Services())
                 if (Wants(s)) _ = s.Watch().ContinueWith(t => { if (t.Exception?.InnerException is { } e) Server.Log($"[{s.Id}] watch: {Catalogue.Said(e)}"); }, TaskScheduler.Default);
         }
         catch (Exception e) { Server.Log($"[watch] {e.GetType().Name}: {e.Message}"); }
@@ -508,7 +508,7 @@ internal static class Import
     {
         if (!Jobs.Holds("import")) return null;
         var o = new JsObj();
-        foreach (var s in Services().Where(s => Wants(s) && s is not SpotifyCatalogue).ToList())
+        foreach (var s in Services().Where(Wants).ToList())
         {
             try { o[s.Id] = await s.Watch(); }
             catch (Exception e) { var err = new JsObj(); err["error"] = Catalogue.Said(e); o[s.Id] = err; }
@@ -527,7 +527,7 @@ internal static class Import
         if (!Jobs.Holds("import")) return false;
         if (afterRescan)
         {
-            var todo = Services().Where(s => Wants(s) && !(s is SpotifyCatalogue sp && sp.ImportedWithin(3600e3))).ToList();   // Spotify's allowance (item 500)
+            var todo = Services().Where(Wants).ToList();
             _ = Task.Run(async () =>
             {
                 foreach (var s in todo)

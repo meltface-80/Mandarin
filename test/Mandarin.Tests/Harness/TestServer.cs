@@ -22,7 +22,7 @@ public sealed class TestServer : IAsyncDisposable
         ["wikipediaBaseUrl"] = "WIKIPEDIA_URL", ["pitchforkBaseUrl"] = "PITCHFORK_URL", ["qobuzWebUrl"] = "QOBUZ_WEB_URL",
         ["identifyTickMs"] = "IDENTIFY_TICK_MS",
         ["loudnessTickMs"] = "LOUDNESS_TICK_MS", ["qobuzBaseUrl"] = "QOBUZ_URL", ["tidalBaseUrl"] = "TIDAL_URL",
-        ["tidalAuthUrl"] = "TIDAL_AUTH_URL", ["tidalImagesUrl"] = "TIDAL_IMAGES_URL", ["spotifyBaseUrl"] = "SPOTIFY_URL", ["spotifyAuthUrl"] = "SPOTIFY_AUTH_URL", ["appDir"] = "MANDARIN_APP_DIR"
+        ["tidalAuthUrl"] = "TIDAL_AUTH_URL", ["tidalImagesUrl"] = "TIDAL_IMAGES_URL", ["appDir"] = "MANDARIN_APP_DIR"
     };
     // On or off ("0" is off).
     private static readonly Dictionary<string, string> Flags = new() { ["upnpMulticast"] = "UPNP_DISCOVERY", ["identify"] = "IDENTIFY", ["localAudio"] = "LOCAL_AUDIO" };

@@ -4,9 +4,9 @@ namespace Mandarin.Tests;
 
 /// <summary>
 /// What an album or a track leaves behind when it goes (bug list item 179). Albums' ids are given out again
-/// (INTEGER PRIMARY KEY, no AUTOINCREMENT): rows left under a gone album's id would be a new album's. Any album that
-/// goes takes its credits; and what was left before, once, as the server starts. (A gone service's albums, item 152,
-/// went with the clean-up that removed them, item 497: no service is gone.)
+/// (INTEGER PRIMARY KEY, no AUTOINCREMENT): rows left under a gone album's id would be a new album's. A gone
+/// service's albums take their tracks with them, and the tracks theirs (tags, loudness, tag checks); any album
+/// that goes takes its credits; and what was left before, once, as the server starts.
 /// </summary>
 public sealed class RemovedAlbumRowsTests
 {
@@ -40,6 +40,25 @@ public sealed class RemovedAlbumRowsTests
         Count(db, $"SELECT (SELECT count(*) FROM tracks WHERE id = {track} OR album_id = {album}) + (SELECT count(*) FROM track_tags WHERE track_id = {track})" +
                   $" + (SELECT count(*) FROM track_loudness WHERE track_id = {track}) + (SELECT count(*) FROM tag_checks WHERE track_id = {track})" +
                   $" + (SELECT count(*) FROM album_credits WHERE album_id = {album}) + (SELECT count(*) FROM album_credit_state WHERE album_id = {album})");
+
+    [Test]
+    public async Task A_gone_service_s_album_takes_its_tracks_their_rows_and_its_credits_with_it()
+    {
+        var lib = Fixtures.MakeLibrary();
+        await (await Session.Started(lib: lib)).DisposeAsync();
+        var db = Path.Combine(lib.Data, "musicd.db");
+        SqliteDump.Exec(db, CreditTables + """
+            PRAGMA foreign_keys = OFF;
+            INSERT INTO albums(id, key, title, artist, dir, added_at, updated_at) VALUES(7000, 'spotify:a1', 'Gone', 'Someone', 'spotify://album/a1', 1, 2);
+            INSERT INTO tracks(id, album_id, path, mtime, size, title) VALUES(7001, 7000, 'spotify://track/t1', 0, 0, 'Gone 1');
+            """ + Rows(7000, 7001));
+        Assert.Equal(6, Left(db, 7000, 7001));
+
+        await (await Session.Started(lib: lib)).DisposeAsync();
+        Assert.Equal(0, Count(db, "SELECT count(*) FROM albums WHERE key LIKE 'spotify:%'"));
+        Assert.Equal(0, Left(db, 7000, 7001));
+        Assert.Equal(0, Count(db, "SELECT count(*) FROM tracks WHERE album_id NOT IN (SELECT id FROM albums)"));
+    }
 
     [Test]
     public async Task An_album_that_leaves_the_library_takes_its_credits_with_it()
