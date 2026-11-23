@@ -45,7 +45,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
-      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78  # v6.2.0
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880  # v6.3.0
         with:
           distribution: temurin
           java-version: '17'
@@ -77,7 +77,7 @@ jobs:
         working-directory: android/musicdnet
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5  # v7
         with:
           go-version-file: android/musicdnet/go.mod
           cache-dependency-path: android/musicdnet/go.sum
@@ -110,7 +110,7 @@ jobs:
           v=$(node tools/test-version.js)
           sed -i "s/versionName = \"[^\"]*\"/versionName = \"$v\"/" android/app/build.gradle.kts
           grep -n 'versionName' android/app/build.gradle.kts
-      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78  # v6.2.0
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880  # v6.3.0
         with:
           distribution: temurin
           java-version: '17'
@@ -122,7 +122,7 @@ jobs:
       - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd  # v4
         with:
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0 ndk;27.2.12479018 cmake;3.22.1'
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5  # v7
         with:
           go-version-file: android/musicdnet/go.mod
           cache-dependency-path: android/musicdnet/go.sum
