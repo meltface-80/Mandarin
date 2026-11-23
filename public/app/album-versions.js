@@ -74,6 +74,8 @@ function renderVersions(j) {
   head.innerHTML = '<span class="album-versions-count"></span><span class="album-versions-note">The library shows the main one</span>';
   head.firstElementChild.textContent = list.length + " versions";
   pane.appendChild(head);
+  // Where each is from (item 523), where they come from more than one place: your files, Qobuz, Tidal, iBroadcast.
+  const mixed = new Set(list.map(v => v.from)).size > 1;
   for (const v of list) {
     const row = document.createElement("div");
     row.className = "album-version-row" + (v.current ? " is-current" : ""); row.dataset.parity = "album.version";
@@ -88,7 +90,7 @@ function renderVersions(j) {
     name.className = "album-version-name";
     name.textContent = v.edition || v.title;
     words.appendChild(name);
-    for (const [cls, text] of [["album-version-format", [versionFormat(v.quality), mqaLabel(v.mqa)].filter(Boolean).join(" · ")], ["album-version-facts", versionFacts(v)]]) {
+    for (const [cls, text] of [["album-version-format", [mixed ? v.from : "", versionFormat(v.quality), mqaLabel(v.mqa)].filter(Boolean).join(" · ")], ["album-version-facts", versionFacts(v)]]) {
       if (!text) continue;
       const d = document.createElement("div");
       d.className = cls; d.textContent = text;
