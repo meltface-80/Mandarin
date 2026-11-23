@@ -230,7 +230,7 @@ data class Album(
                 composers = a.optJSONArray("composers").strings(),
                 conductor = a.str("conductor"),
                 performers = a.optJSONArray("performers").strings(),
-                versions = j.optJSONArray("versions").items(AlbumVersion::parse)
+                versions = AlbumVersion.list(j.optJSONArray("versions"))
             )
         }
     }

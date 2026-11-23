@@ -39,4 +39,15 @@ class AlbumVersionsTest {
         assertEquals(listOf("Tracks", "Credits", "About", "Versions"), Contract.labels["album.tab"])
         assertEquals(listOf("Version actions"), Contract.labels["album.version-more"])
     }
+
+    @Test fun `an album held in several places says where each version is from, one place says nothing (item 523)`() {
+        val a = Album.parse(JSONObject("""{"album":{"offset":3,"title":"Album One","versions":2},
+            "versions":[{"offset":9,"title":"Album One","quality":"16/44.1","from":"Qobuz","label":"16/44.1","main":true,"current":false},
+                        {"offset":3,"title":"Album One","quality":"24/96","from":"Your files","label":"24/96","main":false,"current":true}]}"""))
+        assertEquals(listOf("Qobuz · 16-bit / 44.1 kHz", "Your files · 24-bit / 96 kHz"), a.versions.map { it.format })
+        val mine = Album.parse(JSONObject("""{"album":{"offset":3,"title":"Album One","versions":2},
+            "versions":[{"offset":7,"title":"Album One (2015 Remaster)","quality":"24/96","from":"Your files","main":true},
+                        {"offset":3,"title":"Album One","quality":"16/44.1","from":"Your files","main":false}]}"""))
+        assertEquals(listOf("24-bit / 96 kHz", "16-bit / 44.1 kHz"), mine.versions.map { it.format })
+    }
 }

@@ -1,23 +1,27 @@
 package com.musicd.server.client
 
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
  * One version of an album as its page lists them (item 345, /api/album "versions"): the album, what tells it apart
  * ([label]: "2015 Remaster · 24/96", "Original · 16/44.1"), whether it is the main one (the one the lists show) and
  * whether it is the one open ([current]). Since item 349 a row of its own on the album's Versions tab: its edition alone
- * ([edition]: "2015 Remaster", "Original", "12 tracks"), its tracks, length and year.
+ * ([edition]: "2015 Remaster", "Original", "12 tracks"), its tracks, length and year. Since item 523 an album held in
+ * several places (your files, Qobuz, Tidal, iBroadcast) has them as its versions, each saying where it is from ([from]),
+ * where they come from more than one.
  */
 data class AlbumVersion(val album: AlbumSummary, val label: String, val main: Boolean, val current: Boolean,
-                        val edition: String? = null, val tracks: Int? = null, val seconds: Int? = null, val releaseYear: Int? = null) {
+                        val edition: String? = null, val tracks: Int? = null, val seconds: Int? = null, val releaseYear: Int? = null,
+                        val from: String? = null) {
     /** Its words, as the page writes them: the label, " · Main" after the main one's. */
     val words: String get() = label.ifEmpty { album.title } + if (main) " · Main" else ""
 
     /** Its row's name: its edition, else the album's title. */
     val name: String get() = edition?.takeIf { it.isNotEmpty() } ?: album.title
 
-    /** Its row's format: "24-bit / 96 kHz" from "24/96"; the quality as it is where it isn't bits over a rate; its MQA after it (item 418). */
-    val format: String get() = listOf(rate, album.mqa?.label.orEmpty()).filter { it.isNotEmpty() }.joinToString(" · ")
+    /** Its row's format: where it is from first (item 523), "24-bit / 96 kHz" from "24/96"; the quality as it is where it isn't bits over a rate; its MQA after it (item 418). */
+    val format: String get() = listOf(from.orEmpty(), rate, album.mqa?.label.orEmpty()).filter { it.isNotEmpty() }.joinToString(" · ")
 
     private val rate: String get() {
         val q = album.quality ?: return ""
@@ -38,7 +42,14 @@ data class AlbumVersion(val album: AlbumSummary, val label: String, val main: Bo
             edition = j.optString("edition", "").takeIf { !j.isNull("edition") && it.isNotEmpty() },
             tracks = j.optInt("tracks", 0).takeIf { j.has("tracks") && !j.isNull("tracks") && it > 0 },
             seconds = j.optInt("seconds", 0).takeIf { j.has("seconds") && !j.isNull("seconds") && it > 0 },
-            releaseYear = j.optInt("release_year", 0).takeIf { j.has("release_year") && !j.isNull("release_year") && it > 0 })
+            releaseYear = j.optInt("release_year", 0).takeIf { j.has("release_year") && !j.isNull("release_year") && it > 0 },
+            from = j.optString("from", "").takeIf { !j.isNull("from") && it.isNotEmpty() })
+
+        /** An album page's versions ([a]: its "versions"), each saying where it is from only where they come from more than one place. */
+        fun list(a: JSONArray?): List<AlbumVersion> {
+            val all = (0 until (a?.length() ?: 0)).mapNotNull { a?.optJSONObject(it) }.map(::parse)
+            return if (all.mapNotNull { it.from }.distinct().size > 1) all else all.map { it.copy(from = null) }
+        }
 
         /** The tile's line under the artist ("2 versions"); null for an album of one. */
         fun mark(a: AlbumSummary): String? = a.versions?.takeIf { it > 1 }?.let { "$it versions" }
