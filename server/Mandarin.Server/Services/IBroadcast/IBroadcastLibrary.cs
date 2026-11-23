@@ -181,6 +181,8 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
             .Select(r => Library.ExportCanon((string?)r[0] ?? "") + "|" + Library.ExportCanon((string?)r[1] ?? "")), StringComparer.Ordinal);
         // An album a disc an entry: one album again (one name, one artist), under its first id; and the discs of one title
         // named in it ("The Wall (Disc 1)", "The Wall CD2") one album, as a folder's are (item 512, Scan/Scanner.Discs.cs).
+        // Deleted from Mandarin's selection menu (item 528, IBroadcastDeleted.cs): left out, however long iBroadcast lists them.
+        var deleted = IBroadcastDeleted.Set(c);
         var sets = albums.Where(a => !Trashed(a.Value))
             .GroupBy(a => Library.ExportCanon(Scanner.DiscOfTitle(Text(a.Value.GetValueOrDefault("name")))?.Title ?? Text(a.Value.GetValueOrDefault("name"))) + "|" + Text(a.Value.GetValueOrDefault("artist_id")))
             .Select(g => g.OrderBy(a => DiscOf(a.Value)).ThenBy(a => a.Key, StringComparer.Ordinal).ToList()).ToList();
@@ -209,7 +211,7 @@ internal sealed class IBroadcastLibrary(IBroadcast account, string dataDir)
         for (int i = 0; i < sets.Count; i++)
             foreach (var tid in sets[i].SelectMany(a => a.Value.GetValueOrDefault("tracks") as JsonArray ?? []).Select(Text))
             {
-                if (!tracks.TryGetValue(tid, out var tr) || Trashed(tr)) continue;
+                if (!tracks.TryGetValue(tid, out var tr) || Trashed(tr) || deleted.Contains(tid)) continue;
                 if (under.ContainsKey(tid)) { listedTwice++; continue; }
                 under[tid] = setOf.TryGetValue(Text(tr.GetValueOrDefault("album_id")), out var named) ? named : i;
             }

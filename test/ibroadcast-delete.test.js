@@ -5,6 +5,8 @@
  *   - the server: an album not iBroadcast's refused, nothing asked of iBroadcast; two of iBroadcast's three deleted:
  *     their tracks moved to iBroadcast's trash, then the trash emptied of them, and the library read again without them,
  *     the third kept; the trash not emptied (iBroadcast refusing) said, the album gone all the same;
+ *   - (item 528) iBroadcast still listing them a while after: gone from the library at once all the same, and not back
+ *     at the library read again a few seconds later, nor at Update library now;
  *   - the page (where a browser is found): Delete from iBroadcast offered only where every album picked is iBroadcast's;
  *     No to the first question, or Yes then No to "Are you sure?": nothing deleted, the selection let go (the library as
  *     it was); Yes to both: deleted, said, gone from the wall.
@@ -67,7 +69,8 @@ test("item 527: iBroadcast's albums deleted at iBroadcast from the selection men
     { id: 902, name: "Second Gone", artist: { id: 90, name: "Deleter" }, year: 2002, tracks: [T(9021, "Three", 1)] },
     { id: 903, name: "Kept", artist: { id: 90, name: "Deleter" }, year: 2003, tracks: [T(9031, "Four", 1)] },
     { id: 904, name: "Page Gone", artist: { id: 91, name: "Paged" }, year: 2004, tracks: [T(9041, "Five", 1)] },
-    { id: 905, name: "Trash Kept", artist: { id: 91, name: "Paged" }, year: 2005, tracks: [T(9051, "Six", 1)] }];
+    { id: 905, name: "Trash Kept", artist: { id: 91, name: "Paged" }, year: 2005, tracks: [T(9051, "Six", 1)] },
+    { id: 906, name: "Still Listed", artist: { id: 92, name: "Lagging" }, year: 2006, tracks: [T(9061, "Seven", 1)] }];
   const ib = await new FakeIBroadcast({ albums: albums() }).start();
   ib.slowOnce = false;
   t.after(() => ib.stop());
@@ -86,7 +89,7 @@ test("item 527: iBroadcast's albums deleted at iBroadcast from the selection men
   ib.approve();
   const db = ctx.db.raw;
   const offsetOf = id => (db.prepare("SELECT id FROM albums WHERE key = ?").get("ibroadcast:" + id) || {}).id;
-  await until(() => [901, 902, 903, 904, 905].every(offsetOf), 30000, "iBroadcast's albums");
+  await until(() => [901, 902, 903, 904, 905, 906].every(offsetOf), 30000, "iBroadcast's albums");
   const local = (await call("GET", "library/albums?count=200")).albums.find(a => a.title === "Album One").offset;
   const listed = async () => (await call("GET", "library/albums?count=200")).albums.map(a => a.title);
 
@@ -109,6 +112,21 @@ test("item 527: iBroadcast's albums deleted at iBroadcast from the selection men
     assert.match(kept.note || "", /iBroadcast's trash/);
     await until(async () => !(await listed()).includes("Trash Kept"), 20000, "Trash Kept gone");
     ib.keepTrash = false;
+  });
+
+  await t.test("iBroadcast still listing them a while after: gone at once, and not back at the readings after (item 528)", async () => {
+    ib.lagDeletes = true;
+    const reads = ib.libraryReads;
+    const r = await call("POST", "ibroadcast/delete-albums", { offsets: [offsetOf(906)] });
+    assert.equal(r.http, 200, JSON.stringify(r));
+    assert.ok(!(await listed()).includes("Still Listed"), "gone from the library as the answer comes");
+    await until(() => ib.libraryReads >= reads + 2, 15000, "the library read again a few seconds later");
+    await call("POST", "settings/ibroadcast/library");
+    await until(() => ib.libraryReads >= reads + 3, 15000, "Update library now");
+    await sleep(500);
+    assert.ok(!(await listed()).includes("Still Listed"), "not back, though iBroadcast still lists it");
+    assert.ok(ib.albums.some(a => a.name === "Still Listed"), "iBroadcast does still list it");
+    ib.lagDeletes = false;
   });
 
   await t.test("the page: No, or Yes then No, lets go of the selection and deletes nothing; Yes twice deletes", { skip: !findBrowser() && "no browser" }, async () => {
