@@ -70,6 +70,7 @@ app/native-search.js
 app/updater.js
 app/settings.js
 app/settings-services.js
+app/settings-default-service.js
 app/settings-ibroadcast-bandwidth.js
 app/settings-ibroadcast.js
 app/settings-spotify.js
@@ -88,6 +89,7 @@ app/artist-foot.js
 app/artist-tabs.js
 app/artist-about.js
 app/artist-view.js
+app/artist-discography.js
 app/artists-wall.js
 app/menu-export.js
 app/menu-drawer.js

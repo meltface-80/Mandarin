@@ -282,6 +282,8 @@
     // Their bands' albums count with their own in the heading (item 133).
     const onCount = (more) => { if (!alive()) return; const n = total + more; setTitle(n + " album" + (n !== 1 ? "s" : "") + " · " + artistName); };
     if (window.__renderArtistHead) window.__renderArtistHead(artistName, pin, grid, alive, shown, onCount, own, featured, actId, phone);
+    // The default service's albums of theirs the library doesn't have, after (item 522, artist-discography.js).
+    if (window.__artistDiscography) window.__artistDiscography(artistName, actId, grid, alive);
   }
 
   window.__showArtistAlbums = showArtistAlbums;

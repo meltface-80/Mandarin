@@ -291,5 +291,7 @@ internal object ContractLabels1 {
         "settings-services.tidal" to listOf("Tidal"),
         "settings-services.spotify" to listOf("Spotify"),
         "settings-services.ibroadcast" to listOf("iBroadcast"),
+        "settings-services.default-info" to listOf("About {setting}"),
+        "settings-services.default" to listOf("Default service"),
     )
 }

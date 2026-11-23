@@ -65,7 +65,7 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
         "playback" -> SettingsAudio(client, onBack)
         "backup" -> SettingsBackup(client, onBack)
         "system" -> SettingsUpdates(client, onBack)
-        "streaming" -> SettingsServices(onBack, open)
+        "streaming" -> SettingsServices(client, onBack, open)
         "qobuz", "tidal" -> SettingsService(pane, client, onBack)
         "ibroadcast" -> SettingsIBroadcast(client, onBack, open)
         "spotify" -> SettingsSpotify(client, onBack)

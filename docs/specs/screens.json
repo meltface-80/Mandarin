@@ -238,7 +238,7 @@
       }
     },
     "artist": {
-      "page": "an artist's page (their name tapped on an album, on Now playing or on the Artists wall; rebuilt in bug list item 131, now in tabs): the count and the name as the heading, the bar's Back; who they are over the tabs (their picture, what they are, where from and when, their genres, Play and Shuffle; no links); then Overview, Discography and About, every artist's page the same. Overview: their albums as album tiles in Home's row, scrolling sideways, with See all, then similar artists and albums. Discography: their albums, those they appear on, their bands' albums from their years in them (\"With {band}\") and those they are credited on (as what, beside the album's artist). About: the biography, asked for only when it is opened, and a band's members or a person's bands, each opening their own page. The mini player and the row are their own screens",
+      "page": "an artist's page (their name tapped on an album, on Now playing or on the Artists wall; rebuilt in bug list item 131, now in tabs): the count and the name as the heading, the bar's Back; who they are over the tabs (their picture, what they are, where from and when, their genres, Play and Shuffle; no links); then Overview, Discography and About, every artist's page the same. Overview: their albums as album tiles in Home's row, scrolling sideways, with See all, then similar artists and albums. Discography: their albums, then the default service's albums of theirs the library doesn't have under \"More on {service}\" (item 522; that service's tiles, a tap opening the album there), those they appear on, their bands' albums from their years in them (\"With {band}\") and those they are credited on (as what, beside the album's artist). About: the biography, asked for only when it is opened, and a band's members or a person's bands, each opening their own page. The mini player and the row are their own screens",
       "native": ["android/app/src/main/java/com/musicd/server/android/ArtistScreen.kt", "android/app/src/main/java/com/musicd/server/android/ArtistHero.kt", "android/app/src/main/java/com/musicd/server/android/ArtistTabs.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTile.kt", "android/app/src/main/java/com/musicd/server/android/WallGrid.kt", "android/app/src/main/java/com/musicd/server/android/WallSelect.kt", "android/app/src/main/java/com/musicd/server/android/GenreChips.kt", "android/app/src/main/java/com/musicd/server/android/ArtistFoot.kt"],
       "preview": false,
       "items": {
@@ -752,7 +752,7 @@
       }
     },
     "settings-services": {
-      "page": "Settings' Services: Back, its title; Qobuz, Tidal, Spotify and iBroadcast, a row each that opens its own page (items 443, 449, 497)",
+      "page": "Settings' Services: Back, its title; Qobuz, Tidal, Spotify and iBroadcast, a row each that opens its own page (items 443, 449, 497); under them the default service (item 522) with its ⓘ: None, Qobuz or Tidal (one not signed in says so), whose albums an artist's page shows after the library's",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsServices.kt"],
       "preview": false,
       "items": {
@@ -761,7 +761,10 @@
         "qobuz": { "kind": "action", "label": "Qobuz" },
         "tidal": { "kind": "action", "label": "Tidal" },
         "spotify": { "kind": "action", "label": "Spotify" },
-        "ibroadcast": { "kind": "action", "label": "iBroadcast" }
+        "ibroadcast": { "kind": "action", "label": "iBroadcast" },
+        "default-name": { "kind": "shows" },
+        "default-info": { "kind": "action", "label": "About {setting}" },
+        "default": { "kind": "action", "label": "Default service" }
       }
     },
     "settings-service": {

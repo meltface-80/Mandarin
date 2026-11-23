@@ -277,6 +277,13 @@ class ServerClient(
     fun serviceFavourite(source: String, albumId: String, on: Boolean): JSONObject =
         post("/api/$source/" + (if (on) "favorite" else "unfavorite"), JSONObject().put("album_id", albumId))
 
+    /** Settings → Services' default service (item 522): as the server has it, and [service] ("" for none) made it; each its list. */
+    fun defaultService(): DefaultService = DefaultService.parse(getJson(DefaultService.PATH))
+    fun saveDefaultService(service: String): DefaultService = DefaultService.parse(post(DefaultService.PATH, JSONObject().put("service", service), 20_000))
+
+    /** [artist]'s albums (act [act] where acts share the name) on the default service that the library hasn't (item 522); the service may be asked there and then. */
+    fun artistDiscography(artist: String, act: Long?): ArtistDiscography = ArtistDiscography.parse(getJson(ArtistDiscography.path(artist, act), 30_000))
+
     /** A page of an album's booklet, drawn [width] pixels wide (the server keeps a few widths). */
     fun bookletPageUrl(offset: Long, bookletId: String, page: Int, width: Int): String =
         address.baseUrl + "/api/booklet/page?offset=$offset&id=" + enc(bookletId) + "&page=$page&w=$width"
