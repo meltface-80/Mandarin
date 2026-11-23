@@ -27,6 +27,9 @@ internal static partial class Library
         ["/api/search"] = Search,
         ["/api/artists"] = Artists,
         ["/api/artist-albums"] = ArtistAlbums,
+        // The default service's albums of an artist, after the library's on their page; the setting (item 522, DiscographyRoutes.cs).
+        ["/api/artist-discography"] = ArtistDiscography,
+        ["/api/settings/default-service"] = DefaultServiceRoute,
         ["/api/filters/genres"] = GenresRoute,
         ["/api/filters/decades"] = DecadesRoute,
         ["/api/favourites"] = Favourites,
@@ -76,6 +79,7 @@ internal static partial class Library
     private static readonly Dictionary<string, Handler> Posts = new()
     {
         ["/api/settings/display"] = SaveDisplaySettings,
+        ["/api/settings/default-service"] = DefaultServiceRoute,   // item 522, DiscographyRoutes.cs
         ["/api/settings/shelf"] = SaveShelfSettings,
         ["/api/settings/smart-picks"] = SaveSmartPicksSettings,
         ["/api/settings/home-rows"] = SaveHomeRows,
