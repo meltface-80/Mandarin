@@ -15,12 +15,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.3.5, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.3.6, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
      "Rows of albums under a greeting: Not played in 6 months, Listen later, Favourites, "
-     "Recently played, Smart Picks, Label of the week, Random albums, Library and Browse by genre.",
+     "Recently played, Smart Picks, Random albums, Library and Browse by genre.",
      "Open **☰ → Home**. Tap a row's title for all of it. To reorder rows or hide one, open "
      "**Settings → Setup → Home Screen**, hold a row's grip and drag it, or switch it off."),
     ("touch", "👆", "Phones and tablets", False,
@@ -48,13 +48,13 @@ FEATURES = [
      "A Home row; tap its title for all of them. Move or hide it in **Settings → Setup → Home Screen**."),
     ("library", "📚", "Library", False,
      "Every album, sorted by name, artist, release date, date added, plays, last played or random, "
-     "and narrowed by genre, decade, label, format, sample rate, bit depth or first letter.",
+     "and narrowed by genre, decade, format, sample rate, bit depth or first letter.",
      "Tap the **Library** row's title on Home, or **Library** in a phone's or tablet's row. **Sort** and "
      "**Focus** are in the top bar (at the top right on a phone or tablet); Focus also "
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
      "**☰ → Random albums** opens a shuffled wall."),
     ("shelf", "🗄️", "Shelf", False,
-     "A record shop's shelf: your albums' spines in a 3D row, narrowed by genre, artist, year, label, "
+     "A record shop's shelf: your albums' spines in a 3D row, narrowed by genre, artist, year, "
      "type, format or favourites, put in order, or spun to land anywhere.",
      "Its switch is **Settings → Setup → Shelf** (off on a new install); off, it is off entirely and not "
      "offered. Open **☰ → Shelf**, **Shelf** in a phone's or tablet's row, `http://<server-ip>:3500/shelf`, "
@@ -62,39 +62,42 @@ FEATURES = [
      "hold to keep turning, flick to spin; tap a spine to bring it to the front, and the one in front to "
      "open the album: the library's own album page, in the Shelf's room, with its track times, the heart, "
      "**Play now**, **Queue** and **⋯**; hold a track to choose tracks and play or queue those. The "
-     "choices' eight tabs (Genres, Artists, Years, Labels, Types, Formats, Favourites, Order) narrow the "
+     "choices' seven tabs (Genres, Artists, Years, Types, Formats, Favourites, Order) narrow the "
      "shelf; **#N**, **A → Z** and **Z → A** put the genres in order. "
-     "**Order** has A → Z by artist, by label and catalogue number, by catalogue number, by year, and "
+     "**Order** has A → Z by artist, by catalogue number, by year, and "
      "random; each device keeps the one chosen. The bar at its foot has what's playing, Spin, the zone "
      "and the volume; the queue comes in from the right."),
     ("search", "🔍", "Search", False,
-     "Albums, artists and labels as you type, and Qobuz's and Tidal's catalogues beside them: an "
+     "Albums and artists as you type, and Qobuz's and Tidal's catalogues beside them: an "
      "album from either opens and plays whether or not it is in your library.",
      "Tap the magnifying glass in the top bar (in the row at the foot of a phone's or tablet's screen) "
-     "and type. Labels show when Record labels is on. Signed in "
+     "and type. Signed in "
      "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, "
      "from the Library wall's filter too; tap a cover for the album's page, an artist for their page."),
-    ("album", "💿", "Album pages", False,
-     "Tracks, year and label, write-ups from Wikipedia and Qobuz, Pitchfork's score, and every version of "
-     "the album (an original and its remaster) as one album, the best its main.",
+    ("album", "💿", "Album pages", True,
+     "Tracks and year, write-ups from Wikipedia and Qobuz, Pitchfork's score, and every version of the album "
+     "(a remaster, a copy on Qobuz, Tidal or iBroadcast) as one album.",
      "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, "
      "Listen later, Share card, Make this the main version, Edit album and (in the Android app) Download. "
      "On a phone, **Tracks**, **Credits**, **About** and **Versions** are tabs, held at the top as the page "
-     "scrolls; Versions lists each version with its edition and rate, a tap showing it in place. Versions "
-     "are told by MusicBrainz's release group, else one act and title with its version words off; a list "
-     "shows the main one with *2 versions* under it. On a computer, swipe sideways or press ← → for the "
+     "scrolls; Versions lists each version with its edition, rate and year, and where it is from (*Your files*, "
+     "*Qobuz*, *Tidal* or *iBroadcast*) when it is in more than one place, a tap showing it in place. Versions "
+     "are told by MusicBrainz's release group, else one act and title with its version words off; an album you "
+     "have in several places is one album, its copies its versions. A list shows the main one with *2 versions* "
+     "under it: the one you chose (**Make this the main version**), else your default service's, else the best. "
+     "On a computer, swipe sideways or press ← → for the "
      "previous or next album. The track playing has a small disc turning beside "
      "its number. A classical album is set out as its works and movements, its composers and "
      "performers in its head. On a computer, a TV or a tablet held sideways the page fills the screen in "
      "three columns, in the browser and in the Android app on a tablet: the cover, its credits and more "
      "by the artist on the left; About this album and about its artist in the middle, with **Read more**; "
      "the tracks on the right."),
-    ("more", "🧭", "More by, and similar", False,
-     "Under an album's review: the artist's other albums, the albums they appear on, and, with a "
-     "Last.fm key, similar artists and similar albums from your own library.",
-     "Open any album. For the Last.fm rows, get a free key at last.fm/api/account/create and paste "
-     "it in **Settings → Setup → API Keys** (or set `LASTFM_KEY`). Only albums you have are shown, "
-     "each opening here; to scrobble too, see Last.fm scrobbling."),
+    ("more", "🧭", "More by, and similar", True,
+     "Under an album's review: the artist's other albums, the albums they appear on, and similar artists "
+     "and similar albums from your own library.",
+     "Open any album: nothing to set up. Similar artists and albums are the acts Deezer lists as related, "
+     "with no key; a similar album is never one the artist is on. Only albums you have are shown, each "
+     "opening here."),
     ("artists", "🎤", "Artists", False,
      "Every act as a round picture with their name and album count, sorted A to Z, by most albums or "
      "at random. Two acts of one name are two artists.",
@@ -103,15 +106,17 @@ FEATURES = [
      "acts of the same name (Airbag from Norway, Airbag from Argentina) are told apart by the MusicBrainz "
      "artist ID in their files' tags (as Picard writes it), else by Mandarin's own MusicBrainz matches "
      "(**Settings → Library Scanner**), each with its own page, picture and a word to tell them apart."),
-    ("artist", "🧑‍🎤", "Artist pages", False,
-     "In tabs, as an album's page: Overview (their albums, similar artists, similar albums you have), "
-     "Discography and About (biography, members or bands). One artist however a sleeve credits them.",
+    ("artist", "🧑‍🎤", "Artist pages", True,
+     "In tabs, as an album's page: Overview (their albums, similar artists and albums), Discography (your "
+     "default service's too) and About (biography, members, bands). One artist however a sleeve credits them.",
      "Tap an artist's name on an album's page, on the Artists wall or in Search. Their picture, genres, "
-     "**Play** and **Shuffle** are on top; **See all** on Overview opens Discography. Who they are is the act "
+     "**Play** and **Shuffle** are on top; **See all** on Overview opens Discography. With a **Default service** "
+     "(**Settings → Services**), Discography goes on under **More on Qobuz** (or Tidal) with that service's albums "
+     "of theirs you don't have, an edition you have left out; a tap opens one in its browser. Who they are is the act "
      "your albums are by: its MusicBrainz ID from your files or matches, else the act MusicBrainz lists "
      "for your album titles, never just the first of the name. Facts come from "
-     "MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv (with a key), Wikidata or Deezer, "
-     "similar artists and albums from Last.fm (with a key) or Deezer; the page has no links out to the web. "
+     "MusicBrainz, Wikidata and Wikipedia, pictures from FanArt.tv, Wikidata or Deezer, "
+     "similar artists and albums from Deezer; the page has no links out to the web. "
      "A member's page shows their bands' albums from their years in them; a tap on a member, a band or a "
      "similar artist opens theirs. Tap a genre for its albums."),
     ("credits", "👥", "Album credits", False,
@@ -130,10 +135,17 @@ FEATURES = [
      "country, pressing year, format), choose its cover and split two merged releases apart. Your files "
      "never change.",
      "On an album, tap **⋯ → Edit album**. **Find match** searches MusicBrainz and the other catalogues, and **Match "
-     "by sound** looks the album up by its tracks' fingerprints (with an AcoustID key). **Version** shows the matched "
+     "by sound** looks the album up by its tracks' fingerprints on AcoustID. **Version** shows the matched "
      "pressing's details, each yours to change, with **Put back**. **Folders and copies** splits an album whose copies "
      "were merged (**Split by folder**, **Split…**, **Join back**). What you change is kept in Mandarin's database, "
      "through rescans and in backups. An iBroadcast album is edited the same way, in Mandarin only."),
+    ("merge", "🧩", "Merge albums", True,
+     "Albums that are one set (Volume One and Two, Disc 1 and Disc 2) made one album of several discs, "
+     "the first disc first. Unmerge parts them again.",
+     "Hold an album on a wall to select it, tap the others, then **⋯ → Merge albums**: two or more of your own "
+     "files' albums, or all iBroadcast's, not the two mixed. The first volume or disc comes first, whichever "
+     "you picked first, and the album is called by what the titles share. A merged album selected alone offers "
+     "**⋯ → Unmerge**. Kept in Mandarin's database, through rescans and in backups; your files are not changed."),
     ("auto-covers", "🖼️", "Covers found automatically", False,
      "An album with no cover of its own is given one from Apple Music, Deezer or MusicBrainz by itself, "
      "only when its title, artist and tracks all agree.",
@@ -166,7 +178,7 @@ FEATURES = [
      "All of each file's tags are read into the server's database, including MusicBrainz IDs, "
      "barcode, catalogue number, ISRC and ReplayGain, and used to identify albums.",
      "Nothing to set up: tags are read with every scan."),
-    ("scanner", "🔎", "Library Scanner", False,
+    ("scanner", "🔎", "Library Scanner", True,
      "One switch, Album Scanner, names albums from their files' identifiers, MusicBrainz, their sound (AcoustID) and "
      "Apple's iTunes catalogue, measures ReplayGain and finds missing covers, while nothing plays. iBroadcast albums too.",
      "Open **Settings → Library Scanner** and switch **Album Scanner** on; off, none of it is done. **Progress** counts the "
@@ -174,9 +186,9 @@ FEATURES = [
      "**Unidentified** (and **To confirm**) for you to place by hand; a copy that is every track of a bigger pressing is "
      "taken as that record. **To confirm** says how sure it is and why, with **Apply**, **Not this** (never proposed again) "
      "and the other releases it found; **Find…** opens Edit album's search. An album no search by name can place is "
-     "matched by how it sounds once **Settings → Setup → API Keys** has an AcoustID key (free, from acoustid.org): each "
-     "track's fingerprint is made on the server and looked up on AcoustID. **Match by sound** in Edit album does it for one album at once, "
-     "whatever the hour; under the AcoustID key, API Keys says how many albums are matched by sound and how many are still to look at. "
+     "matched by how it sounds: each track's fingerprint is made on the server and looked up on AcoustID, with "
+     "Mandarin's own key (nothing to enter). **Match by sound** in Edit album does it for one album at once, "
+     "whatever the hour; the Album Scanner's page says how many albums are matched by sound and how many are still to look at. "
      "Your files are not changed. **Schedule** keeps it to the hours you set; off, it runs any time, "
      "day and night. **Library clean-up** removes albums whose files are gone, after showing counts."),
     ("mbpack", "📦", "MusicBrainz pack", False,
@@ -201,13 +213,6 @@ FEATURES = [
      "played in the last six months. Switched on per device.",
      "Open **Settings → Audio Devices**, tap the device and switch on **Random album radio**. "
      "**⋯ → Radio** on an album plays it and switches radio on for that device."),
-    ("scrobble", "📮", "Last.fm scrobbling", False,
-     "Everything played, in every room, on a Mandarin Bridge or the phone, is scrobbled to your Last.fm "
-     "account and shown there as now playing.",
-     "Get a free key at last.fm/api/account/create and save it with its **shared secret** in **Settings → "
-     "Setup → API Keys**, then tap **Connect to Last.fm** and allow Mandarin on Last.fm's page. A track is "
-     "scrobbled at Last.fm's own point (half way or four minutes in); plays made offline or while Last.fm is "
-     "down are sent when it is back. **Disconnect** stops it."),
     ("sonos", "🔈", "Sonos", False,
      "Play, queue, play next, shuffle, repeat and volume for each Sonos room, and grouping and "
      "ungrouping rooms. Sonos plays up to 24-bit / 48 kHz; Mandarin converts anything above.",
@@ -278,16 +283,6 @@ FEATURES = [
      "Pitchfork's latest album reviews and Best New Music, read in the app, with Play on any album "
      "you own.",
      "Open **☰ → Pitchfork**."),
-    ("labels", "🏢", "Record labels", False,
-     "Labels from your files' tags or a folder level: a Labels screen, logos from Discogs and "
-     "FanArt.tv, lookups for albums without a label, and merging of duplicate names.",
-     "Switch it on in **Settings → Setup → Record labels**. Logos need a Discogs token or FanArt.tv key "
-     "(**Settings → Setup → API Keys**). On **☰ → Labels**, search and #–Z are in the top bar (on a phone or "
-     "tablet, #–Z at the top right and Search in the row); hold a tile to select labels to merge."),
-    ("lotw", "📆", "Label of the week", False,
-     "With Record labels on, one label from your library on Home all week, with its albums. A new "
-     "one each Monday.",
-     "Switch on **Settings → Setup → Record labels**; the row then shows on Home."),
     # ---- Your collections
     ("favourites", "❤️", "Favourites", False,
      "A heart on every album. Hearted albums gather on a Home row.",
@@ -401,19 +396,20 @@ FEATURES = [
      "start it again.",
      "Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. "
      "On Mandarin OS the computer shuts down too; its power button starts it all again."),
-    ("backup", "💾", "Backup and restore", False,
-     "Back up settings, players, collection, API keys (with the Tailscale identity) and the whole "
-     "database, at home or away: to the server, or from the app to a file.",
+    ("backup", "💾", "Backup and restore", True,
+     "Back up settings, players, collection, sign-ins, iBroadcast covers and "
+     "booklets and the whole database, at home or away: to the server, or from the app to a file.",
      "Open **Settings → Backup & restore**, tick what to include, then **Back up to the server** (or, "
      "in the app, **Back up to a file on this phone**). To restore, pick a backup (or the file), tick "
      "the parts and tap **Restore**. Mandarin keeps a backup of how things were first, then restarts.\n\n"
-     "**What a backup holds.** The API keys part (and the whole database) holds your Discogs, FanArt.tv "
-     "and Last.fm keys and the Last.fm sign-in, the Qobuz and Tidal sign-ins (tokens, never a password) and the server's Tailscale "
+     "**What a backup holds.** The API keys part (and the whole database) holds the Qobuz and Tidal sign-ins "
+     "(tokens, never a password), any FanArt.tv or AcoustID key you saved before v1.3.6, and the server's Tailscale "
      "identity. Without a passphrase they are in the file as they are, so keep the file as you would keep "
      "them. Type a **passphrase** (8 characters or more) before backing up and they are sealed "
      "(AES-256-GCM; v0.9.0): restoring them asks for it, and nothing opens them without it. Everything "
      "else in a sealed backup restores without it. A backup never holds your password or other devices' "
-     "sign-ins.\n\n"
+     "sign-ins. **iBroadcast covers and booklets** holds the covers and booklets Mandarin keeps of the albums you "
+     "uploaded to iBroadcast, which may be on drives disconnected since.\n\n"
      "**Restoring on another computer.** When none of a backup's music folders is on this computer, this "
      "computer's are kept, and the next scan finds the albums' files here (the same files: the same size, "
      "date and name), with their edits, favourites and plays. **Before a restore.** The copy of the "
@@ -433,15 +429,25 @@ FEATURES = [
      "Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites "
      "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
      "Details under [Tidal](#tidal)."),
-    ("ibroadcast", "📻", "iBroadcast", False,
-     "Sign in to your iBroadcast account: your iBroadcast albums become albums here and play in every room, "
-     "on every Bridge and on the phone, each track as you uploaded it.",
+    ("default-service", "🎯", "Default service", True,
+     "Qobuz or Tidal as your default service: an artist's page lists its albums of theirs you don't have, and "
+     "its copy of an album is the main version.",
+     "**Settings → Services → Default service**, under the services: **None**, **Qobuz** or **Tidal** (signed in). "
+     "An artist's **Discography** then goes on under **More on Qobuz** (or Tidal), an edition you have left out; a "
+     "tap opens the album in that service's browser. Read from the service when you first open an artist, then "
+     "kept for a day. Changing it makes the albums' versions again. Details under [Default service](#default-service)."),
+    ("ibroadcast", "📻", "iBroadcast", True,
+     "Sign in to your iBroadcast account: your iBroadcast albums become albums here, with your folders' covers and "
+     "booklets, and play in every room, on every Bridge and on the phone.",
      "**Settings → Services → iBroadcast → Sign in on iBroadcast**: open the link, approve Mandarin there with the code "
      "shown, come back. Your iBroadcast albums join the library, on the walls, in search and in Smart Picks; **Update "
      "library now** reads it again. On an iBroadcast album, **⋯ → Download to this phone** keeps it on the phone and "
      "**⋯ → Edit album** changes it in Mandarin only. The Album Scanner identifies them by their details, and by their "
-     "sound when you choose one to play."),
-    ("ibroadcast-upload", "⬆️", "Upload to iBroadcast", True,
+     "sound when you choose one to play. An album you uploaded with Mandarin shows its folder's cover and booklets "
+     "(PDFs), kept in Mandarin, so they show with the drive away; one with no picture is drawn a cover. Select "
+     "iBroadcast albums on a wall for **⋯ → Merge albums**, or **⋯ → Delete from iBroadcast**: asked twice, it "
+     "deletes them from your iBroadcast account and from Mandarin. Details under [iBroadcast](#ibroadcast)."),
+    ("ibroadcast-upload", "⬆️", "Upload to iBroadcast", False,
      "Your library uploaded to your iBroadcast account, each file as it is and nothing sent twice: now, or each day "
      "on a schedule, within the upload speed you allow.",
      "**Settings → Services → iBroadcast → Upload**: choose **Upload from** (All drives, or any of your drives, "
@@ -493,6 +499,7 @@ PAGES = {"downloads": "downloads.html", "logs": "logs.html", "mandarin-os": "man
          "away-from-home-tailscale": "away.html", "sq-tool": "sq-tool.html", "mandarin-bridge": "bridges.html",
          "upsampling-and-output": "upsampling.html", "signal-path": "signal-path.html", "your-account": "account.html",
          "qobuz": "services.html#qobuz", "tidal": "services.html#tidal",
+         "ibroadcast": "services.html#ibroadcast", "default-service": "services.html#default-service",
          "sound-devices-on-the-server": "how-it-works.html#sound-devices"}
 
 
