@@ -25,7 +25,7 @@ internal static partial class Library
         return new([.. list.Select(v => (JsonNode)AlbumJson(s, v, new JsonObject
         {
             ["label"] = v.VersionLabel, ["edition"] = v.VersionEdition, ["main"] = v.Id == al.MainVersion, ["current"] = v.Id == al.Id, ["release_year"] = v.ReleaseYear,
-            ["from"] = SourceName(v),   // where it is from: your files, Qobuz, Tidal, iBroadcast (item 523)
+            ["from"] = SourceName(v),   // where it is from: your files, Qobuz, Tidal (item 523)
             ["tracks"] = v.TrackCount, ["seconds"] = seconds.TryGetValue(v.Id, out var sec) ? Math.Round(sec) : null,
         }))]);
     }

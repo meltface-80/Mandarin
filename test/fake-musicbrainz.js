@@ -51,7 +51,6 @@ class FakeMusicBrainz {
     this.labels = labels;
     this.requests = [];
     this.agents = [];     // each request's User-Agent, beside it
-    this.busy = false;    // every request turned away (503), as MusicBrainz does when it's asked too much (item 478)
     this.server = null;
   }
   start() {
@@ -60,7 +59,6 @@ class FakeMusicBrainz {
       this.requests.push(u.pathname + u.search);
       this.agents.push(String(req.headers["user-agent"] || ""));
       const send = j => { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(j)); };
-      if (this.busy) { res.statusCode = 503; return send({ error: "Your requests are exceeding the allowable rate limit." }); }
       let m;
       if (u.pathname === "/ws/2/label/") {
         const t = /label:"((?:\\.|[^"])*)"/.exec(u.searchParams.get("query") || "");

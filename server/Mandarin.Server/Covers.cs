@@ -218,7 +218,7 @@ internal static partial class Covers
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* moved: try embedded */ }
         }
-        foreach (var path in tracks.Where(t => !t.Contains("://", StringComparison.Ordinal)))   // a streamed track has no file to look in: none (item 526)
+        foreach (var path in tracks)
         {
             try
             {

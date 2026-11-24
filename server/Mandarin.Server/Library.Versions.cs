@@ -4,7 +4,7 @@
 // version words are taken off ("Metallic 'KO (2015 Remaster)"): never two of different release groups, and never two of
 // one title from different years with no word of an edition between them (Peter Gabriel's four "Peter Gabriel"), but
 // for one album from two sources, whose years can be a year apart (a store's release date, your files' tag) where their
-// tracks are as many. Your files, Qobuz's, Tidal's and iBroadcast's albums are versions of one another (item 523): an
+// tracks are as many. Your files', Qobuz's and Tidal's albums are versions of one another (item 523): an
 // album held in several shows once. A compilation and a box set's disc are each their own. The lists show the main version alone, with how
 // many there are; the album's page lists every version, each saying where it is from (LibraryRoutes.Versions.cs). The
 // main version is the one chosen on an album's page, else the default service's (Settings → Services, item 522), else the
@@ -121,7 +121,7 @@ internal static partial class Library
         a.Service != b.Service && a.Year is long ya && b.Year is long yb && Math.Abs(ya - yb) <= 1 && a.TrackCount is double ta && ta == b.TrackCount;
 
     /* Where an album is from, as its row on the Versions tab says it (item 523). */
-    public static string SourceName(Album al) => al.Service switch { null => "Your files", "qobuz" => "Qobuz", "tidal" => "Tidal", "ibroadcast" => "iBroadcast", var other => other };
+    public static string SourceName(Album al) => al.Service switch { null => "Your files", "qobuz" => "Qobuz", "tidal" => "Tidal", var other => other };
 
     /* The keys of the albums chosen as the main of their versions. */
     private static HashSet<string> MainVersionKeys(SqliteConnection c)

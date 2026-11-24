@@ -154,10 +154,6 @@ internal fun ScannerSchedule(k: ScanKept, client: () -> ServerClient?, scope: Co
             Text("to", Modifier.parity("settings-scanner.name"), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp)
             TimeBox(sch.optString("end"), Modifier.parity("settings-scanner.end", Contract.label("settings-scanner.end")).clickable(enabled = !k.busy) { set("end") })
         }
-        // iBroadcast's upload window beside its hours (item 447): the two can't overlap.
-        Scanner.uploadNote(k.scan?.optJSONObject("upload_window"))?.let {
-            Text(it, Modifier.parity("settings-scanner.note").padding(top = 8.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp)
-        }
     }
 }
 

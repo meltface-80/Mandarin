@@ -211,8 +211,7 @@ async function fetchAlbumDetail(album, opts) {
         .concat(laterMenuItem(album, j))
         .concat([{ label: "Share card", key: "album.share", onClick: () => window.__openShareCard({ title: album.title || "", artist: album.subtitle || "", image_key: album.image_key }) }])   // item 373: no button of its own
         .concat(versionMainItem(j))
-        // Edited as the owner's own: the library's, and iBroadcast's (item 458), its edits Mandarin's alone.
-        .concat(ownAlbum(album) ? [{ label: "Edit album", key: "album.edit", onClick: () => openAlbumEditor(album) }] : [])
+        .concat(album.source && album.source !== "local" ? [] : [{ label: "Edit album", key: "album.edit", onClick: () => openAlbumEditor(album) }])
         .concat(downloadMenuItem(album)),
       { label: "More actions", key: "album.more" });
     modalActs.appendChild(more);

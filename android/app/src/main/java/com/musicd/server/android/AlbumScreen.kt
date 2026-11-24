@@ -162,7 +162,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
         again = album == null && got.exceptionOrNull()?.let(Failure::worthAgain) == true
         val a = album ?: return@LaunchedEffect
         // Its booklets, as the page asks: an album of your own files only.
-        if (a.album.source == null || a.album.source == "local" || a.album.source == "ibroadcast") booklets = withContext(Dispatchers.IO) { runCatching { lib.booklets(offset) }.getOrNull().orEmpty() }
+        if (a.album.source == null || a.album.source == "local") booklets = withContext(Dispatchers.IO) { runCatching { lib.booklets(offset) }.getOrNull().orEmpty() }
         extras = withContext(Dispatchers.IO) { runCatching { lib.albumExtras(a.album.title, a.album.subtitle) }.getOrNull() }
         // Its credits (item 132): the server may find them there and then, for a few seconds; the rows under them meanwhile.
         coroutineScope {
@@ -282,7 +282,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                             Icon(painterResource(if (favourite) R.drawable.np_heart_on else R.drawable.np_heart), contentDescription = null, modifier = Modifier.size(22.dp))
                         }
                         val dlState = download.optString("state", "none")
-                        val dlLabel = downloadWords(download, phone == null && com.musicd.server.client.OwnAlbum.mine(a.album.source))
+                        val dlLabel = downloadWords(download, phone == null && (a.album.source == null || a.album.source == "local"))
                         val bridge = (context as? Activity)?.let { DownloadsBridge(it) }
                         MoreMenu(a, later, onLater = { later = !later; val on = later; mark { it.listenLater(shown, on) } },
                             onMain = a.versions.firstOrNull { it.current }?.takeIf { !it.main && phone == null }?.let { v -> { makeMain(v.album.offset) } },

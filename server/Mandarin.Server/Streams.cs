@@ -151,9 +151,8 @@ internal static partial class Streams
         // Qobuz or Tidal (v0.8.47): this server's once the services are, else the Node server's.
         var svc = Services.Catalogue.Of(t.Path);
         if (t.Path.Contains("://", StringComparison.Ordinal) && (svc == null || !Jobs.Holds("services"))) return Refuse(ctx, 404);
-        // Away from home: Opus 256, as the phone downloads it (Downloads.cs, v0.8.12); an iBroadcast track's too, made from its
-        // original (item 445). A Qobuz or Tidal track: the cached FLAC.
-        if (opus && (svc == null || svc.Id == "ibroadcast")) return await Downloads.StreamOpus(ctx, id);
+        // Away from home: Opus 256, as the phone downloads it (Downloads.cs, v0.8.12). A streamed track: the cached FLAC.
+        if (opus && svc == null) return await Downloads.StreamOpus(ctx, id);
         if (gq is null) { if (ListOne(raw, "g") is { } one) gq = (true, one); else return Refuse(ctx, 400); }
         double? gain = null;
         if (gq.Value.Here)

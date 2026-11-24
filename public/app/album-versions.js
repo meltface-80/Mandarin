@@ -74,7 +74,7 @@ function renderVersions(j) {
   head.innerHTML = '<span class="album-versions-count"></span><span class="album-versions-note">The library shows the main one</span>';
   head.firstElementChild.textContent = list.length + " versions";
   pane.appendChild(head);
-  // Where each is from (item 523), where they come from more than one place: your files, Qobuz, Tidal, iBroadcast.
+  // Where each is from (item 523), where they come from more than one place: your files, Qobuz, Tidal.
   const mixed = new Set(list.map(v => v.from)).size > 1;
   for (const v of list) {
     const row = document.createElement("div");

@@ -42,16 +42,6 @@ internal static partial class Jobs
     // Qobuz's and Tidal's catalogue (v0.8.39, ServiceRoutes.cs): where each is asked.
     public static Services.QobuzCatalogue? Qobuz { get; private set; }
     public static Services.TidalCatalogue? Tidal { get; private set; }
-    // iBroadcast (item 443, Services/IBroadcast/): where it is asked (the tests' stand-in).
-    public static Services.IBroadcast.IBroadcast? IBroadcast { get; private set; }
-    // Its library in Mandarin's (item 444): read when iBroadcast says it changed.
-    public static Services.IBroadcast.IBroadcastLibrary? IBroadcastLibrary { get; private set; }
-    // Its tracks played, as a service's are (item 445).
-    public static Services.IBroadcast.IBroadcastStreams? IBroadcastStreams { get; private set; }
-    // Its upload (item 446): the limit on a file (the tests' smaller), and the waits for a busy iBroadcast (the tests' shorter).
-    public static Services.IBroadcast.IBroadcastUpload? IBroadcastUpload { get; private set; }
-    // And on a schedule, never at the Library Scanner's hours (item 447): the clock looked at (the tests' more often).
-    public static Services.IBroadcast.IBroadcastSchedule? IBroadcastSchedule { get; private set; }
 
     private static volatile bool started;
 
@@ -117,25 +107,7 @@ internal static partial class Jobs
         // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database. Tidal's sign-in (v0.8.47): where it is asked.
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
-        IBroadcast = new Services.IBroadcast.IBroadcast(Text(cfg["ibroadcast_url"]));
-        // The uploaded albums' booklets kept here (item 510), shown from the start.
-        Services.IBroadcast.IBroadcastBooklets.Init(dataDir);
-        IBroadcastLibrary = new Services.IBroadcast.IBroadcastLibrary(IBroadcast, dataDir)
-            { WatchMs = cfg["ibroadcast_watch_ms"] is JsonValue ibw && ibw.TryGetValue<double>(out var ibms) && ibms > 0 ? ibms : 10 * 60 * 1000 };
-        IBroadcastStreams = new Services.IBroadcast.IBroadcastStreams(IBroadcast) { DataDir = dataDir };
-        IBroadcastUpload = new Services.IBroadcast.IBroadcastUpload(IBroadcast, dataDir)
-        {
-            LimitBytes = cfg["ibroadcast_upload_limit"] is JsonValue ibl && ibl.TryGetValue<double>(out var lim) && lim > 0 ? (long)lim : 1_500_000_000,
-            HoldMs = cfg["ibroadcast_upload_limit"] != null ? 200 : 5000,
-            // The tests' uploads follow one another at once: no wait unless one asks for it (item 488).
-            WaitMs = cfg["ibroadcast_upload_wait_ms"] is JsonValue ibq && ibq.TryGetValue<double>(out var wait) ? wait : cfg["ibroadcast_upload_limit"] != null ? 0 : Services.IBroadcast.IBroadcastUploadSent.WaitMs,
-            AgainMs = cfg["ibroadcast_upload_again_ms"] is JsonValue iba && iba.TryGetValue<double>(out var again) && again > 0 ? again : Services.IBroadcast.IBroadcastUploadSent.AgainMs,
-            ResumeEveryMs = cfg["ibroadcast_upload_limit"] != null ? 200 : 15_000,
-            Files = new Services.IBroadcast.IBroadcastUploadFiles(IBroadcast.Api, dataDir) { Waits = cfg["ibroadcast_upload_limit"] != null ? [TimeSpan.FromMilliseconds(200)] : [TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(5)] },
-        };
-        IBroadcastSchedule = new Services.IBroadcast.IBroadcastSchedule(IBroadcastUpload)
-            { TickMs = cfg["ibroadcast_schedule_tick_ms"] is JsonValue ibt && ibt.TryGetValue<double>(out var tick) && tick > 0 ? (int)tick : 30_000 };
-        // What a service no longer here left behind (items 152, 525: Spotify's), and gone albums and tracks (item 179): gone before the library is read.
+        // What a service no longer here left behind (items 152, 525, 531: Spotify's and iBroadcast's), and gone albums and tracks (item 179): gone before the library is read.
         Orphans.Sweep(Log);
         if (Services.Leftovers.Remove(dataDir, Log)) _ = Library.Tell(new JsonObject { ["services"] = "changed" });
         // The playlists' settings and the albums they held, gone with the playlists.
@@ -184,9 +156,6 @@ internal static partial class Jobs
         Services.Prune.Start();
         // Their import and the favourites' watch (v0.8.45): on the Node server's timers.
         Services.Import.Start(cfg);
-        IBroadcastLibrary?.Start();
-        IBroadcastSchedule?.Start();
-        IBroadcastUpload?.Resume();
         Server.Log("[jobs] made here: " + string.Join(", ", Names));
         // A library scan that ended before the work was set up: what follows it, made now.
         _ = Task.Run(async () =>
@@ -233,9 +202,6 @@ internal static partial class Jobs
         Scans.Stop();
         Services.Prune.Stop();
         Services.Import.Stop();
-        IBroadcastLibrary?.Stop();
-        IBroadcastSchedule?.Stop();
-        IBroadcastUpload?.Shutdown();   // an Upload now under way goes on when the server starts again (item 467)
         // What was playing from Qobuz reported over (v0.8.47), as the Node server's stop did: a few seconds at most.
         try { Qobuz?.Stop().Wait(TimeSpan.FromSeconds(5)); } catch (AggregateException) { /* reported or not, stopping */ }
         Tailscale?.Stop();

@@ -1439,14 +1439,6 @@
               <span class="settings-nav-title">Tidal</span>
             </span>
           </button>
-          <button data-parity="settings-services.ibroadcast" class="settings-nav-item" type="button" data-pane="ibroadcast">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1 0 8.5z"/><path d="M12 11v6"/><path d="M9.5 13.5L12 11l2.5 2.5"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">iBroadcast</span>
-            </span>
-          </button>
         </nav>
 
         <!-- The default service (item 522, app/settings-default-service.js): its albums on artists' pages, after the library's. -->
@@ -1530,94 +1522,6 @@
               <button id="tidal-disconnect" data-parity="settings-service.signout" class="settings-update-btn" type="button">Sign out</button>
             </div>
             <div id="tidal-import-status" data-parity="settings-service.import-status" class="settings-token-status"></div>
-          </div>
-        </div>
-      </div>
-
-<!-- iBroadcast's page (item 443): one of Services' (app/settings-ibroadcast.js). -->
-      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="ibroadcast" data-parent="streaming">
-        <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to Services" data-parity="settings-ibroadcast.back">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h2 data-parity="settings-ibroadcast.heading">iBroadcast</h2>
-        </div>
-        <div class="settings-block">
-          <div class="settings-block-title" data-parity="settings-ibroadcast.title">Account <button data-parity="settings-ibroadcast.info" class="settings-info-btn" data-info="Your iBroadcast account: your own music, uploaded to iBroadcast's servers. Sign in shows a link and a code: open the link on any device, sign in to iBroadcast there and approve Mandarin with the code. Mandarin keeps iBroadcast's sign-in token, never a password, and asks only to read your account and library, change your library and upload to it. Premium is needed to play your files as they are (lossless), rather than as 128 kbps MP3." aria-label="Info">&#9432;</button></div>
-          <div id="ib-signin-form">
-            <div class="settings-token-row">
-              <button id="ib-signin" data-parity="settings-ibroadcast.signin" class="settings-update-btn" type="button">Sign in on iBroadcast</button>
-            </div>
-            <div id="ib-pending" class="tidal-auth-pending" hidden>
-              <div class="settings-note" data-parity="settings-ibroadcast.note">Open this link, sign in to iBroadcast there, approve Mandarin with this code, and come back. Mandarin notices by itself.</div>
-              <a id="ib-auth-link" data-parity="settings-ibroadcast.link" class="tidal-auth-link" href="#" target="_blank" rel="noopener"></a>
-              <div id="ib-auth-code" data-parity="settings-ibroadcast.code" class="tidal-auth-code"></div>
-              <button id="ib-signin-cancel" data-parity="settings-ibroadcast.cancel" class="settings-update-btn" type="button">Cancel</button>
-            </div>
-          </div>
-          <div id="ib-status" data-parity="settings-ibroadcast.status" class="settings-token-status"></div>
-          <div id="ib-signed" hidden>
-            <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Premium</span><span id="ib-premium" data-parity="settings-ibroadcast.premium" class="settings-token-status"></span></div>
-            <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Formats iBroadcast takes</span><span id="ib-formats" data-parity="settings-ibroadcast.formats" class="settings-token-status"></span></div>
-            <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">iBroadcast albums in the library <button data-parity="settings-ibroadcast.info" class="settings-info-btn" data-info="Every album in your iBroadcast library as an album here: on the walls, in search, in Smart Picks and Listen later. One you also have here as files is shown once, from the files. Read again whenever iBroadcast says your library changed (Mandarin looks every ten minutes), and by Update library now. On unless you switch it off; off, none of them are in the library." aria-label="Info">&#9432;</button></span>
-              <label class="switch" data-parity="settings-ibroadcast.import"><input type="checkbox" id="ib-import" aria-label="iBroadcast albums in the library"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
-            <div class="settings-token-row">
-              <button id="ib-library-now" data-parity="settings-ibroadcast.update" class="settings-update-btn" type="button">Update library now</button>
-              <button id="ib-signout" data-parity="settings-ibroadcast.signout" class="settings-update-btn" type="button">Sign out</button>
-            </div>
-            <div id="ib-library-status" data-parity="settings-ibroadcast.library-status" class="settings-token-status"></div>
-          </div>
-        </div>
-        <div id="ib-upload-block" class="settings-block" hidden>
-          <div class="settings-block-title" data-parity="settings-ibroadcast.upload-title">Upload <button data-parity="settings-ibroadcast.info" class="settings-info-btn" data-info="Your music here uploaded to iBroadcast, album by album, each file as it is. DSD, which iBroadcast can't play, goes up as FLAC at 24-bit/176.4 kHz (88.2 kHz where that is over iBroadcast's 1.5 GB a file); a lossless file over 1.5 GB as FLAC at its most compression, or at half its rate where that is still over. A file already in iBroadcast isn't sent again, so an upload stopped goes on where it was. Your files here are only read: never changed, moved or deleted. While music plays, it waits." aria-label="Info">&#9432;</button></div>
-          <div class="settings-row ib-choose"><span class="settings-label" data-parity="settings-ibroadcast.name">Upload from</span></div>
-          <div id="ib-from" class="seg ib-from"></div>
-          <div id="ib-from-note" data-parity="settings-ibroadcast.from-note" class="settings-token-status"></div>
-          <div class="settings-row ib-choose"><span class="settings-label" data-parity="settings-ibroadcast.name">Files at once</span><div id="ib-at-once" class="seg ib-count" data-key="at_once"></div></div>
-          <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Upload while music plays at home</span>
-            <label class="switch" data-parity="settings-ibroadcast.home"><input type="checkbox" id="ib-home" aria-label="Upload while music plays at home"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
-          <div id="ib-home-row" class="settings-row ib-choose" hidden><span class="settings-label" data-parity="settings-ibroadcast.name">Files at once then</span><div id="ib-home-at-once" class="seg ib-count" data-key="home_at_once"></div></div>
-          <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Upload while music plays away from home</span>
-            <label class="switch" data-parity="settings-ibroadcast.away"><input type="checkbox" id="ib-away" aria-label="Upload while music plays away from home"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
-          <div id="ib-away-row" class="settings-row ib-choose" hidden><span class="settings-label" data-parity="settings-ibroadcast.name">Files at once then</span><div id="ib-away-at-once" class="seg ib-count" data-key="away_at_once"></div></div>
-          <button data-parity="settings-ibroadcast.bandwidth" class="settings-nav-item ib-open-row" type="button" data-pane="ibroadcast-bandwidth">
-            <span class="settings-label">Upload bandwidth</span><span id="ib-bandwidth-said" class="ib-open-said">No limit</span></button>
-          <div id="ib-upload-status" data-parity="settings-ibroadcast.upload-status" class="settings-token-status"></div>
-          <div id="ib-upload-progress" data-parity="settings-ibroadcast.upload-progress" class="settings-token-status"></div>
-          <div class="settings-token-row">
-            <button id="ib-upload-now" data-parity="settings-ibroadcast.upload" class="settings-update-btn" type="button">Upload now</button>
-            <button id="ib-upload-stop" data-parity="settings-ibroadcast.upload-stop" class="settings-update-btn hidden" type="button">Stop upload</button>
-          </div>
-          <div id="ib-upload-problems" data-parity="settings-ibroadcast.upload-problems" class="settings-token-status ib-upload-problems"></div>
-          <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast.name">Upload on a schedule</span>
-            <label class="switch" data-parity="settings-ibroadcast.schedule"><input type="checkbox" id="ib-schedule" aria-label="Upload on a schedule"><span class="switch-track"><span class="switch-thumb"></span></span></label></div>
-          <div id="ib-schedule-note" data-parity="settings-ibroadcast.schedule-note" class="settings-token-status"></div>
-          <div id="ib-schedule-times" class="settings-row ib-times" hidden><span class="settings-label" data-parity="settings-ibroadcast.name">From</span>
-            <input type="time" id="ib-start" data-parity="settings-ibroadcast.start" class="id-time" aria-label="From">
-            <span class="settings-label" data-parity="settings-ibroadcast.name">to</span>
-            <input type="time" id="ib-end" data-parity="settings-ibroadcast.end" class="id-time" aria-label="To"></div>
-          <div id="ib-scanner-hours" data-parity="settings-ibroadcast.scanner-hours" class="settings-token-status"></div>
-        </div>
-      </div>
-
-
-<!-- Upload bandwidth (item 479): one of iBroadcast's pages (app/settings-ibroadcast-bandwidth.js). -->
-      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="ibroadcast-bandwidth" data-parent="ibroadcast">
-        <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to iBroadcast" data-parity="settings-ibroadcast-bandwidth.back">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h2 data-parity="settings-ibroadcast-bandwidth.heading">Upload bandwidth</h2>
-        </div>
-        <div class="settings-block">
-          <div class="settings-block-title" data-parity="settings-ibroadcast-bandwidth.title">Upload to iBroadcast <button data-parity="settings-ibroadcast-bandwidth.info" class="settings-info-btn" data-info="How much of your home's internet upload the upload to iBroadcast may use. Enter your upload speed as your internet provider gives it, and choose how much of it to use: the upload sends no faster than that, however many files go at once, and the rest is left for everything else (pages, calls, music played away from home). An upload that fills the whole of it slows everything else down. It holds at once, an upload under way included. With no speed, there is no limit." aria-label="Info">&#9432;</button></div>
-          <div class="settings-row"><span class="settings-label" data-parity="settings-ibroadcast-bandwidth.name">Your upload speed</span>
-            <span class="ib-speed"><input type="text" id="ibb-speed" data-parity="settings-ibroadcast-bandwidth.speed" class="settings-token-input ib-speed-in" inputmode="decimal" autocomplete="off" placeholder="e.g. 100" aria-label="Your upload speed"><span class="settings-label" data-parity="settings-ibroadcast-bandwidth.name">Mbps</span></span></div>
-          <div id="ibb-speed-note" data-parity="settings-ibroadcast-bandwidth.speed-note" class="settings-token-status"></div>
-          <div class="settings-row ib-choose"><span class="settings-label" data-parity="settings-ibroadcast-bandwidth.name">Use at most</span><div id="ibb-share" class="seg ib-count"></div></div>
-          <div id="ibb-limit" data-parity="settings-ibroadcast-bandwidth.limit" class="settings-token-status"></div>
-          <div class="settings-token-row">
-            <button id="ibb-clear" data-parity="settings-ibroadcast-bandwidth.clear" class="settings-update-btn hidden" type="button">No limit</button>
           </div>
         </div>
       </div>

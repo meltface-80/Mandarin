@@ -190,7 +190,7 @@ internal static partial class Backup
      * library's collection is more than the 64 MB the Node server could hold
      * in a string, item 395), the database copy to dbFile when there is one.
      */
-    public static Read ReadBackup(string file, string? dbFile, string? filesDir = null)
+    public static Read ReadBackup(string file, string? dbFile)
     {
         const long JsonMax = 512L * 1024 * 1024;
         var parts = new JsObj();
@@ -215,8 +215,6 @@ internal static partial class Backup
                     var cut = sizeText.IndexOf('\0');
                     var size = ParseOctal(Js.Trim(cut < 0 ? sizeText : sizeText[..cut]) is { Length: > 0 } st ? st : "0");
                     var isDb = name == "musicd.db";
-                    // The iBroadcast albums' covers and booklets (item 511): each into [filesDir], by its number, where asked.
-                    var isFile = filesDir != null && IBroadcastEntry().IsMatch(name);
                     var isJson = !isDb && JsonPart().IsMatch(name);
                     if (isDb && dbFile == null) throw new Refused("A database copy wasn't expected here");
                     if (isJson && size > JsonMax) throw new Refused("The backup's " + name + " is too large");
@@ -232,11 +230,6 @@ internal static partial class Backup
                     {
                         using (var w = File.Create(dbFile!)) if (!Copy(inflated, w, left)) throw new CutShort();
                         hasDb = true;
-                    }
-                    else if (isFile)
-                    {
-                        Directory.CreateDirectory(filesDir!);
-                        using (var w = File.Create(Path.Combine(filesDir!, name[3..]))) if (!Copy(inflated, w, left)) throw new CutShort();
                     }
                     else if (isJson)
                     {

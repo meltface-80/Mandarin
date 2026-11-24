@@ -1,18 +1,16 @@
 "use strict";
 /*
- * Albums merged into one from the library's selection menu (bug list item 512). The owner's iBroadcast library has
- * Ornette Coleman's At The "Golden Circle" Stockholm as two albums, Volume One and Volume Two, and Out Of/Into's Motion I
- * and Motion II; a merge, whichever is picked first, makes one album, the first volume its first disc, called by what
- * the titles share, kept in the database: a scan or a reading of iBroadcast after keeps to it, and Unmerge takes it
- * apart. The discs of one title an iBroadcast album names ("The Wall (Disc 1)", "The Wall (Disc 2)") are one album, as
- * a folder's are.
+ * Albums merged into one from the library's selection menu (bug list item 512): Out Of/Into's Motion I and Motion II,
+ * of your own files; a merge, whichever is picked first, makes one album, the first volume its first disc, called by
+ * what the titles share, kept in the database: a scan after keeps to it, and Unmerge takes it apart. Your own files'
+ * albums alone (item 531): a streamed album (Qobuz's here) isn't merged.
  */
 const ports = require("./ports");
 const test = require("node:test");
 const assert = require("node:assert");
 const path = require("path");
 const { makeLibrary, haveFfmpeg, gen } = require("./fixtures");
-const { FakeIBroadcast } = require("./fake-ibroadcast");
+const { FakeQobuz } = require("./fake-qobuz");
 const { signIn } = require("./auth-helper");
 const { createServer, built } = require("./server");
 const { until } = require("./helpers");
@@ -39,27 +37,19 @@ const PICK = (pick, act, titles) => `(async () => {
   const said = await until(() => toast.textContent);
   return { items, said };
 })()`;
-const T = (id, title, track) => ({ id, title, track, type: "audio/flac" });
-const GC = 'At The "Golden Circle" Stockholm';
-const albums = () => [
-  { id: 101, name: GC + " Volume One", artist: { id: 1, name: "Ornette Coleman" }, year: 1965, tracks: [T(1001, "Faces and Places", 1), T(1002, "European Echoes", 2)] },
-  { id: 102, name: GC + " Volume Two", artist: { id: 1, name: "Ornette Coleman" }, year: 1965, tracks: [T(1003, "Snowflakes and Sunshine", 1), T(1004, "Morning Song", 2)] },
-  { id: 201, name: "The Wall (Disc 1)", artist: { id: 2, name: "Pink Floyd" }, year: 1979, tracks: [T(2001, "In the Flesh?", 1)] },
-  { id: 202, name: "The Wall (Disc 2)", artist: { id: 2, name: "Pink Floyd" }, year: 1979, tracks: [T(2002, "Hey You", 1)] },
-];
-
-test("item 512: albums merged into one, the first volume first, kept through scans and readings, and unmerged", { skip, timeout: 300000 }, async (t) => {
+test("item 512: albums merged into one, the first volume first, kept through scans, and unmerged", { skip, timeout: 300000 }, async (t) => {
   const lib = makeLibrary();
   // Motion I and Motion II, of your own files, a folder each.
   for (const [vol, folder] of [["I", "Motion I"], ["II", "Motion II"]])
     for (const i of [1, 2]) gen(path.join(lib.music, "Out Of Into", folder, `0${i} Track ${vol}-${i}.flac`), { seconds: 1, freq: 300 + 50 * i + (vol === "II" ? 25 : 0),
       tags: { title: `Track ${vol}-${i}`, artist: "Out Of/Into", album: "Motion " + vol, track: i, date: "2024" } });
-  const ib = await new FakeIBroadcast({ albums: albums() }).start();
-  ib.slowOnce = false;
-  t.after(() => ib.stop());
+  const qobuz = new FakeQobuz({ albums: [{ id: "q1", title: "Remote One", artist: "Somebody", tracks: [{ id: 501, title: "R1", duration: 60 }] }] });
+  await qobuz.start();
+  t.after(() => qobuz.stop());
+  qobuz.favourites.add("q1");
   const port = ports.port(), base = "http://127.0.0.1:" + port;
   const srv = createServer({ port, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false,
-    ibroadcastBaseUrl: ib.base, ibroadcastWatchMs: 600000 });
+    qobuzBaseUrl: qobuz.base, qobuzSyncDelayMs: 100000 });
   const ctx = await srv.start();
   t.after(() => srv.stop());
   const token = await signIn(base);
@@ -74,37 +64,9 @@ test("item 512: albums merged into one, the first volume first, kept through sca
   const scanned = async () => until(async () => { const s = await get("/api/status"); return s.scan && s.scan.last && !s.scan.running && !s.scanning; }, 60000, "the scan");
 
   await scanned();
-  await post("/api/settings/ibroadcast/signin");
-  ib.approve();
-  await until(async () => { const s = await get("/api/settings/ibroadcast"); return s.library && s.library.albums === 3; }, 30000, "the library read");
-
-  await t.test("an iBroadcast album's discs named in its title are one album", async () => {
-    const s = await shelf();
-    assert.ok(s["The Wall"], JSON.stringify(Object.keys(s)));
-    assert.equal(s["The Wall"].discs, 2);
-    assert.deepEqual(tracks(s["The Wall"].offset), ["1-1 In the Flesh?", "2-1 Hey You"]);
-  });
-
-  await t.test("iBroadcast: Volume Two picked first, Volume One still the first disc; the one called by what they share", async () => {
-    let s = await shelf();
-    const r = await post("/api/albums/merge", { offsets: [s[GC + " Volume Two"].offset, s[GC + " Volume One"].offset] });
-    assert.equal(r.status, 200, JSON.stringify(r));
-    assert.equal(r.title, GC);
-    assert.equal(r.offset, s[GC + " Volume One"].offset, "the first volume's album kept");
-    s = await shelf();
-    assert.ok(!s[GC + " Volume Two"] && !s[GC + " Volume One"], JSON.stringify(Object.keys(s)));
-    assert.deepEqual(s[GC], { offset: r.offset, discs: 2, merged: true });
-    assert.deepEqual(tracks(r.offset), ["1-1 Faces and Places", "1-2 European Echoes", "2-1 Snowflakes and Sunshine", "2-2 Morning Song"]);
-  });
-
-  await t.test("iBroadcast read again: still one album", async () => {
-    ib.changed();
-    assert.equal((await post("/api/settings/ibroadcast/library")).status, 200);
-    const s = await shelf();
-    assert.ok(!s[GC + " Volume Two"], JSON.stringify(Object.keys(s)));
-    assert.equal(s[GC].discs, 2);
-    assert.deepEqual(tracks(s[GC].offset), ["1-1 Faces and Places", "1-2 European Echoes", "2-1 Snowflakes and Sunshine", "2-2 Morning Song"]);
-  });
+  assert.equal((await post("/api/settings/qobuz/signin", { username: "tester@example.com", password: "pw" })).status, 200);
+  assert.equal((await post("/api/settings/qobuz", { import: true })).status, 200);
+  await until(async () => (await shelf())["Remote One"], 30000, "Qobuz's album in the library");
 
   await t.test("your own files: Motion II picked first, Motion I its first disc", async () => {
     let s = await shelf();
@@ -132,23 +94,20 @@ test("item 512: albums merged into one, the first volume first, kept through sca
     assert.deepEqual(tracks(s.Motion.offset), ["1-1 Track I-1", "1-2 Track I-2", "2-1 Track II-1", "2-2 Track II-2"]);
   });
 
-  await t.test("mixing your files with iBroadcast's is refused", async () => {
+  await t.test("a streamed album isn't merged, with your files' or another's (item 531)", async () => {
     const s = await shelf();
-    const r = await post("/api/albums/merge", { offsets: [s.Motion.offset, s["The Wall"].offset] });
+    const r = await post("/api/albums/merge", { offsets: [s.Motion.offset, s["Remote One"].offset] });
     assert.equal(r.status, 400);
-    assert.match(r.error, /can't be merged/);
+    assert.match(r.error, /Only albums of your own files can be merged/);
   });
 
   await t.test("unmerged: each album its own again, its discs as its files say", async () => {
     let s = await shelf();
-    let r = await post("/api/albums/unmerge", { offset: s.Motion.offset });
-    assert.equal(r.status, 200, JSON.stringify(r));
-    r = await post("/api/albums/unmerge", { offset: s[GC].offset });
+    const r = await post("/api/albums/unmerge", { offset: s.Motion.offset });
     assert.equal(r.status, 200, JSON.stringify(r));
     s = await shelf();
-    for (const title of ["Motion I", "Motion II", GC + " Volume One", GC + " Volume Two"]) assert.ok(s[title], title + " in " + JSON.stringify(Object.keys(s)));
+    for (const title of ["Motion I", "Motion II"]) assert.ok(s[title], title + " in " + JSON.stringify(Object.keys(s)));
     assert.deepEqual(tracks(s["Motion II"].offset), ["1-1 Track II-1", "1-2 Track II-2"]);
-    assert.deepEqual(tracks(s[GC + " Volume Two"].offset), ["1-1 Snowflakes and Sunshine", "1-2 Morning Song"]);
     assert.equal(s["Motion I"].merged, false);
   });
   await t.test("the page: Motion I and II picked, Merge albums in the select menu; the merged one picked alone, Unmerge", { skip: noBrowser }, async () => {

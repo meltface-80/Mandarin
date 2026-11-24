@@ -366,7 +366,7 @@ internal static partial class StreamPlans
 
     // ---------------------------------------------------------------- playback.js
 
-    private static readonly (string Id, string Name)[] Services = [("qobuz", "Qobuz"), ("tidal", "Tidal"), ("ibroadcast", "iBroadcast")];
+    private static readonly (string Id, string Name)[] Services = [("qobuz", "Qobuz"), ("tidal", "Tidal")];
 
     /* services.ofPath(p): "qobuz" or "tidal" for a streamed track's path, else null. */
     public static string? ServiceOf(object? path)

@@ -72,7 +72,7 @@ test("Backup & restore in a browser: back up to the server, restore settings and
       r = await page.eval(DRIVER);
       assert.deepEqual(page.errors, []);
     } finally { await b.close(); }
-    assert.deepEqual(r.parts, ["settings", "devices", "collection", "keys", "database", "ibroadcast", "page"], "no app part in a browser");
+    assert.deepEqual(r.parts, ["settings", "devices", "collection", "keys", "database", "page"], "no app part in a browser");
     assert.equal(r.file_buttons, false, "the file buttons are the Android app's");
     assert.equal(r.listed, "On the server", "the card says where the backup is");
     assert.match(r.listed_meta, /v\d+\.\d+\.\d+ · \d+ KB · from /, "and what it was made from");

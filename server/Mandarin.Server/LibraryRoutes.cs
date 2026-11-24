@@ -113,8 +113,6 @@ internal static partial class Library
         // Albums merged into one from the selection menu, and apart again (item 512, AlbumMergeRoutes.cs).
         ["/api/albums/merge"] = MergeAlbumsRoute,
         ["/api/albums/unmerge"] = UnmergeAlbumRoute,
-        // iBroadcast's albums deleted at iBroadcast from the selection menu (item 527, IBroadcastDeleteRoutes.cs).
-        ["/api/ibroadcast/delete-albums"] = DeleteIBroadcastAlbumsRoute,
         ["/api/dsp/headphones/parse"] = ParseHeadphoneProfile,
         ["/api/download/albums"] = DownloadAlbums,
         ["/api/phone/plays"] = PhonePlays,
@@ -147,8 +145,6 @@ internal static partial class Library
             // And Settings → Services' state and switches, Update library now and the favourites' watch
             // (v0.8.45, ServiceRoutes.cs).
             if (await ServiceImport(ctx)) return;
-            // Settings → Services → iBroadcast (item 443, IBroadcastRoutes.cs).
-            if (await IBroadcastRoute(ctx)) return;
             if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : null) is { } table
                 && table.TryGetValue(p, out var h))
             {

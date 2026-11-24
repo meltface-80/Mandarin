@@ -8,7 +8,6 @@
 //   app.json        the Android app's own settings (from the app only)
 //   page.json       one device's screen settings
 //   musicd.db       the whole database, if chosen
-//   ibroadcast.json and ib/…  the iBroadcast albums' covers and booklets kept here, if chosen (item 511, Backup.IBroadcast.cs)
 //
 // Written and read exactly as the Node server wrote and read them, so a
 // backup it made restores here: the same tar headers, the same JSON
@@ -29,7 +28,7 @@ using Js = Mandarin.Server.Tags.Js;
 internal static partial class Backup
 {
     public const int Format = 1;
-    public static readonly string[] Parts = ["settings", "devices", "collection", "keys", "database", "ibroadcast"];
+    public static readonly string[] Parts = ["settings", "devices", "collection", "keys", "database"];
     public static readonly string[] ServerParts = ["settings", "devices", "collection", "keys"];
     // Settings a person sets, and nothing the server keeps for itself.
     public static readonly string[] SettingsKeys = ["displayEnabled", "displaySeconds", "homeRows", "identify",
