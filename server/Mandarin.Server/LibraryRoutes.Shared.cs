@@ -35,6 +35,8 @@ internal static partial class Library
 
     /* x.k for a JSON value: an object's own field, else undefined. */
     private static object? Prop(object? o, string k) => o is JsObj j ? j[k] : Undef.V;
+    /* a || b(): the first comparison that tells two apart. */
+    private static int Or(int a, Func<int> b) => a != 0 ? a : b();
 
     [GeneratedRegex(@"\s+")] private static partial Regex Spaces();
 

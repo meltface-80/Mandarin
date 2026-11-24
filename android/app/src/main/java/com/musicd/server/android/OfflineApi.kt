@@ -33,7 +33,7 @@ object OfflineApi {
     fun answers(c: Context): PhoneAnswers = PhoneAnswers(
         info = { PhoneInfo(BuildConfig.VERSION_NAME, Store.username(c) ?: "", Store.offlineMode(c)) },
         shelf = { PhoneData.shelf(c) },
-        room = PhoneRoom(Store.phoneZone(c), PhoneDeck(c)) { PhoneData.shelf(c) },
+        room = PhoneRoom(Store.phoneZone(c), PhoneDeck(c), held = { OfflineNow.looking.value }) { PhoneData.shelf(c) },
         everyDownload = { PhoneData.everyDownload(c) },
         devices = { m, p, b -> PhoneDevices.answer(c, m, p, b) },
         image = { cover(c, it) },

@@ -29,9 +29,6 @@ internal static partial class Covers
 
     /* How a cover went: drawn; none of its own (a placeholder is drawn, CoversDrawn.cs); or it couldn't be drawn. */
     public enum Drawn { Yes, NoCover, Failed }
-    // The picture an album's cover is drawn from, kept a little while: its sizes are asked for together.
-    private static readonly ConcurrentDictionary<string, (long At, Lazy<Task<byte[]?>> Bytes)> Sources = new();
-    private const long SourceMs = 20000;
     private const long MaxSource = 64L << 20;
 
     private static string Ffprobe
@@ -181,24 +178,6 @@ internal static partial class Covers
 
     // ------------------------------------------------------------ the source
 
-    /* artwork.source for an album, kept for its other sizes. */
-    private static Task<byte[]?> Source(Album al)
-    {
-        var now = Environment.TickCount64;
-        foreach (var (k, v) in Sources) if (now - v.At > SourceMs) Sources.TryRemove(k, out _);
-        var key = al.ImageKey;
-        var entry = Sources.GetOrAdd(key, k => (now, new Lazy<Task<byte[]?>>(() => Find(al).ContinueWith(t =>
-        {
-            // A very big one is shared only by the asks already waiting for it; one that couldn't be told (null: its drive away) isn't kept.
-            if (t.IsCompletedSuccessfully && t.Result is null or { Length: > 8 << 20 }) Sources.TryRemove(k, out var _);
-            return t;
-        }, TaskScheduler.Default).Unwrap())));
-        // Not many kept: a cover is megabytes.
-        if (Sources.Count > 8)
-            foreach (var (k, _) in Sources.OrderBy(x => x.Value.At).Take(Sources.Count - 8)) if (k != key) Sources.TryRemove(k, out _);
-        return entry.Bytes.Value;
-    }
-
     private static async Task<byte[]?> Find(Album al)
     {
         string? artPath = null;
@@ -239,7 +218,7 @@ internal static partial class Covers
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* moved: try embedded */ }
         }
-        foreach (var path in tracks)
+        foreach (var path in tracks.Where(t => !t.Contains("://", StringComparison.Ordinal)))   // a streamed track has no file to look in: none (item 526)
         {
             try
             {

@@ -57,11 +57,8 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Account
 import com.musicd.server.client.AccountDevices
-import com.musicd.server.client.ApiKey
-import com.musicd.server.client.ApiKeySpec
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
-import com.musicd.server.client.Scrobbling
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.SettingsKept
 import kotlinx.coroutines.Dispatchers
@@ -188,136 +185,6 @@ internal fun SettingsAccount(client: () -> ServerClient?, onBack: () -> Unit) {
                 withStyle(SpanStyle(fontFamily = FontFamily.Monospace)) { append("passwordreset") }
                 append(" at its screen; then create the account again.")
             }, Modifier.parity("settings-account.note").padding(top = 4.dp))
-        }
-    }
-}
-
-/**
- * API Keys: what they are for; Discogs, FanArt.tv, AcoustID, Last.fm and Last.fm's shared secret, each with its ⓘ (its help along
- * the foot for as long as it takes to read), the box to paste the key into (its ✓ or ✕ once checked, what the box says),
- * Save, and what the server says of the key. Then Scrobbling (Scrobbling.kt; the page's settings-lastfm.js): what it is,
- * and Connect to Last.fm, opening Last.fm's page to allow Mandarin on in the browser and asking every 3 s, ten minutes
- * at most while this screen is open, until it is allowed; or Disconnect.
- */
-@Composable
-internal fun SettingsKeys(client: () -> ServerClient?, onBack: () -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val keys = remember { mutableStateOf<Map<String, ApiKey>>(emptyMap()) }
-    val typed = remember { mutableStateOf<Map<String, String>>(emptyMap()) }
-    var saving by remember { mutableStateOf<String?>(null) }
-    var info by remember { mutableStateOf<String?>(null) }
-    var scrobbling by remember { mutableStateOf<Scrobbling?>(null) }
-    var scrobbleBusy by remember { mutableStateOf(false) }
-    var watching by remember { mutableStateOf(0) }
-    suspend fun loadScrobbling() { val c = client() ?: return; withContext(Dispatchers.IO) { runCatching { c.scrobbling() }.getOrNull() }?.let { scrobbling = it } }
-    LaunchedEffect(Unit) {
-        val c = client() ?: return@LaunchedEffect
-        loadScrobbling()
-        for (spec in ApiKeySpec.ALL) withContext(Dispatchers.IO) { runCatching { c.apiKey(spec.route) }.getOrNull() }?.let { keys.value = keys.value + (spec.route to it) }
-    }
-    // Waiting for Last.fm's leave: asked every 3 s, ten minutes at most, while the screen is open.
-    LaunchedEffect(watching) {
-        if (watching == 0) return@LaunchedEffect
-        repeat(200) {
-            delay(3000)
-            loadScrobbling()
-            if (scrobbling?.connected == true) { Toast.makeText(context, "Last.fm connected: scrobbling", Toast.LENGTH_SHORT).show(); return@LaunchedEffect }
-        }
-    }
-    // The help shown long enough to read: four seconds and a fifth of one a word, 25 at most, as the page's.
-    LaunchedEffect(info) { val t = info ?: return@LaunchedEffect; delay(minOf(25_000L, 4_000L + t.split(Regex("\\s+")).size * 220L)); info = null }
-    Box(Modifier.fillMaxSize()) {
-        SettingsFrame {
-            SettingsHead(Modifier.parity("settings-keys.back", Contract.label("settings-keys.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
-                "API Keys", Modifier.parity("settings-keys.heading"))
-            ApiKeySpec.ALL.forEachIndexed { i, spec ->
-                if (i > 0) SettingsDivider()
-                val k = keys.value[spec.route]
-                Row(Modifier.padding(top = if (i == 0) 4.dp else 0.dp).heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(spec.name, Modifier.parity("settings-keys.name"), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
-                    Box(Modifier.parity("settings-keys.info", Contract.label("settings-keys.info", 0, spec.name)).size(32.dp).clickable { info = spec.info }.padding(start = 4.dp),
-                        contentAlignment = Alignment.Center) {
-                        Text("ⓘ", color = paletteColor(Palette.TEXT_FAINT), fontSize = 16.sp, lineHeight = 16.sp)
-                    }
-                }
-                Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val value = typed.value[spec.route].orEmpty()
-                    val focus = remember { MutableInteractionSource() }
-                    val focused by focus.collectIsFocusedAsState()
-                    val shape = RoundedCornerShape(8.dp)
-                    val edge = when { focused -> Palette.ACCENT; k?.ok == true -> Palette.ACCENT; k?.bad == true -> Palette.DANGER; else -> Palette.BORDER }
-                    // The box (.token-field) and its ✓ or ✕, 7 in from its right edge, over the room its padding keeps.
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                        BasicTextField(value, { typed.value = typed.value + (spec.route to it) }, Modifier.parity("settings-keys.field", Contract.label("settings-keys.field", 0, spec.name)).fillMaxWidth(),
-                            singleLine = true, interactionSource = focus, textStyle = TextStyle(color = paletteColor(Palette.TEXT), fontSize = 13.sp, lineHeight = 18.sp),
-                            cursorBrush = SolidColor(paletteColor(Palette.ACCENT)), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, autoCorrectEnabled = false),
-                            decorationBox = { field ->
-                                Box(Modifier.fillMaxWidth().clip(shape).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(edge), shape)
-                                    .padding(start = 10.dp, top = 7.dp, end = 34.dp, bottom = 7.dp), contentAlignment = Alignment.CenterStart) {
-                                    if (value.isEmpty()) Text(k?.placeholder(spec.emptyHint) ?: spec.emptyHint, color = paletteColor(if (k?.ok == true) Palette.ACCENT_TEXT else Palette.TEXT_FAINT),
-                                        fontSize = 13.sp, lineHeight = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    field()
-                                }
-                            })
-                        k?.badge?.let {
-                            Box(Modifier.parity("settings-keys.check").padding(end = 7.dp).size(20.dp).background(paletteColor(if (k.ok) Palette.ACCENT else Palette.DANGER), CircleShape),
-                                contentAlignment = Alignment.Center) {
-                                Text(it, color = if (k.ok) paletteColor(Palette.ON_ACCENT) else Color.White, fontSize = 12.sp, lineHeight = 12.sp, fontWeight = FontWeight.W800)
-                            }
-                        }
-                    }
-                    UpdateButton("Save", saving == spec.route, Modifier.parity("settings-keys.save", Contract.label("settings-keys.save")).clickable(enabled = saving == null) {
-                        val v = value.trim()
-                        val c = client() ?: return@clickable
-                        if (v.isEmpty()) return@clickable
-                        saving = spec.route
-                        scope.launch {
-                            val r = withContext(Dispatchers.IO) { runCatching { c.saveApiKey(spec.route, spec.field, v) } }
-                            saving = null
-                            r.onSuccess { nk -> keys.value = keys.value + (spec.route to nk); typed.value = typed.value - spec.route; Toast.makeText(context, spec.saved(nk), Toast.LENGTH_SHORT).show()
-                                if (spec.route.startsWith("lastfm")) loadScrobbling() }
-                                .onFailure { Toast.makeText(context, com.musicd.server.client.Failure.said(it, "Failed to save ${spec.noun}"), Toast.LENGTH_SHORT).show() }
-                        }
-                    })
-                }
-                Text(k?.status.orEmpty(), Modifier.parity("settings-keys.status").padding(top = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp)
-                // AcoustID's: how far the Album Scanner's matching by sound has got (item 419).
-                k?.sound?.let { Text(it.line, Modifier.parity("settings-keys.sound").padding(top = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp) }
-            }
-            // Scrobbling: the account connected, or Connect to allow Mandarin on Last.fm's page.
-            val sc = scrobbling
-            val can = sc != null && (sc.connected || sc.ready) && !scrobbleBusy
-            Row(Modifier.padding(top = 18.dp).heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Scrobbling", Modifier.parity("settings-keys.name").weight(1f), color = paletteColor(Palette.TEXT), fontSize = 16.sp, lineHeight = 22.sp)
-                UpdateButton(Contract.label("settings-keys.scrobble", sc?.button ?: 0), scrobbleBusy, Modifier.parity("settings-keys.scrobble", Contract.label("settings-keys.scrobble", sc?.button ?: 0))
-                    .alpha(if (can) 1f else 0.5f).clickable(enabled = can) {
-                        val c = client() ?: return@clickable
-                        scrobbleBusy = true
-                        scope.launch {
-                            if (sc?.connected == true) {
-                                withContext(Dispatchers.IO) { runCatching { c.lastfmDisconnect() } }.onSuccess { scrobbling = it; Toast.makeText(context, "Last.fm disconnected: nothing more is scrobbled", Toast.LENGTH_SHORT).show() }
-                                    .onFailure { Toast.makeText(context, com.musicd.server.client.Failure.said(it, "Couldn't reach the server"), Toast.LENGTH_SHORT).show() }
-                            } else {
-                                withContext(Dispatchers.IO) { runCatching { c.lastfmConnect() } }
-                                    .onSuccess { url -> runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }; watching++ }
-                                    .onFailure { Toast.makeText(context, com.musicd.server.client.Failure.said(it, "Couldn't reach Last.fm"), Toast.LENGTH_SHORT).show() }
-                                loadScrobbling()
-                            }
-                            scrobbleBusy = false
-                        }
-                    })
-            }
-            Text(sc?.line.orEmpty(), Modifier.parity("settings-keys.scrobble-status").padding(top = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp)
-        }
-        // The ⓘ's help (.settings-info-toast): along the foot, over the page, until it has been read.
-        info?.let { t ->
-            val box = RoundedCornerShape(12.dp)
-            Box(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 88.dp).widthIn(max = minOf(400, (LocalConfiguration.current.screenWidthDp * 0.92f).toInt()).dp)
-                .clip(box).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(Palette.BORDER), box)
-                .parity("settings-keys.info").padding(horizontal = 18.dp, vertical = 12.dp)) {
-                Text(t, color = paletteColor(Palette.TEXT), fontSize = 14.sp, lineHeight = 21.sp)
-            }
         }
     }
 }

@@ -47,7 +47,7 @@ internal static partial class Library
                 case "/api/settings/ibroadcast" when get:
                     if (IB.IBroadcast.Connected() && IB.IBroadcast.Account()?["checked"] is var at
                         && (at is not JsonValue v || !v.TryGetValue<double>(out var ms) || IB.IBroadcastApi.Now() - ms > IBroadcastRecheckMs))
-                        _ = Task.Run(async () => { try { await ib.Describe(); } catch (ServiceError e) { Server.Log("[ibroadcast] the account couldn't be read: " + e.Message); } });
+                        _ = Task.Run(async () => { try { await ib.DescribeOnce(); } catch (ServiceError e) { Server.Log("[ibroadcast] the account couldn't be read: " + e.Message); } });
                     return await Http.Json(ctx, WithLibrary(ib.Status()));
                 case "/api/settings/ibroadcast" when HttpMethods.IsPost(m):
                     if (!IB.IBroadcast.Connected()) return await Http.Json(ctx, new JsonObject { ["error"] = "Not signed in to iBroadcast", ["connected"] = false }, 401);
@@ -117,6 +117,8 @@ internal static partial class Library
         {
             ["import"] = IB.IBroadcastLibrary.Shown(), ["reading"] = Jobs.IBroadcastLibrary?.Reading ?? false,
             ["albums"] = st?["albums"]?.DeepClone(), ["also_here"] = st?["also_here"]?.DeepClone(), ["tracks"] = st?["tracks"]?.DeepClone(), ["at"] = st?["at"]?.DeepClone(),
+            // The uploaded albums' booklets kept here (item 510): when every one is, the drives may go.
+            ["booklets"] = IB.IBroadcastBooklets.Status(),
         };
         o["upload"] = Jobs.IBroadcastUpload?.Status();
         o["schedule"] = IB.IBroadcastSchedule.Stored();

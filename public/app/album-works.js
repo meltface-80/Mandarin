@@ -1,4 +1,4 @@
-/* The page's core, beside 26 of 33 (bug list item 49): an album's track rows drawn, and a classical album set out as works and movements. */
+/* The page's core, beside 26 of 31 (bug list item 49): an album's track rows drawn, and a classical album set out as works and movements. */
 // ----- The head of a classical album -------------------------------------
 // The server names the album's composers, its conductor and who performs it
 // (/api/album, item 48). Then the composers stand where the artists do, each

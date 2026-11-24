@@ -104,9 +104,9 @@ internal static partial class Library
     // ---------------------------------------------------------- Home rows
 
     // "downloads" and "phone" are the Android app's own rows (at the top, the
-    // first off until the app turns it on); "lotw" needs Record labels on. A
-    // saved row no longer here ("playlists", the playlists taken out) is passed over.
-    private static readonly string[] HomeRowIds = ["phone", "downloads", "later", "unplayed", "favourites", "history", "picks", "lotw", "random", "library", "genres"];
+    // first off until the app turns it on). A saved row no longer here
+    // ("playlists", the playlists taken out; "lotw", the record labels) is passed over.
+    private static readonly string[] HomeRowIds = ["phone", "downloads", "later", "unplayed", "favourites", "history", "picks", "random", "library", "genres"];
 
     private static List<(string Id, bool On)> CleanRows(JsonNode? stored)
     {
@@ -145,8 +145,7 @@ internal static partial class Library
         var picksOn = Js.Truthy(Setting(c, "smartPicksEnabled", true));
         return Send(ctx, new JsonObject
         {
-            ["rows"] = RowsJson(HomeRows(c), id => id == "picks" && !picksOn ? "Smart Picks is off in Settings"
-                : id == "lotw" && !st.LabelsOn ? "Record labels is off in Settings" : null)
+            ["rows"] = RowsJson(HomeRows(c), id => id == "picks" && !picksOn ? "Smart Picks is off in Settings" : null)
         });
     }
     private static async Task<bool> SaveHomeRows(HttpContext ctx, Snapshot s, LibState st)

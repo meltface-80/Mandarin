@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 19 of 33: the multi-select menu, the album grid drawn, the rooms read, and the dialogs. */
+/* The page's core (app.js until v1.0.5), 19 of 31: the multi-select menu, the album grid drawn, the rooms read, and the dialogs. */
 // ----- The multi-select actions menu -------------------------------------
 // One menu serves both selections: albums on a grid screen, and tracks inside
 // the album view. They can never both be live — opening the album view exits
@@ -47,6 +47,7 @@ function refreshSelectMenu(kind, n) {
   if (selCount) selCount.textContent = String(n);
   const noun = kind === "tracks" ? "track" : "album";
   if (selMenuTitle) selMenuTitle.textContent = `${n} ${noun}${n === 1 ? "" : "s"} selected`;
+  mergeMenuShown(kind, n);   // Merge albums, Unmerge (item 512, album-merge.js)
   if (selMenuBtn) {
     selMenuBtn.setAttribute("aria-label",
       `Actions for ${n} selected ${noun}${n === 1 ? "" : "s"}`);
@@ -133,7 +134,6 @@ function setCountText(text) {
 function updateCountReadout(filteredTotal, hide) {
   const el = document.getElementById("album-count");
   if (!el) return;
-  if (labelsActive) return;   // labels browser manages its own header text
   if (activeFilter) {
     el.textContent = activeFilter.label || activeFilter.value;   // group label (e.g. "Rock/Metal") if set
     el.classList.remove("hidden");

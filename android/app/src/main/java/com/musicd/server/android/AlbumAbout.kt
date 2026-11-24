@@ -43,23 +43,24 @@ import com.musicd.server.client.LibraryClient
 import com.musicd.server.client.Palette
 import com.musicd.server.client.Review
 import com.musicd.server.client.ServerClient
+import com.musicd.server.client.ArtistSimilar
 import com.musicd.server.client.SimilarAlbum
-import com.musicd.server.client.SimilarArtist
 
 /*
  * Under an album's tracks, as the page has it (docs/specs/screens.json,
  * album; public/app/album-extras.js, album-tracks.js): About this album (the
  * write-up, Show more, whose words, the link to its page), then the library's
- * other albums by the lead artist and the ones they appear on, then Last.fm's
- * similar artists and similar albums. Three of each; More shows the rest. A
- * section with nothing to show isn't there.
+ * other albums by the lead artist and the ones they appear on, then the lead
+ * artist's similar artists and similar albums, as the artist page has them
+ * (Deezer's related acts; Last.fm's went with its key, item 494). Three of
+ * each; More shows the rest. A section with nothing to show isn't there.
  */
 
 /** The rows under the review, as fetched for one album. */
 internal class AlbumMore(val lead: String, val by: List<AlbumSummary>, val appears: List<AlbumSummary>,
-                         val artists: List<SimilarArtist>, val artistsUrl: String?, val note: String?, val albums: List<SimilarAlbum>)
+                         val artists: List<ArtistSimilar.Act>, val albums: List<SimilarAlbum>)
 
-/** The rows for [a], asked as the page asks them: the library first, then Last.fm (its albums only once its artists answered). */
+/** The rows for [a], asked as the page asks them: the library first, then the similar acts and their albums. */
 internal fun loadMore(lib: LibraryClient, a: Album): AlbumMore? {
     val lead = (a.artists.firstOrNull() ?: a.album.subtitle).trim()
     if (lead.isEmpty()) return null
@@ -67,15 +68,15 @@ internal fun loadMore(lib: LibraryClient, a: Album): AlbumMore? {
     val byTitle = compareBy<AlbumSummary> { it.title }
     val by = own?.primary?.filter { it.offset != a.album.offset }?.sortedWith(byTitle).orEmpty()
     val appears = own?.featured?.filter { it.offset != a.album.offset }?.sortedWith(byTitle).orEmpty()
-    val sim = runCatching { lib.similarArtists(lead) }.getOrNull()?.takeIf { it.enabled }
-    val albums = if (sim != null && sim.error == null) runCatching { lib.similarAlbums(lead) }.getOrNull()?.takeIf { it.enabled && it.error == null }?.albums.orEmpty() else emptyList()
-    return AlbumMore(lead, by, appears, if (sim?.error == null) sim?.artists.orEmpty() else emptyList(), sim?.url, sim?.keyNote, albums)
+    val sim = runCatching { lib.artistSimilar(lead) }.getOrNull()?.artists.orEmpty()
+    val albums = runCatching { lib.artistSimilarAlbums(lead) }.getOrNull()?.albums.orEmpty()
+    return AlbumMore(lead, by, appears, sim, albums)
 }
 
 /**
  * The sections, each its own item. An album of the library's opens here
- * ([onAlbum]), an artist of the library's on the page ([onArtist]); what only
- * Last.fm knows opens its page ([onUrl]).
+ * ([onAlbum]), an artist on their page ([onArtist]), in the library or not; a
+ * write-up's link opens its page ([onUrl]).
  */
 internal fun LazyListScope.albumAbout(review: Review?, more: AlbumMore?, client: () -> ServerClient?,
                                       onAlbum: (Long) -> Unit, onArtist: (String) -> Unit, onUrl: (String) -> Unit) {
@@ -118,23 +119,13 @@ internal fun LazyListScope.albumAbout(review: Review?, more: AlbumMore?, client:
                 Modifier.parity("album.appears-on-album", Contract.label("album.appears-on-album", 0, a.title)).clickable { onAlbum(a.offset) }) }
         }
     }
-    if (m.artists.isNotEmpty() || m.note != null) item {
-        // The "Last.fm ↗" link at the head's right end, to the page listing them.
-        val url = m.artistsUrl?.takeIf { m.artists.isNotEmpty() }
-        val site: (@Composable () -> Unit)? = if (url == null) null else {
-            {
-                TextButton(onClick = { onUrl(url) }, modifier = Modifier.parity("album.similar-artists-site", Contract.label("album.similar-artists-site"))) {
-                    Text(Contract.label("album.similar-artists-site"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.W500)
-                }
-            }
-        }
-        MoreSection("Similar artists", m.artists.size, Modifier.parity("album.similar-artists"), moreKey = "album.similar-artists-more", site = site) { shown ->
-            m.note?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp) }
+    if (m.artists.isNotEmpty()) item {
+        MoreSection("Similar artists", m.artists.size, Modifier.parity("album.similar-artists"), moreKey = "album.similar-artists-more") { shown ->
             Grid(m.artists.take(shown)) { a -> ArtistTile(a, client,
-                Modifier.parity("album.similar-artist", Contract.label("album.similar-artist", 0, a.name)).clickable { if (a.inLibrary) onArtist(a.name) else a.url?.let(onUrl) }) }
+                Modifier.parity("album.similar-artist", Contract.label("album.similar-artist", 0, a.name)).clickable { onArtist(a.name) }) }
         }
     }
-    // The library's alone (the server sends no other; one it hasn't left the app for Last.fm's page).
+    // The library's alone (the server sends no other).
     val ownSimilar = m.albums.mapNotNull { it.album }
     if (ownSimilar.isNotEmpty()) item {
         MoreSection("Similar albums", ownSimilar.size, Modifier.parity("album.similar-albums"), moreKey = "album.similar-albums-more") { shown ->
@@ -148,14 +139,11 @@ internal fun LazyListScope.albumAbout(review: Review?, more: AlbumMore?, client:
 
 /** A row's section: its head, three of its [count] things, and More for the rest ([moreKey], the contract's). */
 @Composable
-private fun MoreSection(title: String, count: Int, modifier: Modifier, moreKey: String, site: (@Composable () -> Unit)? = null, content: @Composable (shown: Int) -> Unit) {
+private fun MoreSection(title: String, count: Int, modifier: Modifier, moreKey: String, content: @Composable (shown: Int) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Column(modifier.fillMaxWidth().padding(top = 22.dp)) {
-        // The head, as the page's section-label: small capitals tracked out over a hairline, [site] at its right end.
-        Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.Bottom) {
-            Text(title.uppercase(), Modifier.weight(1f), color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.sp, fontWeight = FontWeight.W600, letterSpacing = 0.16.em)
-            site?.invoke()
-        }
+        // The head, as the page's section-label: small capitals tracked out over a hairline.
+        Text(title.uppercase(), Modifier.fillMaxWidth().padding(bottom = 8.dp), color = paletteColor(Palette.TEXT_FAINT), fontSize = 11.sp, fontWeight = FontWeight.W600, letterSpacing = 0.16.em)
         HorizontalDivider(Modifier.padding(bottom = 10.dp), color = MaterialTheme.colorScheme.outline)
         content(if (open) count else 3)
         // More and Less: one key per section, written out for the gate, the same button.
@@ -200,16 +188,15 @@ private fun AlbumTile(title: String, artist: String, imageKey: String?, client: 
     }
 }
 
-/** A similar artist as the page's tile: a round picture (their initial until one comes) over the name; "Last.fm ↗" under one who leaves the app. */
+/** A similar artist as the page's tile: a round picture (their initial until one comes) over the name. */
 @Composable
-private fun ArtistTile(a: SimilarArtist, client: () -> ServerClient?, modifier: Modifier) {
-    val pic = rememberCover(a.imageKey, 300, client)
+private fun ArtistTile(a: ArtistSimilar.Act, client: () -> ServerClient?, modifier: Modifier) {
+    val pic = rememberCover(a.photoKey, 300, client)
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(CircleShape).background(paletteColor(Palette.BG_ELEV_2)), contentAlignment = Alignment.Center) {
             Text((a.name.trim().firstOrNull() ?: '?').uppercaseChar().toString(), color = paletteColor(Palette.TEXT_FAINT), fontSize = 26.sp, fontWeight = FontWeight.W600)
             pic?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
         }
         Text(a.name, color = paletteColor(Palette.MODAL_TEXT), fontSize = 12.sp, lineHeight = 15.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-        if (!a.inLibrary) Text("Last.fm ↗", color = MaterialTheme.colorScheme.secondary, fontSize = 10.sp, letterSpacing = 0.04.em)
     }
 }

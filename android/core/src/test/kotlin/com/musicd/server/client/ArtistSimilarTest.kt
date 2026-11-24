@@ -24,4 +24,13 @@ class ArtistSimilarTest {
         assertNull(none.source)
         assertTrue(none.artists.isEmpty())
     }
+
+    @Test fun `similar albums, the library's own where it has them`() {
+        val s = SimilarAlbums.parse(JSONObject("""{"enabled": true, "albums": [
+            {"title": "Album Two", "artist": "Artist B", "url": null, "image_key": "k", "album": {"offset": 7, "title": "Album Two", "subtitle": "Artist B"}},
+            {"title": "Far Away", "artist": "Artist Z", "url": null, "image_key": null, "album": null}]}"""))
+        assertEquals(2, s.albums.size)
+        assertEquals(7L, s.albums[0].album!!.offset)
+        assertNull(s.albums[1].album); assertEquals("Far Away", s.albums[1].title)
+    }
 }

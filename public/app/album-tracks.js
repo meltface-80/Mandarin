@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 26 of 33: an album's tracks selected and played, and what is below the review. */
+/* The page's core (app.js until v1.0.5), 26 of 31: an album's tracks selected and played, and what is below the review. */
 // ----- Track multi-select (album view) ------------------------------------
 // Scoped to one album: every selected track shares `currentAlbum`, so the
 // album identity travels once rather than per track.
@@ -184,22 +184,20 @@ async function invokeTrack(kind, btn, track, index, li) {
 // ----- Below the review (from Rouen v1.9.3) -------------------------------
 // The library's other albums by this album's lead artist and the albums
 // they appear on (/api/artist-albums: the library in memory, nothing asked
-// outside), then Last.fm's similar artists and similar albums. Three of
-// each; More shows the rest. A section stays hidden until it has something
-// to show, and an answer for an album that is no longer open is dropped.
-//
-// What a tile does is visible before it is tapped: one in the library looks
-// like every other album or artist here and opens in Mandarin; one only
-// Last.fm knows carries "Last.fm ↗" and opens its Last.fm page.
+// outside), then the lead artist's similar artists and similar albums, as
+// the artist page has them (Deezer's related acts, item 494: Last.fm's went
+// with its key). Three of each; More shows the rest. A section stays hidden
+// until it has something to show, and an answer for an album that is no
+// longer open is dropped. Every tile opens in Mandarin.
 //
 // State is kept on the functions, not in module-level lets: openAlbum can
 // run before this point in the file is reached (a page restored).
 function moreSectionIds() {
-  return ["album-more-by", "album-more-appears", "album-lastfm-artists", "album-lastfm-albums"];
+  return ["album-more-by", "album-more-appears", "album-similar-artists", "album-similar-albums"];
 }
 function resetMoreSections() {
-  // The previous album's requests, abandoned: the server stops asking
-  // Last.fm for an answer nobody will read.
+  // The previous album's requests, abandoned: the server stops asking for an
+  // answer nobody will read.
   if (resetMoreSections.abort) { try { resetMoreSections.abort.abort(); } catch (e) { /* already done */ } resetMoreSections.abort = null; }
   for (const id of moreSectionIds()) {
     const sec = document.getElementById(id);
@@ -207,12 +205,8 @@ function resetMoreSections() {
     sec.classList.add("hidden");
     const grid = sec.querySelector(".more-grid");
     if (grid) grid.textContent = "";
-    const note = sec.querySelector(".more-note");
-    if (note) note.remove();
     const toggle = sec.querySelector(".more-toggle");
     if (toggle) { toggle.classList.add("hidden"); toggle.setAttribute("aria-expanded", "false"); toggle.textContent = "More"; }
-    const site = sec.querySelector(".more-site");
-    if (site) { site.classList.add("hidden"); site.removeAttribute("href"); }
     if (!sec.__wired && toggle) {
       sec.__wired = true;
       toggle.addEventListener("click", () => {
@@ -245,56 +239,32 @@ function fillMoreSection(id, items, build, title) {
   toggle.textContent = "More";
   sec.classList.remove("hidden");
 }
-// A Last.fm section that cannot answer because of the key says so — the one
-// failure the user can fix. Anything else (Last.fm slow, an artist it does
-// not know) leaves the section out.
-function moreNote(id, text) {
-  const sec = document.getElementById(id);
-  if (!sec) return;
-  const note = document.createElement("p");
-  note.className = "more-note";
-  note.textContent = text;
-  sec.querySelector(".more-grid").after(note);
-  sec.classList.remove("hidden");
-}
-function openLastfmPage(url) {
-  if (url) window.open(url, "_blank", "noopener,noreferrer");
-}
-function lastfmTag() {
-  const tag = document.createElement("div");
-  tag.className = "more-ext";
-  tag.textContent = "Last.fm \u2197";
-  return tag;
-}
 // An album in the library: the album view.
 function moreAlbumTile(a) {
   return buildAlbumTile(a, () => openAlbum(a, { filter: null }), { selectable: false });
 }
-// A Last.fm album: the library's own when it has it, else its Last.fm page.
-function lastfmAlbumTile(al) {
-  return moreAlbumTile(al.album);   // the library's alone: the server sends no other
+// A similar album: the library's own (the server sends no other).
+function similarAlbumTile(al) {
+  return moreAlbumTile(al.album);
 }
-// A similar artist: their page here when the library has them (with one of
-// their covers to stand for them), else their Last.fm page.
-function lastfmArtistTile(a) {
+// A similar artist: their page here, in the library or not, with their picture (or one of their covers).
+function similarArtistTile(a) {
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "more-artist" + (a.in_library ? "" : " is-external");
-  btn.setAttribute("aria-label", a.in_library ? a.name : a.name + " on Last.fm");
+  btn.className = "more-artist";
+  btn.setAttribute("aria-label", a.name);
   const pic = document.createElement("div");
   pic.className = "more-artist-pic";
   const initial = document.createElement("span");
   initial.className = "more-artist-initial";
   initial.textContent = (String(a.name || "").trim().charAt(0) || "?").toUpperCase();
   pic.appendChild(initial);
-  if (a.image_key) loadArt(pic, a.image_key, tileImgSize());
+  if (a.photo_key) loadArt(pic, a.photo_key, tileImgSize());
   const name = document.createElement("div");
   name.className = "more-artist-name";
   name.textContent = a.name;
   btn.append(pic, name);
-  if (!a.in_library) btn.appendChild(lastfmTag());
   btn.addEventListener("click", () => {
-    if (!a.in_library) { openLastfmPage(a.url); return; }
     // As the album view's own artist links: its Back comes back here.
     const fromAlbum = currentAlbum ? { album: currentAlbum, opts: { source: currentSource, zoneId: currentSourceZoneId, filter: currentDetailFilter } } : null;
     closeModal();
@@ -324,20 +294,16 @@ async function fetchAlbumMore(album, lead) {
       fillMoreSection("album-more-by", by, moreAlbumTile, "More by " + lead);
       fillMoreSection("album-more-appears", appears, moreAlbumTile, lead + " appears on");
     });
-  const q = new URLSearchParams({ artist: lead });
-  const lastfm = fetch("/api/lastfm/similar-artists?" + q, opt).then(json).then((j) => {
-    // No key: Last.fm is simply not here, and the albums are not asked for.
-    if (!j || !j.enabled || !mine()) return;
-    if (j.error) { if (/key/i.test(j.error)) moreNote("album-lastfm-artists", j.error + " — Settings → Setup → API Keys."); return; }
-    fillMoreSection("album-lastfm-artists", j.artists, lastfmArtistTile);
-    const site = document.querySelector("#album-lastfm-artists .more-site");
-    if (site && j.url && j.artists && j.artists.length) { site.href = j.url; site.classList.remove("hidden"); }
-    return fetch("/api/lastfm/similar-albums?" + q, opt).then(json).then((k) => {
-      if (!k || !k.enabled || k.error || !mine()) return;
-      fillMoreSection("album-lastfm-albums", (k.albums || []).filter(al => al && al.album), lastfmAlbumTile);
+  const q = new URLSearchParams({ name: lead });
+  const similar = fetch("/api/artist/similar?" + q, opt).then(json).then((j) => {
+    if (!j || !mine()) return;
+    fillMoreSection("album-similar-artists", j.artists, similarArtistTile);
+    return fetch("/api/artist/similar-albums?" + q, opt).then(json).then((k) => {
+      if (!k || !mine()) return;
+      fillMoreSection("album-similar-albums", (k.albums || []).filter(al => al && al.album), similarAlbumTile);
     });
   });
-  await Promise.allSettled([library, lastfm]);
+  await Promise.allSettled([library, similar]);
 }
 
 async function fetchAlbumExtras(album) {

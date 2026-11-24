@@ -27,13 +27,15 @@ internal static partial class Library
         ["/api/search"] = Search,
         ["/api/artists"] = Artists,
         ["/api/artist-albums"] = ArtistAlbums,
+        // The default service's albums of an artist, after the library's on their page; the setting (item 522, DiscographyRoutes.cs).
+        ["/api/artist-discography"] = ArtistDiscography,
+        ["/api/settings/default-service"] = DefaultServiceRoute,
         ["/api/filters/genres"] = GenresRoute,
         ["/api/filters/decades"] = DecadesRoute,
         ["/api/favourites"] = Favourites,
         ["/api/listen-later"] = ListenLater,
         ["/api/home/genre-groups"] = GenreGroups,
         ["/api/home/album-of-the-day"] = AlbumOfTheDay,
-        ["/api/home/label-of-the-week"] = LabelOfTheWeek,
         ["/api/home/history"] = History,
         ["/api/home/unplayed"] = Unplayed,
         ["/api/settings/display"] = DisplaySettings,
@@ -49,15 +51,6 @@ internal static partial class Library
         ["/api/album-scanner"] = AlbumScannerState,
         ["/api/waveform"] = Waveform,
         ["/api/settings/waveform"] = WaveformSettings,
-        ["/api/filters/labels"] = LabelWall,
-        ["/api/label-albums"] = LabelAlbums,
-        ["/api/labels-scan-status"] = LabelScanStatus,
-        ["/api/labels-scan-log"] = LabelScanLog,
-        ["/api/labels/logo-candidates"] = LogoCandidates,
-        ["/api/settings/labels"] = LabelSettings,
-        ["/api/settings/label-folder-depth"] = LabelFolderDepth,
-        ["/api/settings/fanart-key"] = KeyState,
-        ["/api/settings/discogs-token"] = KeyState,
         ["/api/settings/acoustid-key"] = AcoustIdKeyState,
         ["/api/smart-picks"] = SmartPicks,
         ["/api/album/extras"] = AlbumExtras,
@@ -78,11 +71,6 @@ internal static partial class Library
         ["/api/album/edit"] = AlbumEditState,
         ["/api/album/art-search"] = AlbumArtSearch,
         ["/api/library/merged"] = MergedAlbums,   // albums that look like two copies merged (item 424, AlbumSplitRoutes.cs)
-        ["/api/settings/lastfm-key"] = LastfmKeyState,
-        ["/api/settings/lastfm-secret"] = LastfmSecretState,
-        ["/api/lastfm/scrobbling"] = LastfmScrobbling,
-        ["/api/lastfm/similar-artists"] = LastfmSimilarArtists,
-        ["/api/lastfm/similar-albums"] = LastfmSimilarAlbums,
         ["/api/dsp/headphones"] = Headphones,
         ["/api/dsp/headphones/profile"] = HeadphoneProfile,
         ["/api/download/album"] = DownloadAlbum,
@@ -91,15 +79,13 @@ internal static partial class Library
     private static readonly Dictionary<string, Handler> Posts = new()
     {
         ["/api/settings/display"] = SaveDisplaySettings,
+        ["/api/settings/default-service"] = DefaultServiceRoute,   // item 522, DiscographyRoutes.cs
         ["/api/settings/shelf"] = SaveShelfSettings,
         ["/api/settings/smart-picks"] = SaveSmartPicksSettings,
         ["/api/settings/home-rows"] = SaveHomeRows,
         ["/api/favourites"] = SaveFavourite,
         ["/api/album/versions/main"] = SaveMainVersion,
         ["/api/listen-later"] = SaveLater,
-        ["/api/labels/merge"] = MergeLabels,
-        ["/api/settings/labels"] = SaveLabelsOn,
-        ["/api/settings/label-folder-depth"] = SaveLabelDepth,
         ["/api/identify/settings"] = IdentifySettings,
         ["/api/identify/accept"] = IdentifyAccept,
         ["/api/identify/reject"] = IdentifyReject,
@@ -115,11 +101,6 @@ internal static partial class Library
         ["/api/covers/auto"] = SaveAutoCovers,
         ["/api/album-scanner"] = SaveAlbumScanner,
         ["/api/settings/waveform"] = SaveWaveformSettings,
-        ["/api/labels/rescan"] = LabelRescan,
-        ["/api/labels/rescan-force"] = LabelRescan,
-        ["/api/labels/logo"] = SaveLabelLogo,
-        ["/api/settings/fanart-key"] = SaveKey,
-        ["/api/settings/discogs-token"] = SaveKey,
         ["/api/settings/acoustid-key"] = SaveAcoustIdKey,
         ["/api/smart-picks/rebuild"] = RebuildSmartPicks,
         ["/api/smart-picks/block"] = BlockSmartPicksArtist,
@@ -129,17 +110,14 @@ internal static partial class Library
         ["/api/album/split"] = SplitAlbumRoute,
         ["/api/album/join"] = JoinAlbumRoute,
         ["/api/album/look-again"] = LookAgainRoute,
-        ["/api/settings/lastfm-key"] = SaveLastfmKey,
-        ["/api/settings/lastfm-secret"] = SaveLastfmSecret,
-        ["/api/lastfm/connect"] = LastfmConnect,
-        ["/api/lastfm/disconnect"] = LastfmDisconnect,
+        // Albums merged into one from the selection menu, and apart again (item 512, AlbumMergeRoutes.cs).
+        ["/api/albums/merge"] = MergeAlbumsRoute,
+        ["/api/albums/unmerge"] = UnmergeAlbumRoute,
+        // iBroadcast's albums deleted at iBroadcast from the selection menu (item 527, IBroadcastDeleteRoutes.cs).
+        ["/api/ibroadcast/delete-albums"] = DeleteIBroadcastAlbumsRoute,
         ["/api/dsp/headphones/parse"] = ParseHeadphoneProfile,
         ["/api/download/albums"] = DownloadAlbums,
         ["/api/phone/plays"] = PhonePlays,
-    };
-    private static readonly Dictionary<string, Handler> Deletes = new()
-    {
-        ["/api/labels/logo"] = RemoveLabelLogo,
     };
 
     /* Before the routes: what is answered here is answered; the rest goes on. */
@@ -148,12 +126,6 @@ internal static partial class Library
         app.Use(async (ctx, next) =>
         {
             var m = ctx.Request.Method;
-            // A merged label let go (v0.8.16, LibraryChanges.cs).
-            if (UnmergeAddress(ctx, out var source))
-            {
-                try { await UnmergeLabel(ctx, source); } catch (Exception e) when (!ctx.Response.HasStarted) { await Server.Failed(ctx, "library", e); }
-                return;
-            }
             // Playback (v0.8.49, stage 6, PlaybackRoutes.cs: once this server holds the job); backup & restore and built-in Tailscale (v0.8.22, AdminRoutes.cs): the library's copy not needed.
             if (await PlaybackRoutes.Route(ctx) || await AdminRoute(ctx)) return;
             // Restart, Shut down and the processor split (v0.8.31, PowerRoutes.cs): nor here.
@@ -177,7 +149,7 @@ internal static partial class Library
             if (await ServiceImport(ctx)) return;
             // Settings → Services → iBroadcast (item 443, IBroadcastRoutes.cs).
             if (await IBroadcastRoute(ctx)) return;
-            if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : HttpMethods.IsDelete(m) ? Deletes : null) is { } table
+            if (ctx.Request.Path.Value is { } p && ((HttpMethods.IsGet(m) || HttpMethods.IsHead(m)) ? Gets : HttpMethods.IsPost(m) ? Posts : null) is { } table
                 && table.TryGetValue(p, out var h))
             {
                 try
@@ -290,6 +262,7 @@ internal static partial class Library
         if (q.Hires) o["hires"] = true;
         if (al.Year != null) o["year"] = al.Year;
         if (al.Discs > 1) o["discs"] = al.Discs;
+        if (IsMerged(s, al.Key)) o["merged"] = true;   // albums merged into it (item 512, AlbumMergeRoutes.cs)
         if (al.Box != null) o["box"] = new JsonObject { ["name"] = al.Box.Name, ["disc"] = al.Box.Disc, ["of"] = al.Box.Of };
         if (al.ActNote != null) { o["artist_id"] = al.ActId ?? 0; if (al.ActNote.Length > 0) o["artist_note"] = al.ActNote; }   // its act, where acts share its name (item 330)
         if (Mqa.MqaStore.Albums(s).TryGetValue(al.Id, out var mqa)) o["mqa"] = Mqa.MqaStore.Json(mqa.Studio, mqa.OriginalRate, mqa.Bits);   // MQA, every track of it (item 418)

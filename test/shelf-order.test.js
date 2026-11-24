@@ -1,8 +1,8 @@
 "use strict";
 /*
  * Shelf's orders: A → Z by artist (the server's, the Library wall's), and
- * since item 206 Rouen's by label and catalogue №, by catalogue №, by year and
- * random, all in the Order tab; each device keeps its own, a shuffle aside.
+ * since item 206 Rouen's by catalogue №, by year and random (by label and
+ * catalogue № until item 492 took the labels out), all in the Order tab; each device keeps its own, a shuffle aside.
  * Item 213 (the owner, as Rouen's v1.9.70-t5): A → Z, Z → A and #N are the
  * Genres tab's, the order of its tiles (#N, the most albums first, the
  * default), kept per device; Mandarin's A → Z by album (v1.0.1) is gone from
@@ -39,7 +39,7 @@ function library() {
 
 const skip = built() || (!haveFfmpeg() && "ffmpeg is not installed") || (!findBrowser() && !process.env.CI && "no Chromium or Chrome (set CHROME_PATH)");
 
-test("Shelf: the Order tab files it by artist, by label and catalogue №, by catalogue №, by year or at random; kept per device; one look, the spines", { skip, timeout: 180000 }, async () => {
+test("Shelf: the Order tab files it by artist, by catalogue №, by year or at random; kept per device; one look, the spines", { skip, timeout: 180000 }, async () => {
   const lib = library();
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
@@ -89,7 +89,7 @@ test("Shelf: the Order tab files it by artist, by label and catalogue №, by ca
       document.getElementById("stage").dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
       for (let i = 0; i < 100 && window.__shelfState().mode !== "idle"; i++) await sleep(50); return true; })()`);
     r = await page.eval(choose("year"));
-    assert.deepEqual(r.tiles, ["artist", "label", "catno", "year*", "random"], "Rouen's orders, and no A → Z by album (item 213)");
+    assert.deepEqual(r.tiles, ["artist", "catno", "year*", "random"], "Rouen's orders, and no A → Z by album (item 213) nor by label (item 492)");
     assert.equal(r.label, "By year");
     assert.deepEqual(r.order, byYear, "oldest first, the undated last");
     assert.equal(r.after, r.before, "the album in front stays in front");
@@ -111,6 +111,10 @@ test("Shelf: the Order tab files it by artist, by label and catalogue №, by ca
     assert.equal(r.label, "A → Z by artist");
     assert.deepEqual(r.order, byArtist);
     assert.deepEqual(r.chips, []);
+    // A device that kept by label (before item 492): by artist, no chip.
+    page = await open(`localStorage.setItem("rra-shelf-order", "label");`);
+    r = await page.eval(STATE);
+    assert.deepEqual([r.label, r.chips], ["A → Z by artist", []]);
 
     // Random: not kept — the next visit opens in the order before it.
     await page.eval(choose("year"));

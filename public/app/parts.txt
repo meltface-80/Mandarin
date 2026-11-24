@@ -28,6 +28,8 @@ app/device-power.js
 app/album-tiles.js
 app/album-tile-press.js
 app/album-grid.js
+app/album-merge.js
+app/album-ib-delete.js
 app/album-modal.js
 app/album-open.js
 app/queue.js
@@ -46,9 +48,7 @@ app/album-credits.js
 app/search.js
 app/search-external.js
 app/filter-sheet.js
-app/labels.js
-app/labels-list.js
-app/labels-albums.js
+app/album-multi.js
 app.js
 app/mini-transport.js
 app/mini-transport-render.js
@@ -70,8 +70,8 @@ app/native-home.js
 app/native-search.js
 app/updater.js
 app/settings.js
-app/settings-lastfm.js
 app/settings-services.js
+app/settings-default-service.js
 app/settings-ibroadcast-bandwidth.js
 app/settings-ibroadcast.js
 app/settings-views.js
@@ -88,6 +88,7 @@ app/artist-foot.js
 app/artist-tabs.js
 app/artist-about.js
 app/artist-view.js
+app/artist-discography.js
 app/artists-wall.js
 app/menu-export.js
 app/menu-drawer.js

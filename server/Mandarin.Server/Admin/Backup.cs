@@ -8,6 +8,7 @@
 //   app.json        the Android app's own settings (from the app only)
 //   page.json       one device's screen settings
 //   musicd.db       the whole database, if chosen
+//   ibroadcast.json and ib/…  the iBroadcast albums' covers and booklets kept here, if chosen (item 511, Backup.IBroadcast.cs)
 //
 // Written and read exactly as the Node server wrote and read them, so a
 // backup it made restores here: the same tar headers, the same JSON
@@ -28,15 +29,15 @@ using Js = Mandarin.Server.Tags.Js;
 internal static partial class Backup
 {
     public const int Format = 1;
-    public static readonly string[] Parts = ["settings", "devices", "collection", "keys", "database"];
+    public static readonly string[] Parts = ["settings", "devices", "collection", "keys", "database", "ibroadcast"];
     public static readonly string[] ServerParts = ["settings", "devices", "collection", "keys"];
     // Settings a person sets, and nothing the server keeps for itself.
     public static readonly string[] SettingsKeys = ["displayEnabled", "displaySeconds", "homeRows", "identify",
-        "labelFolderDepth", "labelsEnabled", "mbpack_dir", "music_folders", "radioZones", "replaygain",
+        "mbpack_dir", "music_folders", "radioZones", "replaygain",
         "shareCardReview", "shareReviews", "shareServices", "shelfEnabled", "smartPicksEnabled", "smartPicksHour", "waveformEnabled"];
-    public static readonly string[] CollectionTables = ["favourites", "listen_later", "label_merges", "album_edits", "track_edits", "album_matches", "album_splits", "album_joins"];
-    // The Qobuz, Tidal and Last.fm sign-ins travel with the keys: tokens, never a password. AcoustID's key since item 414c.
-    public static readonly string[] KeyKeys = ["acoustidKey", "discogsToken", "fanartKey", "lastfmKey", "lastfmSecret", "lastfmSession", "qobuz", "qobuzSettings", "tidal", "tidalSettings"];
+    public static readonly string[] CollectionTables = ["favourites", "listen_later", "album_edits", "track_edits", "album_matches", "album_splits", "album_joins", "album_merges"];
+    // The Qobuz and Tidal sign-ins travel with the keys: tokens, never a password. AcoustID's key since item 414c.
+    public static readonly string[] KeyKeys = ["acoustidKey", "fanartKey", "qobuz", "qobuzSettings", "tidal", "tidalSettings"];
     // Kept from the server being restored, whatever the database brought.
     private static readonly string[] KeepTables = ["account", "devices"];
     // Whether a sign-in is asked for (openAccess) is today's too: a restore never opens the server (item 172).

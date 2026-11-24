@@ -77,6 +77,17 @@ CREATE TABLE IF NOT EXISTS album_auto_art (
         cmd.ExecuteNonQuery();
     }
 
+    /* An album's last look forgotten, unless its owner had the last word (item 504: iBroadcast's stand-in dropped, it is looked at again). */
+    public static void Forget(string key)
+    {
+        if (IsOwners(key)) return;
+        using var c = Writing();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "DELETE FROM album_auto_art WHERE key = $k";
+        cmd.Parameters.AddWithValue("$k", key);
+        cmd.ExecuteNonQuery();
+    }
+
     /* A cover chosen or taken away by hand (Edit album): the album's cover is the owner's from now on. */
     public static void Owner(string key) => Put(key, "", "owner");
 

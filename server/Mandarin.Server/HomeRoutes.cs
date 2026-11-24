@@ -1,5 +1,5 @@
 // HomeRoutes.cs — Home's rows (v0.8.6), from lib/server/api-library.js and
-// lib/server/features.js: Album of the day (chosen by DayPick.cs since item 236), Label of the week, Recently played
+// lib/server/features.js: Album of the day (chosen by DayPick.cs since item 236), Recently played
 // and Not played lately. The day and the week are the Node server's (its time
 // zone), told with the library's state, so both servers turn over together.
 using System.Text.Json.Nodes;
@@ -62,20 +62,6 @@ internal static partial class Library
         var played = Rows(c, "SELECT 1 FROM plays WHERE album_id = $1 AND ts >= $2 LIMIT 1", al.Id, st.DayStart).Count > 0;
         if (played && Q(ctx, "keep") != "1") return Send(ctx, new JsonObject { ["album"] = null, ["played"] = true, ["day"] = st.Day });
         return Send(ctx, new JsonObject { ["album"] = AlbumJson(s, al), ["played"] = played, ["day"] = st.Day });
-    }
-
-    /* One label a week, from those with three albums or more. */
-    private static Task<bool> LabelOfTheWeek(HttpContext ctx, Snapshot s, LibState st)
-    {
-        if (st.Week.Length == 0) return Task.FromResult(false);
-        LabelGroup? g = null;
-        if (s.LabelsOn)
-        {
-            var keys = s.LabelGroups.Values.Where(x => x.Albums.Count >= 3).Select(x => x.Key).OrderBy(k => k, StringComparer.Ordinal).ToList();
-            if (keys.Count > 0) g = s.LabelGroups[keys[(int)(Fnv1a(st.Week) % (uint)keys.Count)]];
-        }
-        if (g == null) return Send(ctx, new JsonObject { ["label"] = null, ["albums"] = new JsonArray() });
-        return Send(ctx, new JsonObject { ["label"] = g.Title, ["albums"] = AlbumList(s, g.Albums.Take(24)) });
     }
 
     /* The albums played in the last 30 days, the latest first. */

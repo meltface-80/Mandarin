@@ -17,8 +17,8 @@ function aeSoundSaid(j) {
   if (j.state === "asking") return ["Asking AcoustID…", " " + (j.done || 0) + " of " + n(j.of || 0, "track", "tracks") + " (three a second)."];
   if (j.state === "fetching") return ["Asking MusicBrainz for the releases…", " A few seconds: one request a second."];
   switch (j.answer) {
-    case "needs-key": return ["No AcoustID key.", " Add an AcoustID key in Settings → API Keys."];
-    case "refused": return ["AcoustID refused the key.", " Check it in Settings → API Keys."];
+    case "needs-key": return ["No AcoustID key.", " This build of Mandarin carries none."];
+    case "refused": return ["AcoustID refused Mandarin's key.", " Try again later."];
     case "limited": return ["AcoustID asks to wait.", " Try again in a few minutes."];
     case "unreachable": return ["AcoustID can't be reached.", " Try again later."];
     case "no-match": return ["AcoustID doesn't know these recordings.", " Try Find match, or the barcode."];

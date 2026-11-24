@@ -32,6 +32,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,8 +42,6 @@ import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 /**
  * The mini player, natively (docs/specs/screens.json, mini-player), as the
@@ -61,9 +60,10 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
     val v = room.view
     val scope = rememberCoroutineScope()
     var volumeOpen by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     fun act(block: (ServerClient) -> Unit) {
         val c = client() ?: return
-        scope.launch(Dispatchers.IO) { runCatching { block(c) } }
+        scope.sendTap(context, c, block)
     }
     val cover = rememberCover(v?.imageKey, 120, client)
     val brass = MaterialTheme.colorScheme.primary
@@ -107,7 +107,7 @@ internal fun MiniPlayer(zoneId: String, room: RoomState, client: () -> ServerCli
                 // Play on and the volume side by side with nothing between (the page's .mt-controls, gap 0): in the row's own 10
                 // they stood 10 apart, and took that 10 from the title (bug list item 56).
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    PlayOnMenu(zoneId, client, ::act, onRoom, size = 46.dp, iconSize = 28.dp)
+                    PlayOnMenu(room.id, client, ::act, onRoom, size = 46.dp, iconSize = 28.dp)   // the room followed: away, this phone's (item 487)
                     VolumeMenu(room.volume, room.muted, volumeOpen, { volumeOpen = it }, size = 46.dp, iconSize = 28.dp, fixedNote = false)
                 }
             }

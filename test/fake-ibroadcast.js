@@ -22,6 +22,10 @@ const crypto = require("crypto");
 
 const hex = n => crypto.randomBytes(n).toString("hex");
 
+/* A track's path as iBroadcast keeps it: the folder of the path it was sent as, its file's name not kept (item 526: a
+   track sent as "Music/Artist/Album/01 Song.flac" is listed with "Music/Artist/Album"). */
+function folderOf(p) { const slash = p.lastIndexOf("/"); return slash > 0 ? p.slice(0, slash) : p; }
+
 class FakeIBroadcast {
   /* albums: [{ id, name, artist: { id, name }, disc, year, trashed, tracks: [{ id, title, track, length, type, genre, artwork_id, replay_gain, trashed }] }] */
   constructor({ user = { id: 4242, username: "tester", email_address: "tester@example.com", premium: true }, albums = [] } = {}) {
@@ -45,6 +49,9 @@ class FakeIBroadcast {
     this.deviceExpiresIn = 600;
     this.apiBodies = [];
     this.md5s = [];                    // the MD5 of every file iBroadcast has
+    this.deletes = [];                 // { mode: "trash" | "empty_trash", tracks: [id…] } (item 527)
+    this.keepTrash = false;            // the trash not emptied, as iBroadcast might refuse it
+    this.lagDeletes = false;           // deleted, but still listed by the library a while, as iBroadcast does (item 528)
     this.uploads = [];                 // { name, file_path, method, size, md5, data }
     this.md5Asks = 0;
     this.busy = 0;                     // how many uploads are answered 503 before one is taken
@@ -53,6 +60,11 @@ class FakeIBroadcast {
     this.mostAtOnce = 0;
     this.receiving = 0;                // files' bodies arriving now, and the most at once (item 479)
     this.mostReceiving = 0;
+    this.streamDelayMs = 0;            // how long each of a track's streams is held before it is answered (item 490)
+    this.streaming = 0;                // streams being answered now, and the most there have been at once
+    this.mostStreaming = 0;
+    this.probing = 0;                  // of them, a file's first 64 KB read for its rate (item 490), and the most at once
+    this.mostProbing = 0;
     this.statusDelayMs = 0;            // how long the account's status is held before it is answered (item 452)
     this.refuseLogin = 0;              // how many uploads are answered as iBroadcast answered a real one whose login it couldn't confirm (item 454)
     this.refusedWith = [];             // the access token each refused upload came with
@@ -80,8 +92,8 @@ class FakeIBroadcast {
     for (const a of this.albums) {
       albums[a.id] = [a.name, a.tracks.map(t => t.id), a.artist.id, !!a.trashed, 0, a.disc || 0, a.year || 0];
       artists[a.artist.id] = [a.artist.name, [], false, 0];
-      for (const t of a.tracks) tracks[t.id] = [t.track, a.year || 0, t.title, t.genre || "", t.length || 60, a.id, t.artwork_id || 0, a.artist.id, "", "2026-11-16", !!t.trashed,
-        t.size || 1000, t.path || "", "", 0, 0, "/128/a/b/" + t.id, t.type || "audio/flac", t.replay_gain || "", "12:00:00"];
+      for (const t of a.tracks) tracks[t.id] = [t.track, a.year || 0, t.title, t.genre || "", t.length || 60, t.album_id || a.id, t.artwork_id || 0, a.artist.id, "", "2026-11-16", !!t.trashed,
+        t.size || 1000, folderOf(t.path || ""), "", 0, 0, "/128/a/b/" + t.id, t.type || "audio/flac", t.replay_gain || "", "12:00:00"];
     }
     return { albums, artists, tracks, playlists: { map: { name: 0, tracks: 1 } }, tags: {}, trash: { map: { name: 0, tracks: 1 } } };
   }
@@ -158,6 +170,10 @@ class FakeIBroadcast {
       const id = u.pathname.split("/").pop();
       const t = this.albums.flatMap(a => a.tracks).find(x => String(x.id) === id && x.src);
       if (!t) { res.writeHead(404); return res.end(); }
+      const probe = req.headers.range === "bytes=0-65535";
+      this.mostStreaming = Math.max(this.mostStreaming, ++this.streaming);
+      if (probe) this.mostProbing = Math.max(this.mostProbing, ++this.probing);
+      try { if (this.streamDelayMs) await new Promise(r => setTimeout(r, this.streamDelayMs)); } finally { this.streaming--; if (probe) this.probing--; }
       const body = require("fs").readFileSync(t.src);
       const m = /^bytes=(\d+)-(\d*)$/.exec(req.headers.range || "");
       if (m) {
@@ -211,6 +227,23 @@ class FakeIBroadcast {
           settings: { streaming_server: this.base + "/streaming", artwork_server: this.base + "/artwork" }, status: { timestamp: this.lastmodified, lastmodified: this.lastmodified } };
         if (b.supported_types) o.supported = this.supported;
         return json(200, o);
+      }
+      // Tracks deleted (item 527), as iBroadcast's apps ask it: moved to the trash ("trash"), then the trash emptied of them
+      // ("empty_trash"): gone from the library. An album whose tracks are all trashed is trashed too.
+      if (b.mode === "trash" || b.mode === "empty_trash") {
+        const ids = new Set((b.tracks || []).map(String));
+        this.deletes.push({ mode: b.mode, tracks: [...ids].sort() });
+        if (b.mode === "empty_trash" && this.keepTrash) return json(200, { result: false, message: "The trash couldn't be emptied" });
+        // As iBroadcast does a while after (item 528): done, yet the library still lists them.
+        if (this.lagDeletes) return json(200, { result: true, message: b.mode === "trash" ? "Tracks moved to trash" : "Trash emptied" });
+        for (const a of this.albums) {
+          if (b.mode === "trash") for (const t of a.tracks) { if (ids.has(String(t.id))) t.trashed = true; }
+          else a.tracks = a.tracks.filter(t => !(t.trashed && ids.has(String(t.id))));
+          if (a.tracks.every(t => t.trashed)) a.trashed = true;
+        }
+        if (b.mode === "empty_trash") this.albums = this.albums.filter(a => a.tracks.length > 0);
+        this.changed();
+        return json(200, { result: true, message: b.mode === "trash" ? "Tracks moved to trash" : "Trash emptied" });
       }
       return json(200, { result: false, message: "Unknown mode " + b.mode });
     }

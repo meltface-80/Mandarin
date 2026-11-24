@@ -5,7 +5,6 @@
 //   { fn: "share", cases: [{ artist, album, locale, accept, enabled, reviews, wikipedia, pitchfork, wikipedia_artist, ids }] }
 //   { fn: "similar", names, overlaps, artists, related, pools, years, tops, album_lists, tastes, ranks, chooses, reasons, records, played }
 //   { fn: "days", titles, batches: [{ albums: [{ key, title, artist, year, date }], groups }] }
-//   { fn: "labels", plain: [...], images: [{ b64, type }] }
 //   { fn: "writeups", … } (v0.8.21)
 //   { fn: "backup", writes: [{ to, entries: [{ name, data | file }] }], reads: [{ file, db }], newer, parts_of, pretty } (v0.8.22)
 //   { fn: "artfind", bares, looses, texts, artists, matches, cases: [{ album: { title, artist }, tracks, routes: [[prefix, body]] }] } (v0.8.22)
@@ -19,14 +18,12 @@ internal static class ExtrasCommand
 {
     private static List<object?> L(object? v) => v as List<object?> ?? [];
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
-    private static string? S(object? v) => v as string;
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
         "share" => Share(job),
         "similar" => SimilarFns(job),
         "days" => Days(job),
-        "labels" => LabelFns(job),
         "writeups" => WriteUpFns(job),
         "backup" => BackupFns(job),
         "artfind" => ArtFindFns(job),
@@ -248,19 +245,6 @@ internal static class ExtrasCommand
             var albums = L(b["albums"]).Select(O).Select(a => (Js.Str(a["key"]), Js.Str(a["title"]), Js.Str(a["artist"]), Js.Str(a["year"]), a["date"] as string)).ToList();
             var days = ReleaseDays.MatchDays(albums, b["groups"] as List<object?>);
             return (object?)albums.Select(a => (object?)new List<object?> { a.Item1, days[a.Item1] }).ToList();
-        }).ToList();
-        return o;
-    }
-
-    private static JsObj LabelFns(JsObj job)
-    {
-        var o = new JsObj();
-        o["plain"] = L(job["plain"]).Select(n => (object?)LabelLookup.PlainName(n)).ToList();
-        o["types"] = L(job["images"]).Select(i0 =>
-        {
-            var i = O(i0);
-            var t = LabelLogos.TypeOf(Convert.FromBase64String(Js.Str(i["b64"])), S(i["type"]));
-            return t is { } x ? (object?)new List<object?> { x.Type, x.Ext } : null;
         }).ToList();
         return o;
     }

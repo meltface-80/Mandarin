@@ -8,7 +8,7 @@ import kotlin.random.Random
  * The library offline, as the app answers for the server (bug list item 106, O1 in old/plan-android-native.md;
  * what the app's OfflineApi answered the page with): the albums downloaded to this phone, each with the page saved when
  * it was downloaded, and the phone's own music. The rows the phone keeps nothing for (not played lately, history, the
- * album of the day, label of the week, genres, Smart Picks) answer empty, as the server's do with nothing to show.
+ * album of the day, genres, Smart Picks) answer empty, as the server's do with nothing to show.
  */
 
 /** A downloaded album as the phone keeps it: its download's [id] (the server's album id), what it is, its [page] when it was saved. */
@@ -58,7 +58,6 @@ class PhoneShelf(private val downloads: List<ShelfAlbum>, private val music: Pho
         "/api/home/unplayed" -> Answer.ok(JSONObject().put("albums", JSONArray()).put("total", 0).put("months", 6).put("no_history", true).put("ready_at", JSONObject.NULL))
         "/api/home/history" -> Answer.ok(JSONObject().put("albums", JSONArray()).put("days", 30))
         "/api/home/album-of-the-day" -> Answer.ok(JSONObject().put("album", JSONObject.NULL))
-        "/api/home/label-of-the-week" -> Answer.ok(JSONObject().put("label", JSONObject.NULL).put("albums", JSONArray()))
         "/api/home/genre-groups" -> Answer.ok(JSONObject().put("parent", JSONObject.NULL).put("pop", JSONArray()).put("rockmetal", JSONArray()).put("flat", true))
         "/api/smart-picks" -> Answer.ok(JSONObject().put("day", "").put("enabled", false).put("service_ready", false).put("building", false).put("picks", JSONArray()))
         "/api/library/facets" -> Answer.ok(JSONObject().put("facets", JSONArray()))
@@ -69,7 +68,7 @@ class PhoneShelf(private val downloads: List<ShelfAlbum>, private val music: Pho
             val term = (q["q"] ?: "").trim().lowercase()
             val hits = if (term.isEmpty()) emptyList() else downloads.filter { it.title.lowercase().contains(term) || it.artist.lowercase().contains(term) }
             Answer.ok(JSONObject().put("query", q["q"] ?: "").put("count", hits.size).put("indexed", downloads.size)
-                .put("results", albums(hits)).put("artists", JSONArray()).put("labels", JSONArray()))
+                .put("results", albums(hits)).put("artists", JSONArray()))
         }
         "/api/artist-albums" -> {
             val name = (q["artist"] ?: "").trim().lowercase()
@@ -116,7 +115,7 @@ class PhoneShelf(private val downloads: List<ShelfAlbum>, private val music: Pho
     companion object {
         /** The paths [get] answers, so a caller reads the phone's library only for those. */
         val PATHS = setOf("/api/library/albums", "/api/random-albums", "/api/pick-unheard", "/api/home/unplayed", "/api/home/history",
-            "/api/home/album-of-the-day", "/api/home/label-of-the-week", "/api/home/genre-groups", "/api/smart-picks",
+            "/api/home/album-of-the-day", "/api/home/genre-groups", "/api/smart-picks",
             "/api/library/facets", "/api/filters/genres", "/api/filters/decades", "/api/radio",
             "/api/search", "/api/artist-albums", "/api/album", "/api/album/extras")
 

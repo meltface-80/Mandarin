@@ -1,11 +1,10 @@
 // LibraryChanges.cs — changes to the library made here (v0.8.16), from
-// lib/server/api-library.js and lib/library/index.js, rule for rule: a heart,
-// Listen later, label merges and the label settings. Each is written to the
+// lib/server/api-library.js and lib/library/index.js, rule for rule: a heart
+// and Listen later. Each is written to the
 // database as the Node server wrote it, and the change then told (Told,
 // Library.State.cs: what libraryChanged did), so the library's version moves
 // and the copy here is read again on the next request.
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 
 namespace Mandarin.Server;
@@ -72,49 +71,6 @@ internal static partial class Library
         return await Send(ctx, new JsonObject { ["ok"] = true, ["offset"] = last.Id, ["later"] = on, ["count"] = n });
     }
 
-    [GeneratedRegex("^[a-z0-9]+$")] private static partial Regex LabelKeyShape();
-
-    /* POST /api/labels/merge { items: [{ key, display }, …] }: the others folded into the first. */
-    private static async Task<bool> MergeLabels(HttpContext ctx, Snapshot s, LibState st)
-    {
-        var b = await Auth.Body(ctx);
-        if (b == null) return true;
-        // What the Node server would choke on (a list that isn't one, a name that isn't text): its own answer.
-        if (b.ContainsKey("items") && b["items"] is not JsonArray && Js.Truthy(b["items"])) return false;
-        var items = new List<(string Key, string Display)>();
-        foreach (var it in b["items"] as JsonArray ?? [])
-        {
-            if (it is not JsonObject o || o["key"] is not JsonValue kv || !kv.TryGetValue<string>(out var key) || !LabelKeyShape().IsMatch(key)) continue;
-            string display;
-            if (o["display"] is JsonValue dv && dv.TryGetValue<string>(out var d) && d.Length > 0) display = d;
-            else if (o["display"] == null || !Js.Truthy(o["display"])) display = key;
-            else return false;
-            if (display.Length > 200) display = display[..200];
-            items.Add((key, display));
-        }
-        if (items.Count < 2) return await Send(ctx, new JsonObject { ["error"] = "Two or more labels are needed" }, 400);
-        var target = items[0].Key;
-        var now = NowMs();
-        using (var c = Db.Open())
-        {
-            using var tx = c.BeginTransaction();
-            foreach (var (key, display) in items.Skip(1))
-            {
-                if (key == target) continue;
-                Exec(c, tx, "DELETE FROM label_merges WHERE source_key = $a", ("$a", target));
-                Exec(c, tx, @"INSERT INTO label_merges(source_key, source_name, target_key, merged_at) VALUES($a, $b, $c, $d)
-                              ON CONFLICT(source_key) DO UPDATE SET source_name=excluded.source_name, target_key=excluded.target_key, merged_at=excluded.merged_at",
-                    ("$a", key), ("$b", display), ("$c", target), ("$d", now));
-                Exec(c, tx, "UPDATE label_merges SET target_key = $a WHERE target_key = $b", ("$a", target), ("$b", key));
-            }
-            tx.Commit();
-        }
-        await Tell(new JsonObject { ["merges"] = true });
-        // The merged label's logo looked for (LabelRoutes.cs).
-        await LabelsChanged(false);
-        return await Send(ctx, new JsonObject { ["ok"] = true, ["target"] = target, ["merged"] = new JsonArray(items.Skip(1).Select(i => (JsonNode)i.Key).ToArray()) });
-    }
-
     private static int Exec(SqliteConnection c, SqliteTransaction tx, string sql, params (string Name, object Value)[] ps)
     {
         using var cmd = c.CreateCommand();
@@ -122,62 +78,5 @@ internal static partial class Library
         cmd.CommandText = sql;
         foreach (var (n, v) in ps) cmd.Parameters.AddWithValue(n, v);
         return cmd.ExecuteNonQuery();
-    }
-
-    /* DELETE /api/labels/merge/<source>: one merged label let go. */
-    private static async Task<bool> UnmergeLabel(HttpContext ctx, string source)
-    {
-        int n;
-        using (var c = Db.Open())
-        {
-            using var cmd = c.CreateCommand();
-            cmd.CommandText = "DELETE FROM label_merges WHERE source_key = $k";
-            cmd.Parameters.AddWithValue("$k", source);
-            n = cmd.ExecuteNonQuery();
-        }
-        // The copy read again either way, as the Node server did.
-        await Tell(new JsonObject { ["merges"] = true, ["unmerged"] = true });
-        if (n == 0) return await Send(ctx, new JsonObject { ["error"] = "Not a merged label" }, 404);
-        return await Send(ctx, new JsonObject { ["ok"] = true });
-    }
-
-    /* POST /api/settings/labels { enabled }: Record labels on or off. */
-    private static async Task<bool> SaveLabelsOn(HttpContext ctx, Snapshot s, LibState st)
-    {
-        var b = await Auth.Body(ctx);
-        if (b == null) return true;
-        if (!b.ContainsKey("enabled")) return await Send(ctx, new JsonObject { ["error"] = "enabled required" }, 400);
-        var on = Js.Truthy(b["enabled"]);
-        using (var c = Db.Open()) SetSetting(c, "labelsEnabled", on);
-        await Tell(new JsonObject { ["labels"] = true });
-        // On: the lookups and logos looked for now (LabelRoutes.cs), once they're made here.
-        await LabelsChanged(true);
-        return await Send(ctx, new JsonObject { ["ok"] = true, ["enabled"] = on });
-    }
-
-    /* POST /api/settings/label-folder-depth { depth }: the folder a label is read from, 0 for the tags. */
-    private static async Task<bool> SaveLabelDepth(HttpContext ctx, Snapshot s, LibState st)
-    {
-        var b = await Auth.Body(ctx);
-        if (b == null) return true;
-        long depth = b.ContainsKey("depth") ? Js.ParseInt(b["depth"]) : int.MinValue;
-        if (depth == int.MinValue || depth < 0 || depth > 6) return await Send(ctx, new JsonObject { ["ok"] = false, ["error"] = "depth must be 0–6" }, 400);
-        using (var c = Db.Open()) SetSetting(c, "labelFolderDepth", depth);
-        await Tell(new JsonObject { ["labels"] = true });
-        await LabelsChanged(true);
-        return await Send(ctx, new JsonObject { ["ok"] = true, ["depth"] = depth, ["rescanning"] = false });
-    }
-
-    /* DELETE /api/labels/merge/<one segment>, as Express's route took it: a key of any shape (none merged: "Not a merged label"). */
-    private static bool UnmergeAddress(HttpContext ctx, out string source)
-    {
-        source = "";
-        var p = ctx.Request.Path.Value ?? "";
-        const string Prefix = "/api/labels/merge/";
-        if (!HttpMethods.IsDelete(ctx.Request.Method) || !p.StartsWith(Prefix, StringComparison.Ordinal)) return false;
-        var seg = p[Prefix.Length..];
-        if (seg.Length == 0 || seg.Contains('/')) return false;
-        source = seg;
-        return true;
     }
 }

@@ -94,7 +94,7 @@
   const faces = window.ShelfFaces.create(hub);
   Object.assign(hub, { pick, back, player, queue, ways, panes, faces });
 
-  // Where a new letter, label or decade begins, in the order chosen (shelf-pick.js, v1.9.67).
+  // Where a new letter or decade begins, in the order chosen (shelf-pick.js, v1.9.67).
   function computeTabs() {
     tabs = pick.tabsFor(list);
   }

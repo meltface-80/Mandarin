@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 21 of 33: an album opened, and the queue's history. */
+/* The page's core (app.js until v1.0.5), 21 of 31: an album opened, and the queue's history. */
 function openAlbum(album, opts) {
   opts = opts || {};
   // The Android app's own album page (always, since item 47; an older app says no): one of the library's, not this phone's.

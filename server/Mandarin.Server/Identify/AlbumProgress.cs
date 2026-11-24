@@ -87,7 +87,9 @@ internal static class AlbumProgress
             ["proposed"] = n.Proposed,
             ["now"] = Now(on, lib, st, n),
             // Why the albums left unsure aren't matched by sound (item 414c): no AcoustID key, refused, busy or not reached.
-            ["sound"] = on && n.Unidentified + n.Proposed > 0 ? Jobs.Identify?.SoundSays() : null
+            ["sound"] = on && n.Unidentified + n.Proposed > 0 ? Jobs.Identify?.SoundSays() : null,
+            // How far matching by sound has got (item 419), here since its key is Mandarin's own (item 491), not a field's.
+            ["sound_tally"] = AcoustId.Key().Length > 0 && Js.Json(Identifier.SoundTally()) is { } tally ? JsonNode.Parse(tally) : null
         };
         AutoCovers.Current?.SayReach(o);   // the music folders the cover finder can't reach (item 410)
         return o;

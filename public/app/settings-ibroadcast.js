@@ -31,7 +31,14 @@ function ibroadcastLibraryWords(l) {
   if (typeof l.albums !== "number") return "Your iBroadcast library is read shortly after signing in.";
   const n = l.albums, here = l.also_here || 0;
   return n + " album" + (n === 1 ? "" : "s") + " in iBroadcast" + (here ? " · " + here + " of them here as files too, shown once" : "")
-    + " · updated " + new Date(l.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+    + " · updated " + new Date(l.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) + ibroadcastBookletWords(l.booklets);
+}
+
+/** The uploaded albums' booklets kept here (item 510), as the app's IBroadcastSettings.bookletWords says it. @param {any} b */
+function ibroadcastBookletWords(b) {
+  if (!b || (!b.albums && !b.waiting)) return "";
+  return (b.albums ? " · booklets of " + b.albums + " album" + (b.albums === 1 ? "" : "s") + " kept here (" + ibroadcastSize(b.bytes || 0) + ")" : "")
+    + (b.waiting ? " · " + b.waiting + " album" + (b.waiting === 1 ? "'s" : "s'") + " booklets waiting for their drive to be connected" : "");
 }
 
 /** A size in bytes as the page says it: "512 KB", "3.4 MB", "1.2 GB". @param {number} b */
@@ -59,6 +66,8 @@ function ibroadcastUploadWords(u, at) {
     // In Mbps, as internet providers and routers say speeds (item 479).
     if (u.speed > 0) parts.push(ibroadcastMbps(u.speed));
     if (typeof u.eta === "number") parts.push(ibroadcastLeft(u.eta));
+    // Sent a short while ago and not listed by iBroadcast yet: neither sent again nor counted against them (item 488).
+    if (u.waiting) parts.push(u.waiting + " waiting on iBroadcast");
     const status = u.held ? (u.held_where === "away" ? "Paused while music plays away from home" : "Paused while music plays") : "Uploading " + (u.album || "…");
     return { running: true, status, progress: parts.join(" · "), problems };
   }
@@ -66,6 +75,7 @@ function ibroadcastUploadWords(u, at) {
   const said = [u.uploaded + " uploaded", u.already + " already in iBroadcast"];
   if (u.converted) said.push(u.converted + " made FLAC");
   if (u.skipped) said.push(u.skipped + " left out");
+  if (u.waiting) said.push(u.waiting + " waiting on iBroadcast");
   if (u.failed) said.push(u.failed + " not sent");
   return { running: false, status: how + " · " + at(u.finished), progress: said.join(" · "), problems };
 }

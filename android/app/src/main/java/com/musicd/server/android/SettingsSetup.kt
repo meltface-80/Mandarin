@@ -67,14 +67,14 @@ import org.json.JSONObject
 
 /*
  * Setup's small pages of Settings natively (the group T of old/plan-android-native.md, T2; bug list item 78),
- * as the page's (docs/specs/screens.json, settings-picks, -labels, -ui, -display and -shelf; style.css .settings-row,
+ * as the page's (docs/specs/screens.json, settings-picks, -ui, -display and -shelf; style.css .settings-row,
  * .switch, .settings-select, .settings-range): each row a setting's name with its ⓘ and its switch, list or button; a
  * list opens as the WebView's did, the phone's own list of choices. What the server keeps is saved there at once; what
- * the page keeps on this device (UI Settings, a label's order and minimum) is handed to it and kept by the app too.
+ * the page keeps on this device (UI Settings) is handed to it and kept by the app too.
  */
 
 /** One of Setup's pages the app draws here ([pane], the page's name for it). */
-internal val SETUP_PANES = setOf("smartpicks", "labels", "ui", "display", "shelfset", "away", "homescreen")
+internal val SETUP_PANES = setOf("smartpicks", "ui", "display", "shelfset", "away", "homescreen")
 
 @Composable
 internal fun SettingsSetupPane(pane: String, client: () -> ServerClient?, onBack: () -> Unit) {
@@ -85,14 +85,13 @@ internal fun SettingsSetupPane(pane: String, client: () -> ServerClient?, onBack
     Box(Modifier.fillMaxSize()) {
         when (pane) {
             "smartpicks" -> PicksPane(client, onBack, showInfo)
-            "labels" -> LabelsPane(client, onBack, showInfo)
             "ui" -> UiPane(onBack, showInfo)
             "display" -> DisplayPane(client, onBack, showInfo)
             "away" -> AwayPane(client, onBack, showInfo)
             "homescreen" -> HomeScreenPane(client, onBack)
             else -> ShelfPane(client, onBack, showInfo)
         }
-        info?.let { InfoTip(it, Modifier.parity("settings-picks.info settings-labels.info settings-ui.info settings-display.info settings-shelf.info settings-away.info")) }
+        info?.let { InfoTip(it, Modifier.parity("settings-picks.info settings-ui.info settings-display.info settings-shelf.info settings-away.info")) }
     }
 }
 
@@ -137,97 +136,6 @@ private fun PicksPane(client: () -> ServerClient?, onBack: () -> Unit, info: (St
                 })
             }
             SetupNote("Discards today's set and chooses five again. Takes a minute or two.", Modifier.parity("settings-picks.note"))
-        }
-    }
-}
-
-@Composable
-private fun LabelsPane(client: () -> ServerClient?, onBack: () -> Unit, info: (String) -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val kept = remember { keptSetting("labels") to keptSetting("label-folder-depth") }   // as last seen, then the server's (item 198)
-    var on by remember { mutableStateOf(kept.first?.optBoolean("enabled") ?: false) }
-    var note by remember { mutableStateOf(kept.first?.let { SetupSettings.labelsNote(it) } ?: "Off by default. Everything below applies only while this is on.") }
-    var prefs by remember { mutableStateOf(pagePrefs(context)) }
-    var rescan by remember { mutableStateOf("Force rescan") }
-    var rescanSaid by remember { mutableStateOf<String?>(null) }
-    var depth by remember { mutableStateOf(kept.second?.optInt("depth")?.toString() ?: "") }
-    var depthStatus by remember { mutableStateOf(kept.second?.optInt("depth")?.let { SetupSettings.depthStatus(it) } ?: "") }
-    var savingDepth by remember { mutableStateOf(false) }
-    var known by remember { mutableStateOf(kept.first != null) }
-    suspend fun reload() { coroutineScope {
-        launch { readSetting(client, "labels")?.let { on = it.optBoolean("enabled"); note = SetupSettings.labelsNote(it); known = true } }
-        launch { readSetting(client, "label-folder-depth")?.let { val d = it.optInt("depth"); depth = d.toString(); depthStatus = SetupSettings.depthStatus(d) } }
-    } }
-    LaunchedEffect(Unit) { reload() }
-    SettingsFrame {
-        SettingsHead(Modifier.parity("settings-labels.back", Contract.label("settings-labels.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
-            "Record labels", Modifier.parity("settings-labels.heading"))
-        Block {
-            SetupRow("Record labels", Modifier.parity("settings-labels.name"), Modifier.parity("settings-labels.info", Contract.label("settings-labels.info", 0, "Record labels")).clickable { info(LABELS_INFO[0]) }) {
-                Toggle(on, Modifier.parity("settings-labels.enabled", Contract.label("settings-labels.enabled")).clickable {
-                    val was = on; on = !on
-                    saveSetting(scope, context, client, "labels", JSONObject().put("enabled", on), if (on) "Labels on" else "Labels off", undo = { on = was }) { scope.launch { reload() } }
-                }, known)
-            }
-            SetupNote(note, Modifier.parity("settings-labels.note"))
-        }
-        Block {
-            SetupRow("Label album order", Modifier.parity("settings-labels.name"), Modifier.parity("settings-labels.info", Contract.label("settings-labels.info", 0, "Label album order")).clickable { info(LABELS_INFO[1]) }) {
-                SelectBox(choiceWords(SetupSettings.LABEL_ORDER, prefs.labelOrder), SetupSettings.LABEL_ORDER, Modifier.parity("settings-labels.caret"),
-                    Modifier.parity("settings-labels.order", Contract.label("settings-labels.order")).clickable {
-                        pickChoice(context, SetupSettings.LABEL_ORDER, prefs.labelOrder) { v -> prefs = setPagePref(context, "labelOrder", v) }
-                    })
-            }
-        }
-        Block {
-            SetupRow("Minimum albums per label", Modifier.parity("settings-labels.name"), Modifier.parity("settings-labels.info", Contract.label("settings-labels.info", 0, "Minimum albums per label")).clickable { info(LABELS_INFO[2]) }) {
-                SelectBox(choiceWords(SetupSettings.LABEL_MIN, prefs.labelMin.toString()), SetupSettings.LABEL_MIN, Modifier.parity("settings-labels.caret"),
-                    Modifier.parity("settings-labels.min", Contract.label("settings-labels.min")).clickable {
-                        pickChoice(context, SetupSettings.LABEL_MIN, prefs.labelMin.toString()) { v -> prefs = setPagePref(context, "labelMin", v) }
-                    })
-            }
-        }
-        SettingsDivider()
-        Block {
-            SetupRow("Label data", Modifier.parity("settings-labels.name"), Modifier.parity("settings-labels.info", Contract.label("settings-labels.info", 0, "Label data")).clickable { info(LABELS_INFO[3]) }) {
-                SetupButton(rescan, rescan != "Force rescan", Modifier.parity("settings-labels.rescan", Contract.label("settings-labels.rescan")).clickable(enabled = rescan == "Force rescan") {
-                    val c = client() ?: return@clickable
-                    rescan = "Starting…"; rescanSaid = null
-                    scope.launch {
-                        val r = withContext(Dispatchers.IO) { runCatching { c.rescanLabelsNow() } }
-                        r.onSuccess { rescan = SetupSettings.rescanWord(it); rescanSaid = SetupSettings.rescanSaid(it); delay(5000); rescan = "Force rescan" }
-                            .onFailure { rescan = "Force rescan"; rescanSaid = "Error: " + (com.musicd.server.client.Failure.said(it, "no answer")) }
-                    }
-                })
-            }
-            rescanSaid?.let { Text(it, Modifier.parity("settings-labels.rescan-status").padding(top = 10.dp, bottom = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 12.sp, lineHeight = 18.sp) }
-        }
-        SettingsDivider()
-        Block {
-            SetupRow("Label from folder depth", Modifier.parity("settings-labels.name"), Modifier.parity("settings-labels.info", Contract.label("settings-labels.info", 0, "Label from folder depth")).clickable { info(LABELS_INFO[4]) }) {}
-            Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val shape = RoundedCornerShape(8.dp)
-                BasicTextField(depth, { depth = it.filter(Char::isDigit).take(1) }, Modifier.parity("settings-labels.depth", Contract.label("settings-labels.depth")).weight(1f), singleLine = true,
-                    textStyle = TextStyle(color = paletteColor(Palette.TEXT), fontSize = 13.sp, lineHeight = 18.sp), cursorBrush = SolidColor(paletteColor(Palette.ACCENT)),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), decorationBox = { field ->
-                        Box(Modifier.fillMaxWidth().clip(shape).background(paletteColor(Palette.BG_ELEV_2)).border(1.dp, paletteColor(Palette.BORDER), shape).padding(horizontal = 10.dp, vertical = 7.dp)) {
-                            if (depth.isEmpty()) Text("0 = off (use file tag)", color = paletteColor(Palette.TEXT_FAINT), fontSize = 13.sp, lineHeight = 18.sp, maxLines = 1)
-                            field()
-                        }
-                    })
-                SetupButton("Save", savingDepth, Modifier.parity("settings-labels.depth-save", Contract.label("settings-labels.depth-save")).clickable(enabled = !savingDepth) {
-                    val c = client() ?: return@clickable
-                    savingDepth = true
-                    scope.launch {
-                        val r = withContext(Dispatchers.IO) { runCatching { c.saveSetting("label-folder-depth", JSONObject().put("depth", depth.toIntOrNull() ?: 0)) } }
-                        savingDepth = false
-                        r.onSuccess { j -> setupToast(context, if (!j.optBoolean("ok")) j.optString("error").ifEmpty { "Failed to save" } else if (j.optBoolean("rescanning")) "Saved — re-scanning labels…" else "Saved"); reload() }
-                            .onFailure { setupToast(context, "Failed: " + (com.musicd.server.client.Failure.said(it, "no answer"))) }
-                    }
-                })
-            }
-            Text(depthStatus, Modifier.parity("settings-labels.depth-status").padding(top = 4.dp), color = paletteColor(Palette.TEXT_DIM), fontSize = 11.sp, lineHeight = 15.sp)
         }
     }
 }

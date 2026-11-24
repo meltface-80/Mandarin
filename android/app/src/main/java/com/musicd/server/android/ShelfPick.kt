@@ -125,10 +125,9 @@ private fun Tabs(shelf: ShelfControl, rem: Dp) {
             TabButton(Modifier.parity("shelf-choices.tab-genre", Contract.label("shelf-choices.tab-genre", state("genre"), c.count("genre").toString())).weight(1f).clickable { pick("genre") }, "genre", c, rem)
             TabButton(Modifier.parity("shelf-choices.tab-artist", Contract.label("shelf-choices.tab-artist", state("artist"), c.count("artist").toString())).weight(1f).clickable { pick("artist") }, "artist", c, rem)
             TabButton(Modifier.parity("shelf-choices.tab-year", Contract.label("shelf-choices.tab-year", state("year"), c.count("year").toString())).weight(1f).clickable { pick("year") }, "year", c, rem)
-            TabButton(Modifier.parity("shelf-choices.tab-label", Contract.label("shelf-choices.tab-label", state("label"), c.count("label").toString())).weight(1f).clickable { pick("label") }, "label", c, rem)
+            TabButton(Modifier.parity("shelf-choices.tab-type", Contract.label("shelf-choices.tab-type", state("type"), c.count("type").toString())).weight(1f).clickable { pick("type") }, "type", c, rem)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-            TabButton(Modifier.parity("shelf-choices.tab-type", Contract.label("shelf-choices.tab-type", state("type"), c.count("type").toString())).weight(1f).clickable { pick("type") }, "type", c, rem)
             TabButton(Modifier.parity("shelf-choices.tab-format", Contract.label("shelf-choices.tab-format", state("format"), c.count("format").toString())).weight(1f).clickable { pick("format") }, "format", c, rem)
             TabButton(Modifier.parity("shelf-choices.tab-favourite", Contract.label("shelf-choices.tab-favourite", state("favourite"), c.count("favourite").toString())).weight(1f).clickable { pick("favourite") }, "favourite", c, rem)
             TabButton(Modifier.parity("shelf-choices.tab-order", Contract.label("shelf-choices.tab-order", state("order"), c.count("order").toString())).weight(1f).clickable { pick("order") }, "order", c, rem)

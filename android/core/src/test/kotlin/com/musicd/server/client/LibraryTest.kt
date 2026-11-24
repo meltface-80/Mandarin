@@ -104,7 +104,7 @@ class LibraryTest {
     @Test fun `Home's rows, Recently played, Not played and the album of the day`() {
         val rows = client.homeRows()
         assertTrue(rows.map { it.id }.containsAll(listOf("history", "unplayed", "favourites", "random")))
-        assertEquals("Record labels is off in Settings", rows.first { it.id == "lotw" }.unavailable)
+        assertNull("Label of the week gone with the labels (item 492)", rows.firstOrNull { it.id == "lotw" })
         assertNull(rows.first { it.id == "history" }.unavailable)
         assertTrue("nothing played yet", client.recentlyPlayed().albums.isEmpty())
         assertTrue(client.notPlayed().albums.isEmpty())
@@ -132,8 +132,6 @@ class LibraryTest {
         assertEquals(listOf("Rock"), groups.rockmetal.map { it.title })
         assertEquals(listOf("Jazz", "Rock"), client.genreCards().map { it.label })
         assertEquals(WallFilter("genre", "Rock"), client.genreCards()[1].filter())
-        val lotw = client.labelOfTheWeek()
-        assertNull("no label of three albums", lotw.label); assertTrue(lotw.albums.isEmpty())
         assertTrue(client.favourites().albums.isEmpty()); assertTrue(client.listenLater().albums.isEmpty())
         assertEquals("Album One", client.pickUnheard().album.title)
     }
@@ -188,7 +186,7 @@ class LibraryTest {
     @Test fun `every answer recorded is one the client asks for`() {
         client.albums(); client.album(client.albums().albums.first { it.title == "Album One" }.offset); client.artists()
         client.artistAlbums("Artist A"); client.search("album"); client.homeRows(); client.recentlyPlayed(); client.notPlayed(); client.albumOfTheDay()
-        client.smartPicks(); client.genreCards(); client.labelOfTheWeek(); client.favourites(); client.listenLater(); client.pickUnheard()
+        client.smartPicks(); client.genreCards(); client.favourites(); client.listenLater(); client.pickUnheard()
         val recorded = golden.keySet().map { golden.getJSONObject(it).getString("path") }.toSet()
         assertEquals(recorded, asked.toSet())
     }

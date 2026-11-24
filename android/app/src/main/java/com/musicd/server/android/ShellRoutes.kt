@@ -60,23 +60,11 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
             onBooklet = { offset, b -> nav.navigate(ShellRoute.booklet(offset, b.id, b.name, b.pages)) },
             onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } })
     }
-    // The record labels (item 71); a label's albums a wall over them.
     // Settings (item 76): its list, Setup's, and every page of it.
     composable(ShellRoute.SETTINGS, arguments = listOf(navArgument(ShellRoute.PANE) { type = NavType.StringType; defaultValue = "home" })) { entry ->
         SettingsScreen(entry.arguments?.getString(ShellRoute.PANE).orEmpty(), client,
             onBack = { nav.popBackStack() },
             onOpen = { pane -> nav.navigate(ShellRoute.settings(pane)) }
-        )
-    }
-    composable(ShellRoute.LABELS, arguments = listOf(navArgument(ShellRoute.ZONE) { type = NavType.StringType; defaultValue = "" })) { entry ->
-        val zone = entry.arguments?.getString(ShellRoute.ZONE).orEmpty()
-        LabelsScreen(WallPrefs.parse(NativeShell.prefs), zone, client,
-            onBack = { nav.popBackStack() },
-            onLabel = { name -> nav.navigate(ShellRoute.wall("label", zone, name)) },
-            onNowPlaying = { id -> nav.navigate(ShellRoute.nowPlaying(id)) { launchSingleTop = true } },
-            onRoom = NativeShell::roomChosen,
-            onNav = { what -> navTap(nav, what) },
-            onPage = { what, arg -> handOver(nav, what, arg) }
         )
     }
     // The Artists wall (item 130), the row's Artists; an artist's page over it.
@@ -102,7 +90,7 @@ internal fun NavGraphBuilder.moreRoutes(nav: NavHostController, client: () -> Se
 }
 
 /**
- * What a screen hands on: an artist's page, a label's albums, the phone's own album, each over the screen that asked;
+ * What a screen hands on: an artist's page, the phone's own album, each over the screen that asked;
  * Now playing's album ([findNowAlbum]) in Now playing's place; an album no longer in the library closed; the rest the
  * app's own ([handOn]).
  */
@@ -110,7 +98,6 @@ internal fun handOver(nav: NavHostController, what: String, arg: String?) {
     AppLog.line("HAND", "$what ${logArg(arg)}")
     when {
         what == "artist" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.artist(arg, NativeShell.zone))
-        what == "label" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.wall("label", NativeShell.zone, arg))   // a label's albums (item 71)
         what == "genre" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.wall("genre", NativeShell.zone, com.musicd.server.client.WallFilter.routeQuery(com.musicd.server.client.WallFilter("genre", arg))))   // a genre's albums (item 139)
         what == "phone-album" && !arg.isNullOrEmpty() -> nav.navigate(ShellRoute.phoneAlbum(arg, NativeShell.zone))   // the phone's own album (item 108)
         what == "album" && arg != null && arg.toLongOrNull() != null -> inPlace(nav, ShellRoute.album(arg.toLong(), NativeShell.zone, ""))

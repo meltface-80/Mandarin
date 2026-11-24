@@ -53,8 +53,8 @@ import kotlinx.coroutines.withContext
  * Settings, natively (the group T of old/plan-android-native.md, T1; bug list item 76), as the page draws it
  * over the whole screen (docs/specs/screens.json, settings and settings-setup; style.css #settings-overlay): ✕ and
  * Settings at the head, a row a section (its brass icon, its name), the server's version and View on GitHub at the
- * foot; Setup's list under its Back. [pane]: "home", "setup", or a page the app draws ("account", "metadata", in
- * SettingsAccount.kt and SettingsKeys.kt); every page of it the app's own.
+ * foot; Setup's list under its Back. [pane]: "home", "setup", or a page the app draws ("account", in
+ * SettingsPanes.kt); every page of it the app's own.
  */
 @Composable
 internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: () -> Unit, onOpen: (String) -> Unit) {
@@ -62,11 +62,10 @@ internal fun SettingsScreen(pane: String, client: () -> ServerClient?, onBack: (
     val open = onOpen
     when (pane) {
         "account" -> SettingsAccount(client, onBack)
-        "metadata" -> SettingsKeys(client, onBack)
         "playback" -> SettingsAudio(client, onBack)
         "backup" -> SettingsBackup(client, onBack)
         "system" -> SettingsUpdates(client, onBack)
-        "streaming" -> SettingsServices(onBack, open)
+        "streaming" -> SettingsServices(client, onBack, open)
         "qobuz", "tidal" -> SettingsService(pane, client, onBack)
         "ibroadcast" -> SettingsIBroadcast(client, onBack, open)
         "ibroadcast-bandwidth" -> SettingsIBroadcastBandwidth(client, onBack)
@@ -137,9 +136,9 @@ internal fun SettingsNavRow(row: SettingsRow, modifier: Modifier) {
 
 private val ICONS = mapOf("account" to R.drawable.st_account, "folders" to R.drawable.st_folders, "streaming" to R.drawable.st_services, "playback" to R.drawable.st_audio,
     "identify" to R.drawable.st_scanner, "setup" to R.drawable.st_setup, "backup" to R.drawable.st_backup, "sqtool" to R.drawable.st_audio, "system" to R.drawable.st_updates,
-    "smartpicks" to R.drawable.st_smartpicks, "labels" to R.drawable.st_labels, "homescreen" to R.drawable.st_homescreen, "ui" to R.drawable.st_ui,
+    "smartpicks" to R.drawable.st_smartpicks, "homescreen" to R.drawable.st_homescreen, "ui" to R.drawable.st_ui,
     "display" to R.drawable.st_display, "shelfset" to R.drawable.st_shelf, "downloads" to R.drawable.st_downloads,
-    "away" to R.drawable.st_away, "metadata" to R.drawable.st_keys, "ibroadcast" to R.drawable.st_services, "qobuz" to R.drawable.st_services, "tidal" to R.drawable.st_services)
+    "away" to R.drawable.st_away, "ibroadcast" to R.drawable.st_services, "qobuz" to R.drawable.st_services, "tidal" to R.drawable.st_services)
 
 /**
  * A Settings screen's ground (#settings-overlay > .settings-sheet): the raised colour over the whole screen, 20 in at

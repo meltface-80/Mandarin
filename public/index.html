@@ -72,8 +72,8 @@
           <line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
       </button>
-      <!-- Shown when navigated away from Home (wall / genre / labels). -->
-      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home" data-parity="library.back wall.back artist.back picks.back labels.back artists.back">
+      <!-- Shown when navigated away from Home (wall / genre). -->
+      <button id="topbar-back" class="icon-btn hidden" aria-label="Back to Home" title="Home" data-parity="library.back wall.back artist.back picks.back artists.back">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="15 18 9 12 15 6"/>
@@ -129,7 +129,7 @@
           <span class="search-status" id="search-status" aria-live="polite" data-parity="search.status"></span>
         </div>
       </div>
-      <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title wall.title artist.title picks.title labels.title artists.title"></span>
+      <span id="album-count" class="album-count hidden" aria-live="polite" data-parity="library.title wall.title artist.title picks.title artists.title"></span>
       <!-- The original top-bar controls stay in the DOM (hidden) as the action
            engine — the side-menu items trigger them by id. -->
       <div class="topbar-controls">
@@ -140,13 +140,6 @@
           </svg>
         </button>
 
-        <button id="labels-toggle" class="icon-btn" aria-label="Browse by record label" title="Labels">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-            <line x1="7" y1="7" x2="7.01" y2="7"/>
-          </svg>
-        </button>
 
         <!-- Qobuz "Q" logomark (Arcticons, CC BY 4.0) — 48-unit viewBox, so the
              3.6 stroke renders at the same visual weight as the 1.8 strokes
@@ -243,9 +236,6 @@
       </button>
     </div>
 
-    <div id="scan-progress-bar" class="scan-progress-bar hidden" aria-hidden="true" data-parity="labels.progress">
-      <div id="scan-progress-fill" class="scan-progress-fill"></div>
-    </div>
   </header>
 
   <!-- Side menu (hamburger). Items with data-target trigger the hidden top-bar
@@ -267,41 +257,8 @@
     </div>
     <div id="update-notes" class="update-notes hidden" data-parity="home.update-notes"></div>
   </div>
-    <div id="labels-bar" class="labels-bar hidden">
-      <button id="labels-back" class="labels-back" type="button" aria-label="Back to all labels">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-        <span>All labels</span>
-      </button>
-      <span id="labels-title" class="labels-title"></span>
-      <button id="labels-logo-btn" class="icon-btn" type="button" aria-label="Set label logo" title="Set logo" data-parity="wall.logo">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <circle cx="8.5" cy="8.5" r="1.5"/>
-          <polyline points="21 15 16 10 5 21"/>
-        </svg>
-      </button>
-    </div>
-    <div id="logo-url-sheet" class="logo-url-sheet hidden">
-      <div id="logo-candidates" class="logo-candidates">
-        <span class="logo-candidates-hint" data-parity="label-logo.hint">Searching Discogs…</span>
-      </div>
-      <div class="logo-manual-row">
-        <input id="logo-url-input" type="url" class="logo-url-input" placeholder="Or paste any image URL…" autocomplete="off" aria-label="Or paste any image URL…" data-parity="label-logo.url">
-        <button id="logo-url-save" class="action-btn primary" type="button" data-parity="label-logo.save">Save</button>
-        <button id="logo-url-cancel" class="icon-btn" type="button" aria-label="Cancel" data-parity="label-logo.cancel">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M18 6 6 18M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
-    </div>
     <div id="content-count" class="content-count hidden"></div>
-    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner picks.banner search.banner labels.banner artists.banner"></div>
+    <div id="status-banner" class="status-banner hidden" data-parity="library.banner wall.banner picks.banner search.banner artists.banner"></div>
 
     <!-- Home landing: sections of the library. The album wall (#album-grid)
          is one destination, reached from here or the side menu. -->
@@ -363,10 +320,6 @@
           <h2 class="home-section-title home-section-link" id="home-library-title" role="button" tabindex="0" data-parity="home.library-title">Library</h2>
           <div id="home-library" class="home-carousel"></div>
         </div>
-        <div class="home-section home-section-lotw hidden" data-row="lotw">
-          <h2 class="home-section-title home-section-link" id="home-lotw-title" role="button" tabindex="0" data-parity="home.lotw-title">Label of the week</h2>
-          <div id="home-lotw" class="home-carousel home-carousel-1row"></div>
-        </div>
         <div class="home-section home-section-genres" data-row="genres">
           <h2 class="home-section-title" data-parity="home.genres-title">Browse by genre</h2>
           <div id="home-genres" class="home-genre-grid"></div>
@@ -379,24 +332,11 @@
 
   </div><!-- /.app -->
 
-  <!-- Label merge action bar: appears in select mode -->
-  <div id="label-merge-bar" class="label-merge-bar hidden" role="toolbar" aria-label="Label merge">
-    <span id="label-merge-info" class="label-merge-info" data-parity="labels.merge-info"></span>
-    <div class="label-merge-actions">
-      <button id="label-merge-btn" class="action-btn primary" type="button" disabled data-parity="labels.merge">Merge</button>
-      <button id="label-merge-cancel-btn" class="icon-btn" type="button" aria-label="Cancel selection" data-parity="labels.merge-cancel">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M18 6 6 18M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-  </div>
 
   <!-- Album multi-select action bar: Play Now / Queue selected albums -->
-  <div id="album-action-bar" class="label-merge-bar hidden" role="toolbar" aria-label="Album actions">
-    <span id="album-action-info" class="label-merge-info" data-parity="library.select-hint wall.select-hint artist.select-hint"></span>
-    <div class="label-merge-actions">
+  <div id="album-action-bar" class="select-bar hidden" role="toolbar" aria-label="Album actions">
+    <span id="album-action-info" class="select-info" data-parity="library.select-hint wall.select-hint artist.select-hint"></span>
+    <div class="select-actions">
       <button id="album-action-cancel-btn" class="icon-btn" type="button" aria-label="Cancel selection" data-parity="library.select-cancel wall.select-cancel artist.select-cancel">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -406,19 +346,6 @@
     </div>
   </div>
 
-  <!-- Label unmerge sheet: slide up to manage merged labels one by one -->
-  <div id="label-unmerge-sheet" class="label-unmerge-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="label-unmerge-heading">
-    <div class="label-unmerge-header">
-      <span id="label-unmerge-heading" data-parity="label-unmerge.title">Merged into <strong id="label-unmerge-name"></strong></span>
-      <button id="label-unmerge-close" class="icon-btn" type="button" aria-label="Close" data-parity="label-unmerge.close">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M18 6 6 18M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-    <div id="label-unmerge-list" class="label-unmerge-list"></div>
-  </div>
 
   <!-- Album detail modal -->
   <div id="album-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -483,8 +410,8 @@
       </button>
 
       <!-- Previous and next (v0.5.44): the album before and after this one in
-           the list it was opened from — a Home row, an artist's albums, a
-           label's, the Library wall, search. In the top bar beside Share (the
+           the list it was opened from — a Home row, an artist's albums,
+           the Library wall, search. In the top bar beside Share (the
            sleeve, bug list item 24: the cover is too small to carry them).
            Hidden when there is no list. -->
       <div class="modal-nav hidden" id="modal-nav">
@@ -531,7 +458,7 @@
           <div class="album-versions-pane hidden" id="album-versions-pane" data-parity="album.versions"></div>
           <!-- The Credits tab with none known (item 349). -->
           <div class="tab-empty" id="album-tab-empty" data-parity="album.tab-empty">No credits known for this album yet</div>
-          <!-- About's head (item 349): the album's genres on a phone (moved here by style.css's order), its label and its score. -->
+          <!-- About's head (item 349): the album's genres on a phone (moved here by style.css's order) and its score. -->
           <div class="about-facts hidden" id="album-about-facts" data-parity="album.about-facts"></div>
           <!-- Credits (bug list item 132, album-credits.js): who played, sang,
                wrote and made it, each opening their page; eight at first. -->
@@ -562,8 +489,8 @@
             <div class="artist-bio-src" id="album-artist-bio-source"></div>
           </div>
           <!-- Below the review: the library's other albums by this album's
-               artist and the ones they appear on, then Last.fm's similar
-               artists and similar albums (with a Last.fm key). Each is hidden
+               artist and the ones they appear on, then the artist's similar
+               artists and similar albums (Deezer's, item 494). Each is hidden
                until it has something to show; three at first, More shows the
                rest. -->
           <div class="more-section hidden" id="album-more-by" data-parity="album.more-by" data-parity-item="album.more-by-album">
@@ -576,13 +503,12 @@
             <div class="more-grid"></div>
             <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.appears-on-more">More</button>
           </div>
-          <div class="more-section hidden" id="album-lastfm-artists" data-parity="album.similar-artists" data-parity-item="album.similar-artist">
-            <h3 class="section-label"><span class="more-title">Similar artists</span>
-              <a class="more-site hidden" target="_blank" rel="noopener noreferrer" data-parity="album.similar-artists-site">Last.fm ↗</a></h3>
+          <div class="more-section hidden" id="album-similar-artists" data-parity="album.similar-artists" data-parity-item="album.similar-artist">
+            <h3 class="section-label"><span class="more-title">Similar artists</span></h3>
             <div class="more-grid more-grid-artists"></div>
             <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.similar-artists-more">More</button>
           </div>
-          <div class="more-section hidden" id="album-lastfm-albums" data-parity="album.similar-albums" data-parity-item="album.similar-album">
+          <div class="more-section hidden" id="album-similar-albums" data-parity="album.similar-albums" data-parity-item="album.similar-album">
             <h3 class="section-label"><span class="more-title">Similar albums</span></h3>
             <div class="more-grid"></div>
             <button class="more-toggle hidden" type="button" aria-expanded="false" data-parity="album.similar-albums-more">More</button>
@@ -591,7 +517,7 @@
         <div class="modal-info">
           <!-- The album's head, beside the sleeve and bottom aligned with it,
                a line each (bug list item 28): the title, the artists, the
-               release date (its label and Pitchfork score after it), then
+               release date (its Pitchfork score after it), then
                the bit and sample rate and the album's length. Hidden on Now
                playing, which has its own. -->
           <div class="modal-head">
@@ -815,10 +741,6 @@
         <button class="menu-item" type="button" data-target="pitchfork-toggle" data-parity="menu.pitchfork">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h7a3 3 0 0 1 3 3v11a2.5 2.5 0 0 0-2.5-2.5H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v11a2.5 2.5 0 0 1 2.5-2.5H22z"/></svg>
           <span>Pitchfork</span>
-        </button>
-        <button class="menu-item" type="button" data-target="labels-toggle" id="menu-item-labels" data-parity="menu.labels">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-          <span>Labels</span>
         </button>
         <button class="menu-item hidden" type="button" data-target="qobuz-toggle" id="menu-item-qobuz" data-parity="menu.qobuz">
           <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M39.203 39.203A21.43 21.43 0 0 0 45.5 24c0-11.874-9.626-21.5-21.5-21.5S2.5 12.126 2.5 24S12.126 45.5 24 45.5c4.89 0 9.4-1.633 13.012-4.383"/><circle cx="24" cy="24" r="4.873"/><path d="M32.944 32.944L45.5 45.5"/></svg>
@@ -1308,14 +1230,6 @@
             </span>
           </button>
           
-          <button data-parity="settings.item" class="settings-nav-item hidden" type="button" data-pane="labels">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.59a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">Labels</span>
-            </span>
-          </button>
         </nav>
 
         <div class="settings-foot">
@@ -1347,14 +1261,6 @@
             </span>
             <span class="settings-nav-txt">
               <span class="settings-nav-title">Smart Picks</span>
-            </span>
-          </button>
-          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="labels">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">Record labels</span>
             </span>
           </button>
           <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="homescreen">
@@ -1395,14 +1301,6 @@
             </span>
             <span class="settings-nav-txt">
               <span class="settings-nav-title">Away from home</span>
-            </span>
-          </button>
-          <button data-parity="settings-setup.item" class="settings-nav-item" type="button" data-pane="metadata">
-            <span class="settings-nav-ico" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2"/><path d="M16 7l3 3"/><path d="M19 4l2 2"/></svg>
-            </span>
-            <span class="settings-nav-txt">
-              <span class="settings-nav-title">API Keys</span>
             </span>
           </button>
         </nav>
@@ -1469,85 +1367,7 @@
              the picker happens to show. -->
       </div>
 
-      <!-- Labels -->
-      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="labels" data-parent="setup">
-        <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-labels.back">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h2 data-parity="settings-labels.heading">Record labels</h2>
-        </div>
 
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-labels.name">Record labels <button data-parity="settings-labels.info" class="settings-info-btn" data-info="Off by default. When on, each album's record label comes from its files' LABEL tag (or, for a library filed by label, from the folder at the depth set below): a Labels screen in the side menu, a label on the album page and share card, labels in search, a Record label filter in Library Focus and a Label of the week row on Home. An album whose files carry no label tag is looked up on MusicBrainz, then Discogs (with your token); the files' own tag always wins." aria-label="Info">ⓘ</button></span>
-            <label class="switch" data-parity="settings-labels.enabled">
-              <input type="checkbox" id="labels-enabled" aria-label="Record labels">
-              <span class="switch-track"><span class="switch-thumb"></span></span>
-            </label>
-          </div>
-          <div class="settings-note" id="labels-enabled-note" data-parity="settings-labels.note">Off by default. Everything below applies only while this is on.</div>
-        </div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-labels.name">Label album order <button data-parity="settings-labels.info" class="settings-info-btn" data-info="When you open a record label, list its albums alphabetically or shuffle them." aria-label="Info">ⓘ</button></span>
-            <div class="settings-select-wrap">
-              <select id="label-order-select" data-parity="settings-labels.order" class="settings-select" aria-label="Label album order">
-                <option value="alpha">Alphabetical</option>
-                <option value="random">Random</option>
-              </select>
-              <svg data-parity="settings-labels.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-labels.name">Minimum albums per label <button data-parity="settings-labels.info" class="settings-info-btn" data-info="Hide labels that have fewer albums than this threshold. Useful if the scanner picks up one-off compilations from unexpected labels." aria-label="Info">ⓘ</button></span>
-            <div class="settings-select-wrap">
-              <select id="label-min-select" data-parity="settings-labels.min" class="settings-select" aria-label="Minimum albums per label">
-                <option value="1">Show all</option>
-                <option value="2">2 or more</option>
-                <option value="5">5 or more</option>
-                <option value="10">10 or more</option>
-              </select>
-              <svg data-parity="settings-labels.caret" class="settings-caret" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div class="settings-divider"></div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-labels.name">Label data <button data-parity="settings-labels.info" class="settings-info-btn" data-info="Ask again about every album whose files carry no label tag, and look again for the logos not found before. The tags themselves are read by the library scan (Settings → Music folders)." aria-label="Info">ⓘ</button></span>
-            <button id="force-rescan-btn" data-parity="settings-labels.rescan" class="settings-update-btn" type="button">Force rescan</button>
-          </div>
-          <div id="force-rescan-status" data-parity="settings-labels.rescan-status" class="settings-release-notes hidden"></div>
-        </div>
-
-        <div class="settings-divider"></div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-labels.name">Label from folder depth <button data-parity="settings-labels.info" class="settings-info-btn" data-info="For local libraries filed in label folders. 0 = off (use each file's own label tag, the default). Otherwise the label is taken from the folder at this depth under your music root — e.g. /music/Jazz/Blue Note Records/Album is depth 2. Fixes reissues being split off under their pressing label (e.g. an album in your Blue Note folder showing as EMI Finland). Saving applies it at once." aria-label="Info">ⓘ</button></span>
-          </div>
-          <div class="settings-token-row">
-            <input id="label-folder-depth-input" data-parity="settings-labels.depth" aria-label="Label from folder depth" type="number" min="0" max="6" class="settings-token-input" placeholder="0 = off (use file tag)">
-            <button id="label-folder-depth-save" data-parity="settings-labels.depth-save" class="settings-update-btn" type="button">Save</button>
-          </div>
-          <div id="label-folder-depth-status" data-parity="settings-labels.depth-status" class="settings-token-status"></div>
-        </div>
-      </div>
-
-      <!-- Artwork & metadata -->
       <!-- Account: who is signed in, on which devices, and the password -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="account">
         <div class="settings-pane-head">
@@ -1591,88 +1411,6 @@
         </div>
       </div>
 
-      <div class="settings-view settings-pane hidden" data-view="pane" data-pane="metadata" data-parent="setup">
-        <div class="settings-pane-head">
-          <button class="settings-back" type="button" data-settings-back aria-label="Back to settings" data-parity="settings-keys.back">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <h2 data-parity="settings-keys.heading">API Keys</h2>
-        </div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-keys.name">Discogs token <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A personal access token from discogs.com/settings/developers. Finds record label logos, and the label of albums whose files carry none. Not required, but recommended." aria-label="Info">ⓘ</button></span>
-          </div>
-          <div class="settings-token-row">
-            <span class="token-field"><input id="discogs-token-input" type="text" aria-label="Discogs token" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste personal access token…" autocomplete="off" spellcheck="false"><span id="discogs-token-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
-            <button id="discogs-token-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
-          </div>
-          <div id="discogs-token-status" class="settings-token-status" data-parity="settings-keys.status"></div>
-        </div>
-
-        <div class="settings-divider"></div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-keys.name">FanArt.tv key <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A free API key from fanart.tv. Artist photos on the wall display, and record label logos where Discogs has none. Get one at fanart.tv/get-an-api-key — free registration required." aria-label="Info">ⓘ</button></span>
-          </div>
-          <div class="settings-token-row">
-            <span class="token-field"><input id="fanart-key-input" type="text" aria-label="FanArt.tv key" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste FanArt.tv API key…" autocomplete="off" spellcheck="false"><span id="fanart-key-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
-            <button id="fanart-key-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
-          </div>
-          <div id="fanart-key-status" class="settings-token-status" data-parity="settings-keys.status"></div>
-        </div>
-
-        <div class="settings-divider"></div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-keys.name">AcoustID key <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A free application key from acoustid.org/new-application (sign in, and any application name will do). The Album Scanner then matches the albums it can't place by their names by how they sound: each track's fingerprint, made on the server, is looked up on AcoustID." aria-label="Info">ⓘ</button></span>
-          </div>
-          <div class="settings-token-row">
-            <span class="token-field"><input id="acoustid-key-input" type="text" aria-label="AcoustID key" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste AcoustID application key…" autocomplete="off" spellcheck="false"><span id="acoustid-key-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
-            <button id="acoustid-key-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
-          </div>
-          <div id="acoustid-key-status" class="settings-token-status" data-parity="settings-keys.status"></div>
-          <!-- How far matching by sound has got (item 419): the albums matched so far, those still to look at. -->
-          <div id="acoustid-sound" class="settings-token-status hidden" data-parity="settings-keys.sound"></div>
-        </div>
-
-        <div class="settings-divider"></div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-keys.name">Last.fm key <button data-parity="settings-keys.info" class="settings-info-btn" data-info="A free API key from last.fm/api/account/create (any application name will do). Artist and album pages then show similar artists and albums from Last.fm. With its shared secret below and your account connected, what you play is scrobbled to Last.fm." aria-label="Info">ⓘ</button></span>
-          </div>
-          <div class="settings-token-row">
-            <span class="token-field"><input id="lastfm-key-input" type="text" aria-label="Last.fm key" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste Last.fm API key…" autocomplete="off" spellcheck="false"><span id="lastfm-key-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
-            <button id="lastfm-key-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
-          </div>
-          <div id="lastfm-key-status" class="settings-token-status" data-parity="settings-keys.status"></div>
-        </div>
-
-        <div class="settings-divider"></div>
-
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-keys.name">Last.fm shared secret <button data-parity="settings-keys.info" class="settings-info-btn" data-info="The shared secret Last.fm shows beside your API key (last.fm/api/accounts). It signs scrobbling: with it saved, Connect to Last.fm below and allow Mandarin there, and every room, Bridge and this phone scrobble what they play." aria-label="Info">ⓘ</button></span>
-          </div>
-          <div class="settings-token-row">
-            <span class="token-field"><input id="lastfm-secret-input" type="text" aria-label="Last.fm shared secret" data-parity="settings-keys.field" class="settings-token-input" placeholder="Paste Last.fm shared secret…" autocomplete="off" spellcheck="false"><span id="lastfm-secret-check" class="token-check hidden" role="img" data-parity="settings-keys.check"></span></span>
-            <button id="lastfm-secret-save" class="settings-update-btn" type="button" data-parity="settings-keys.save">Save</button>
-          </div>
-          <div id="lastfm-secret-status" class="settings-token-status" data-parity="settings-keys.status"></div>
-        </div>
-
-        <!-- Scrobbling to Last.fm (settings-lastfm.js): the account connected, or Connect to approve Mandarin on Last.fm's page. -->
-        <div class="settings-block">
-          <div class="settings-row">
-            <span class="settings-label" data-parity="settings-keys.name">Scrobbling</span>
-            <button id="lastfm-scrobble-btn" class="settings-update-btn" type="button" data-parity="settings-keys.scrobble">Connect to Last.fm</button>
-          </div>
-          <div id="lastfm-scrobble-status" class="settings-token-status" data-parity="settings-keys.scrobble-status"></div>
-        </div>
-      </div>
 
       <!-- Streaming accounts -->
       <div class="settings-view settings-pane hidden" data-view="pane" data-pane="streaming">
@@ -1710,6 +1448,15 @@
             </span>
           </button>
         </nav>
+
+        <!-- The default service (item 522, app/settings-default-service.js): its albums on artists' pages, after the library's. -->
+        <div class="settings-divider"></div>
+        <div class="settings-block">
+          <div class="settings-row"><span class="settings-label" data-parity="settings-services.default-name">Default service <button data-parity="settings-services.default-info" class="settings-info-btn" data-info="The service whose albums an artist's page shows after the library's, on its Discography tab: every album of theirs that service has and your library doesn't (an album you already have in another edition is left out). Read from the service when you first open an artist's page, then kept for a day. A service you're not signed in to shows nothing." aria-label="Info">&#9432;</button></span>
+            <div class="settings-select-wrap"><select id="default-service" data-parity="settings-services.default" aria-label="Default service" class="settings-select">
+              <option value="">None</option>
+            </select></div></div>
+        </div>
       </div>
 
       <!-- Qobuz's page (item 449): one of Services' (app/settings-services.js). -->
@@ -2264,7 +2011,7 @@
 
       <p class="settings-help filter-hint">
         Tip: the Library wall's Focus sheet filters by format, sample rate,
-        bit depth, label and more.
+        bit depth and more.
       </p>
     </div>
   </div>

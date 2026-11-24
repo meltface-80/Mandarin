@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 7 of 33: the full walls (Listen later, Favourites, Not played) and the Library wall's view. */
+/* The page's core (app.js until v1.0.5), 7 of 31: the full walls (Listen later, Favourites, Not played) and the Library wall's view. */
 // Full-screen "Not played in 6 months" grid — reached by tapping the section
 // header. Fills the main grid with a larger unplayed list (tiles open
 // unfiltered, like the Home row) and shows a Back button to Home.
@@ -196,7 +196,7 @@ const libWall = { offset: 0, loading: false, done: false, seq: 0, total: 0, item
 // whatever /api/library/facets returns rather than assuming. Keeping the ids
 // in one array is what stops the query builder, the saved-view snapshot, the
 // reset and the active-count from drifting apart as facets are added.
-const LIB_FACET_IDS = ["genre", "source", "decade", "label", "format",
+const LIB_FACET_IDS = ["genre", "source", "decade", "format",
                        "rate", "bits", "chan", "letter", "added"];
 const libEmptyFacets = () => {
   const o = {};
@@ -273,21 +273,11 @@ function libViewQuery() {
 }
 // How many filters are ON. Every selected chip counts — including the
 // excluded ones, which are as much a filter as the included ones.
-// Only the facets the SERVER is currently publishing. With Labels off the
-// "Record label" facet is gone from the sheet, and counting a selection
-// stored before the switch was flipped would show a filter the user can
-// neither see nor clear.
-// Seeded at boot from the Labels switch, not only when the Focus sheet is
-// first opened. `/api/library/facets` is fetched on sheet open, so relying on
-// it alone left the wall's "N matching albums" and the Focus badge counting a
-// stored Record-label selection on every fresh load until the sheet had been
-// opened once — which is exactly the invisible, unclearable filter this is
-// meant to prevent.
+// Only the facets the server publishes (the Focus sheet takes its list when it
+// opens): a selection the sheet can't show would be a filter no one can clear.
+// A "label" kept in a view saved before the record labels were taken out
+// (item 492) is neither counted nor asked for.
 let libAvailableFacets = LIB_FACET_IDS.slice();
-window.__setLabelsFacetAvailable = (on) => {
-  libAvailableFacets = on ? LIB_FACET_IDS.slice()
-                          : LIB_FACET_IDS.filter(id => id !== "label");
-};
 const libFocusCount = () =>
   libAvailableFacets.reduce((n, id) => n + (libView[id] || []).length, 0) +
   (libView.played !== "any" ? 1 : 0);

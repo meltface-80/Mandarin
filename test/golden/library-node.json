@@ -1701,137 +1701,6 @@
   }
  },
  {
-  "label": "as scanned: /api/library/albums?label=Columbia",
-  "v": {
-   "status": 200,
-   "j": {
-    "albums": [
-     {
-      "offset": 3,
-      "title": "( )",
-      "subtitle": "anonymous",
-      "image_key": "al-3-<art>",
-      "source": null,
-      "quality": "16/44.1"
-     },
-     {
-      "offset": 1,
-      "title": "Abbey Road",
-      "subtitle": "The Beatles",
-      "image_key": "al-1-<art>",
-      "source": null,
-      "quality": "16/44.1",
-      "year": 1969
-     },
-     {
-      "offset": 2,
-      "title": "Bridge Over Troubled Water",
-      "subtitle": "Simon & Garfunkel",
-      "image_key": "al-2-<art>",
-      "source": null,
-      "quality": "16/44.1",
-      "year": 1970
-     },
-     {
-      "offset": 6,
-      "title": "Discovery",
-      "subtitle": "Daft Punk",
-      "image_key": "al-6-<art>",
-      "source": null,
-      "quality": "16/44.1",
-      "year": 2001
-     },
-     {
-      "offset": 10,
-      "title": "Fragile",
-      "subtitle": "Yes",
-      "image_key": "al-10-<art>",
-      "source": null,
-      "quality": "16/44.1",
-      "year": 1971,
-      "box": {
-       "name": "The Remixes (2018)",
-       "disc": 2,
-       "of": 2
-      }
-     },
-     {
-      "offset": 12,
-      "title": "Help!",
-      "subtitle": "The Beatles",
-      "image_key": "al-12-<art>",
-      "source": null,
-      "quality": "16/44.1",
-      "year": 1965
-     },
-     {
-      "offset": 11,
-      "title": "Homogenic",
-      "subtitle": "Björk",
-      "image_key": "al-11-<art>",
-      "source": null,
-      "quality": "16/44.1",
-      "year": 1997
-     },
-     {
-      "offset": 5,
-      "title": "Kind of Blue",
-      "subtitle": "Miles Davis",
-      "image_key": "al-5-<art>",
-      "source": null,
-      "quality": "24/96",
-      "hires": true,
-      "year": 1959
-     },
-     {
-      "offset": 8,
-      "title": "A Love Supreme",
-      "subtitle": "John Coltrane feat. McCoy Tyner",
-      "image_key": "al-8-<art>",
-      "source": null,
-      "quality": "16/44.1",
-      "year": 1965
-     },
-     {
-      "offset": 7,
-      "title": "Now 1",
-      "subtitle": "Various Artists",
-      "image_key": "al-7-<art>",
-      "source": null,
-      "quality": "MP3",
-      "year": 2001
-     },
-     {
-      "offset": 4,
-      "title": "Studio",
-      "subtitle": "Studio",
-      "image_key": "al-4-<art>",
-      "source": null,
-      "quality": "24/44.1",
-      "hires": true,
-      "year": 2015
-     },
-     {
-      "offset": 9,
-      "title": "The Yes Album",
-      "subtitle": "Yes",
-      "image_key": "al-9-<art>",
-      "source": null,
-      "quality": "16/44.1",
-      "year": 1971,
-      "box": {
-       "name": "The Remixes (2018)",
-       "disc": 1,
-       "of": 2
-      }
-     }
-    ],
-    "offset": 0,
-    "total": 12
-   }
-  }
- },
- {
   "label": "as scanned: /api/library/albums?offset=3&count=2",
   "v": {
    "status": 200,
@@ -2272,7 +2141,6 @@
       "score": 656
      }
     ],
-    "labels": [],
     "artists": [
      {
       "name": "The Beatles",
@@ -2314,7 +2182,6 @@
       "score": 770
      }
     ],
-    "labels": [],
     "artists": [
      {
       "name": "The Beatles",
@@ -2346,7 +2213,6 @@
       "score": 770
      }
     ],
-    "labels": [],
     "artists": [
      {
       "name": "Björk",
@@ -2378,7 +2244,6 @@
       "score": 770
      }
     ],
-    "labels": [],
     "artists": [
      {
       "name": "Björk",
@@ -2410,7 +2275,6 @@
       "score": 915
      }
     ],
-    "labels": [],
     "artists": []
    }
   }
@@ -2435,7 +2299,6 @@
       "score": 300
      }
     ],
-    "labels": [],
     "artists": []
    }
   }
@@ -2479,7 +2342,6 @@
       "score": 732
      }
     ],
-    "labels": [],
     "artists": [
      {
       "name": "anonymous",
@@ -2536,7 +2398,6 @@
     "count": 0,
     "indexed": 12,
     "results": [],
-    "labels": [],
     "artists": []
    }
   }
@@ -2550,7 +2411,6 @@
     "count": 0,
     "indexed": 12,
     "results": [],
-    "labels": [],
     "artists": []
    }
   }
@@ -2575,7 +2435,6 @@
       "score": 700
      }
     ],
-    "labels": [],
     "artists": []
    }
   }
@@ -2600,7 +2459,6 @@
       "score": 656
      }
     ],
-    "labels": [],
     "artists": []
    }
   }
@@ -2614,7 +2472,6 @@
     "count": 0,
     "indexed": 12,
     "results": [],
-    "labels": [],
     "artists": []
    }
   }
@@ -2627,7 +2484,6 @@
     "query": "  ",
     "results": [],
     "artists": [],
-    "labels": [],
     "indexed": 12
    }
   }
@@ -2641,7 +2497,6 @@
     "count": 0,
     "indexed": 12,
     "results": [],
-    "labels": [],
     "artists": []
    }
   }
@@ -2667,7 +2522,6 @@
       "score": 300
      }
     ],
-    "labels": [],
     "artists": []
    }
   }
@@ -4510,16 +4364,6 @@
   }
  },
  {
-  "label": "as scanned: /api/home/label-of-the-week",
-  "v": {
-   "status": 200,
-   "j": {
-    "label": null,
-    "albums": []
-   }
-  }
- },
- {
   "label": "as scanned: /api/home/history",
   "v": {
    "status": 200,
@@ -6331,47 +6175,6 @@
   }
  },
  {
-  "label": "after changes: /api/library/albums?label=Columbia",
-  "v": {
-   "status": 200,
-   "j": {
-    "albums": [
-     {
-      "offset": 2,
-      "title": "Bridge Over Troubled Water",
-      "subtitle": "Simon & Garfunkel",
-      "image_key": "al-2-<art>",
-      "source": null,
-      "favourite": true,
-      "quality": "16/44.1",
-      "year": 1970
-     },
-     {
-      "offset": 5,
-      "title": "Kind of Blue",
-      "subtitle": "Miles Davis",
-      "image_key": "al-5-<art>",
-      "source": null,
-      "quality": "24/96",
-      "hires": true,
-      "year": 1959
-     },
-     {
-      "offset": 8,
-      "title": "A Love Supreme",
-      "subtitle": "John Coltrane feat. McCoy Tyner",
-      "image_key": "al-8-<art>",
-      "source": null,
-      "quality": "16/44.1",
-      "year": 1965
-     }
-    ],
-    "offset": 0,
-    "total": 3
-   }
-  }
- },
- {
   "label": "after changes: /api/library/albums?offset=3&count=2",
   "v": {
    "status": 200,
@@ -6634,38 +6437,6 @@
       ]
      },
      {
-      "id": "label",
-      "label": "Record label",
-      "total_values": 5,
-      "values": [
-       {
-        "value": "Columbia",
-        "label": "Columbia",
-        "count": 3
-       },
-       {
-        "value": "Apple",
-        "label": "Apple",
-        "count": 1
-       },
-       {
-        "value": "One Little Indian",
-        "label": "One Little Indian",
-        "count": 1
-       },
-       {
-        "value": "Parlophone",
-        "label": "Parlophone",
-        "count": 1
-       },
-       {
-        "value": "Virgin",
-        "label": "Virgin",
-        "count": 1
-       }
-      ]
-     },
-     {
       "id": "format",
       "label": "Format",
       "total_values": 3,
@@ -6855,7 +6626,6 @@
       "score": 656
      }
     ],
-    "labels": [],
     "artists": [
      {
       "name": "The Beatles",
@@ -6898,7 +6668,6 @@
       "score": 770
      }
     ],
-    "labels": [],
     "artists": [
      {
       "name": "The Beatles",
@@ -6930,7 +6699,6 @@
       "score": 770
      }
     ],
-    "labels": [],
     "artists": [
      {
       "name": "Björk",
@@ -6962,7 +6730,6 @@
       "score": 770
      }
     ],
-    "labels": [],
     "artists": [
      {
       "name": "Björk",
@@ -6995,7 +6762,6 @@
       "score": 915
      }
     ],
-    "labels": [],
     "artists": []
    }
   }
@@ -7021,7 +6787,6 @@
       "score": 300
      }
     ],
-    "labels": [],
     "artists": []
    }
   }
@@ -7065,28 +6830,6 @@
       "favourite": true,
       "quality": "16/44.1",
       "score": 732
-     }
-    ],
-    "labels": [
-     {
-      "display": "Apple",
-      "albumCount": 1,
-      "logo_url": null
-     },
-     {
-      "display": "Columbia",
-      "albumCount": 3,
-      "logo_url": null
-     },
-     {
-      "display": "One Little Indian",
-      "albumCount": 1,
-      "logo_url": null
-     },
-     {
-      "display": "Parlophone",
-      "albumCount": 1,
-      "logo_url": null
      }
     ],
     "artists": [
@@ -7139,7 +6882,6 @@
     "count": 0,
     "indexed": 12,
     "results": [],
-    "labels": [],
     "artists": []
    }
   }
@@ -7153,7 +6895,6 @@
     "count": 0,
     "indexed": 12,
     "results": [],
-    "labels": [],
     "artists": []
    }
   }
@@ -7179,7 +6920,6 @@
       "score": 700
      }
     ],
-    "labels": [],
     "artists": []
    }
   }
@@ -7205,7 +6945,6 @@
       "score": 656
      }
     ],
-    "labels": [],
     "artists": []
    }
   }
@@ -7219,13 +6958,6 @@
     "count": 0,
     "indexed": 12,
     "results": [],
-    "labels": [
-     {
-      "display": "Columbia",
-      "albumCount": 3,
-      "logo_url": null
-     }
-    ],
     "artists": []
    }
   }
@@ -7238,7 +6970,6 @@
     "query": "  ",
     "results": [],
     "artists": [],
-    "labels": [],
     "indexed": 12
    }
   }
@@ -7252,7 +6983,6 @@
     "count": 0,
     "indexed": 12,
     "results": [],
-    "labels": [],
     "artists": []
    }
   }
@@ -7278,7 +7008,6 @@
       "score": 300
      }
     ],
-    "labels": [],
     "artists": []
    }
   }
@@ -7772,8 +7501,7 @@
      "year": 1969,
      "genres": [
       "Rock"
-     ],
-     "label": "Apple"
+     ]
     },
     "tracks": [
      {
@@ -7841,8 +7569,7 @@
      "year": 1970,
      "genres": [
       "Folk Rock"
-     ],
-     "label": "Columbia"
+     ]
     },
     "tracks": [
      {
@@ -7904,8 +7631,7 @@
      "genres": [
       "Dance",
       "Electronic"
-     ],
-     "label": "Virgin"
+     ]
     },
     "tracks": [
      {
@@ -8047,8 +7773,7 @@
      "year": 1965,
      "genres": [
       "Rock"
-     ],
-     "label": "Parlophone"
+     ]
     },
     "tracks": [
      {
@@ -8108,8 +7833,7 @@
      "year": 1997,
      "genres": [
       "Electronic"
-     ],
-     "label": "One Little Indian"
+     ]
     },
     "tracks": [
      {
@@ -8170,8 +7894,7 @@
      "year": 1959,
      "genres": [
       "Jazz"
-     ],
-     "label": "Columbia"
+     ]
     },
     "tracks": [
      {
@@ -8231,8 +7954,7 @@
      "year": 1965,
      "genres": [
       "Jazz"
-     ],
-     "label": "Columbia"
+     ]
     },
     "tracks": [
      {
@@ -9191,46 +8913,6 @@
   }
  },
  {
-  "label": "after changes: /api/home/label-of-the-week",
-  "v": {
-   "status": 200,
-   "j": {
-    "label": "Columbia",
-    "albums": [
-     {
-      "offset": 2,
-      "title": "Bridge Over Troubled Water",
-      "subtitle": "Simon & Garfunkel",
-      "image_key": "al-2-<art>",
-      "source": null,
-      "favourite": true,
-      "quality": "16/44.1",
-      "year": 1970
-     },
-     {
-      "offset": 5,
-      "title": "Kind of Blue",
-      "subtitle": "Miles Davis",
-      "image_key": "al-5-<art>",
-      "source": null,
-      "quality": "24/96",
-      "hires": true,
-      "year": 1959
-     },
-     {
-      "offset": 8,
-      "title": "A Love Supreme",
-      "subtitle": "John Coltrane feat. McCoy Tyner",
-      "image_key": "al-8-<art>",
-      "source": null,
-      "quality": "16/44.1",
-      "year": 1965
-     }
-    ]
-   }
-  }
- },
- {
   "label": "after changes: /api/home/history",
   "v": {
    "status": 200,
@@ -9342,333 +9024,6 @@
   }
  },
  {
-  "label": "/api/home/label-of-the-week",
-  "v": {
-   "status": 200,
-   "j": {
-    "label": "Columbia",
-    "albums": [
-     {
-      "offset": 2,
-      "title": "Bridge Over Troubled Water",
-      "subtitle": "Simon & Garfunkel",
-      "image_key": "al-2-<art>",
-      "source": null,
-      "favourite": true,
-      "quality": "16/44.1",
-      "year": 1970
-     },
-     {
-      "offset": 5,
-      "title": "Kind of Blue",
-      "subtitle": "Miles Davis",
-      "image_key": "al-5-<art>",
-      "source": null,
-      "quality": "24/96",
-      "hires": true,
-      "year": 1959
-     },
-     {
-      "offset": 8,
-      "title": "A Love Supreme",
-      "subtitle": "John Coltrane feat. McCoy Tyner",
-      "image_key": "al-8-<art>",
-      "source": null,
-      "quality": "16/44.1",
-      "year": 1965
-     }
-    ]
-   }
-  }
- },
- {
-  "label": "unmerged: /api/library/facets",
-  "v": {
-   "status": 200,
-   "j": {
-    "total": 12,
-    "facets": [
-     {
-      "id": "genre",
-      "label": "Genre",
-      "total_values": 7,
-      "values": [
-       {
-        "value": "Electronic",
-        "label": "Electronic",
-        "count": 2
-       },
-       {
-        "value": "Jazz",
-        "label": "Jazz",
-        "count": 2
-       },
-       {
-        "value": "Prog Rock",
-        "label": "Prog Rock",
-        "count": 2
-       },
-       {
-        "value": "Rock",
-        "label": "Rock",
-        "count": 2
-       },
-       {
-        "value": "Dance",
-        "label": "Dance",
-        "count": 1
-       },
-       {
-        "value": "Folk Rock",
-        "label": "Folk Rock",
-        "count": 1
-       },
-       {
-        "value": "Pop",
-        "label": "Pop",
-        "count": 1
-       }
-      ]
-     },
-     {
-      "id": "decade",
-      "label": "Decade",
-      "total_values": 7,
-      "values": [
-       {
-        "value": "2010",
-        "label": "2010s",
-        "count": 1
-       },
-       {
-        "value": "2000",
-        "label": "2000s",
-        "count": 1
-       },
-       {
-        "value": "1990",
-        "label": "1990s",
-        "count": 1
-       },
-       {
-        "value": "1980",
-        "label": "1980s",
-        "count": 1
-       },
-       {
-        "value": "1970",
-        "label": "1970s",
-        "count": 3
-       },
-       {
-        "value": "1960",
-        "label": "1960s",
-        "count": 3
-       },
-       {
-        "value": "1950",
-        "label": "1950s",
-        "count": 1
-       }
-      ]
-     },
-     {
-      "id": "label",
-      "label": "Record label",
-      "total_values": 6,
-      "values": [
-       {
-        "value": "Columbia",
-        "label": "Columbia",
-        "count": 2
-       },
-       {
-        "value": "Apple",
-        "label": "Apple",
-        "count": 1
-       },
-       {
-        "value": "Impulse!",
-        "label": "Impulse!",
-        "count": 1
-       },
-       {
-        "value": "One Little Indian",
-        "label": "One Little Indian",
-        "count": 1
-       },
-       {
-        "value": "Parlophone",
-        "label": "Parlophone",
-        "count": 1
-       },
-       {
-        "value": "Virgin",
-        "label": "Virgin",
-        "count": 1
-       }
-      ]
-     },
-     {
-      "id": "format",
-      "label": "Format",
-      "total_values": 3,
-      "values": [
-       {
-        "value": "FLAC",
-        "label": "FLAC",
-        "count": 10
-       },
-       {
-        "value": "MP3",
-        "label": "MP3",
-        "count": 1
-       },
-       {
-        "value": "WAV",
-        "label": "WAV",
-        "count": 1
-       }
-      ]
-     },
-     {
-      "id": "rate",
-      "label": "Sample rate",
-      "total_values": 2,
-      "values": [
-       {
-        "value": "44100",
-        "label": "44.1 kHz",
-        "count": 11
-       },
-       {
-        "value": "96000",
-        "label": "96 kHz",
-        "count": 1
-       }
-      ]
-     },
-     {
-      "id": "bits",
-      "label": "Bit depth",
-      "total_values": 2,
-      "values": [
-       {
-        "value": "16",
-        "label": "16-bit",
-        "count": 9
-       },
-       {
-        "value": "24",
-        "label": "24-bit",
-        "count": 2
-       }
-      ]
-     },
-     {
-      "id": "letter",
-      "label": "Starts with",
-      "total_values": 10,
-      "values": [
-       {
-        "value": "H",
-        "label": "H",
-        "count": 2
-       },
-       {
-        "value": "A",
-        "label": "A",
-        "count": 1
-       },
-       {
-        "value": "B",
-        "label": "B",
-        "count": 1
-       },
-       {
-        "value": "E",
-        "label": "E",
-        "count": 1
-       },
-       {
-        "value": "F",
-        "label": "F",
-        "count": 1
-       },
-       {
-        "value": "K",
-        "label": "K",
-        "count": 1
-       },
-       {
-        "value": "L",
-        "label": "L",
-        "count": 1
-       },
-       {
-        "value": "N",
-        "label": "N",
-        "count": 1
-       },
-       {
-        "value": "S",
-        "label": "S",
-        "count": 1
-       },
-       {
-        "value": "Y",
-        "label": "Y",
-        "count": 1
-       }
-      ]
-     },
-     {
-      "id": "added",
-      "label": "Added in the last",
-      "total_values": 4,
-      "values": [
-       {
-        "value": "7",
-        "label": "7 days",
-        "count": 12
-       },
-       {
-        "value": "30",
-        "label": "30 days",
-        "count": 12
-       },
-       {
-        "value": "90",
-        "label": "3 months",
-        "count": 12
-       },
-       {
-        "value": "365",
-        "label": "12 months",
-        "count": 12
-       }
-      ]
-     }
-    ],
-    "coverage": {
-     "decade": 11,
-     "genre": 10,
-     "format": 12,
-     "added": 12
-    },
-    "sources_derived": false,
-    "played": [
-     "any",
-     "never",
-     "played",
-     "6",
-     "12"
-    ],
-    "hasPlays": true
-   }
-  }
- },
- {
   "label": "as set: /api/settings/display",
   "v": {
    "status": 200,
@@ -9728,11 +9083,6 @@
      },
      {
       "id": "picks",
-      "on": true,
-      "unavailable": null
-     },
-     {
-      "id": "lotw",
       "on": true,
       "unavailable": null
      },
@@ -9824,11 +9174,6 @@
       "unavailable": "Smart Picks is off in Settings"
      },
      {
-      "id": "lotw",
-      "on": true,
-      "unavailable": null
-     },
-     {
       "id": "library",
       "on": true,
       "unavailable": null
@@ -9880,13 +9225,6 @@
     "count": 0,
     "indexed": 12,
     "results": [],
-    "labels": [
-     {
-      "display": "Columbia",
-      "albumCount": 3,
-      "logo_url": null
-     }
-    ],
     "artists": []
    }
   }
@@ -9974,10 +9312,6 @@
    "type": "image/jpeg",
    "cache": "public, max-age=604800, immutable"
   }
- },
- {
-  "label": "a label's logo",
-  "v": "public, max-age=604800, immutable"
  },
  {
   "label": "file: GET /stream/t4.flac whole",

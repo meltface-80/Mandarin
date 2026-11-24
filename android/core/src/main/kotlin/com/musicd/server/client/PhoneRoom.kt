@@ -37,8 +37,17 @@ interface Deck {
     fun command(c: Phone.Command)
 }
 
-/** The phone as the room [zoneId], playing through [deck] from the phone's [shelf]. */
-class PhoneRoom(private val zoneId: String, private val deck: Deck, private val shelf: () -> PhoneShelf) {
+/**
+ * The phone as the room [zoneId], playing through [deck] from the phone's [shelf]. Offline it is the one room, and takes
+ * what any screen sends, whichever room the screen was opened in (item 117: the screen on show stays). Two things it
+ * leaves alone (item 485, where Now playing in a server's room showed the phone's own queue, a song of hours before):
+ * another room's state, which it never gives; and, while the server is still looked for ([held]: the app just back on
+ * screen, [LookWait]), anything sent for another room, so a tap there doesn't start the phone's player.
+ */
+class PhoneRoom(private val zoneId: String, private val deck: Deck, private val held: () -> Boolean = { false }, private val shelf: () -> PhoneShelf) {
+
+    /** A room named ([id]) that isn't this phone's. */
+    private fun another(id: String?): Boolean = !id.isNullOrEmpty() && id != zoneId
 
     /** The answer to GET [path], or null when it isn't the room's. */
     fun get(path: String, q: Map<String, String>): Answer? = when (path) {
@@ -50,7 +59,7 @@ class PhoneRoom(private val zoneId: String, private val deck: Deck, private val 
         "/api/shortcut/zones" -> Answer.ok(JSONObject().put("zones", JSONArray().put(JSONObject().put("zone_id", zoneId).put("display_name", NAME)
             .put("state", deck.state()?.state ?: "stopped").put("is_phone", true))).put("last_zone", zoneId))
         "/api/outputs" -> Answer.ok(JSONObject().put("outputs", JSONArray()))
-        "/api/zone-state" -> {
+        "/api/zone-state" -> if (another(q["zone"])) Answer.error(404, NOT_HERE) else {
             val ready = deck.ready()
             // Held as long as asked, up to the server's 20 s (item 120): its askers wait on their own threads now the page's
             // bridge is gone, and a hold of 1.5 s had a screen's room asked for 40 times a minute offline.
@@ -58,7 +67,7 @@ class PhoneRoom(private val zoneId: String, private val deck: Deck, private val 
             val st = deck.state()
             Answer.ok(JSONObject().put("revision", st?.revision ?: deck.revision()).put("zone", zone(st)))
         }
-        "/api/queue" -> Answer.ok(queue(deck.state()))
+        "/api/queue" -> if (held() && another(q["zone"])) Answer.error(503, LOOKING) else Answer.ok(queue(deck.state()))
         "/api/album/now-playing" -> {
             val cur = deck.state()?.let { it.items.getOrNull(it.index) }
             val s = shelf()
@@ -66,12 +75,15 @@ class PhoneRoom(private val zoneId: String, private val deck: Deck, private val 
                 ?: cur?.let { s.download(it.albumId) }?.let { PhoneShelf.json(it) }
             Answer.ok(JSONObject().put("album", album ?: JSONObject.NULL))
         }
-        "/api/shortcut/play-random" -> playRandom()
+        "/api/shortcut/play-random" -> if (held() && another(q["zone"])) Answer.error(503, LOOKING) else playRandom()
         else -> null
     }
 
     /** The answer to POST [path] with [b], or null when it isn't the room's. */
-    fun post(path: String, b: JSONObject): Answer? = when (path) {
+    fun post(path: String, b: JSONObject): Answer? =
+        if (path in POSTS && held() && another(b.optString("zone_or_output_id"))) Answer.error(503, LOOKING) else sent(path, b)
+
+    private fun sent(path: String, b: JSONObject): Answer? = when (path) {
         "/api/play" -> play(listOf(b.optInt("offset", -1)), b.optString("kind", "play_now"))
         "/api/play-track" -> {
             val album = b.optInt("offset", -1)
@@ -190,6 +202,11 @@ class PhoneRoom(private val zoneId: String, private val deck: Deck, private val 
     companion object {
         const val NAME = "This phone"
         const val NOT_STARTED = "The phone's player didn't start"
+        const val NOT_HERE = "That room isn't this phone's"
+        const val LOOKING = "Looking for Mandarin. Try again in a moment."
+        /** What is sent to a room, each naming it (zone_or_output_id): [sent]'s own. */
+        private val POSTS = setOf("/api/play", "/api/play-track", "/api/play-multi", "/api/play-unheard", "/api/control", "/api/seek",
+            "/api/volume", "/api/zone-settings", "/api/play-from-here")
 
         /** A play's kind as the phone's player takes it. */
         fun normalise(kind: String?) = when (kind) {

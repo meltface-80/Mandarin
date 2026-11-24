@@ -66,7 +66,7 @@ internal abstract partial class Catalogue
     /* settings(): the quality (one the service offers, else its default) and the import's switch (off until switched on, v0.7.10). */
     public (string Quality, bool Import) Settings()
     {
-        var s = Extras.Labels.Setting(Id + "Settings");
+        var s = Extras.SavedSettings.Setting(Id + "Settings");
         if (s is Undef || !Js.Truthy(s)) s = new JsObj();
         return (P(s, "quality") is string q && Qualities.Contains(q) ? q : DefaultQuality, P(s, "import") is true);
     }
@@ -85,7 +85,7 @@ internal abstract partial class Catalogue
         o["quality"] = next.Quality;
         o["import"] = next.Import;
         SettingsChanged();
-        Extras.Labels.SetSetting(Id + "Settings", o);
+        Extras.SavedSettings.SetSetting(Id + "Settings", o);
         return next;
     }
 
@@ -117,7 +117,7 @@ internal abstract partial class Catalogue
         o["quality"] = s.Quality;
         o["import"] = s.Import;
         lock (importGate) o["importing"] = importing != null;
-        var last = Extras.Labels.Setting(Id + "LastImport");
+        var last = Extras.SavedSettings.Setting(Id + "LastImport");
         o["last_import"] = last is Undef ? null : last;
         o["kept"] = (double)KeptSet().Count;
         if (connected) Describe(o);
@@ -210,7 +210,7 @@ internal abstract partial class Catalogue
         result["dropped"] = dropped;
         result["failed"] = failed;
         result["seconds"] = Js.Round((NowMs() - t0) / 1000);
-        Extras.Labels.SetSetting(Id + "LastImport", result);
+        Extras.SavedSettings.SetSetting(Id + "LastImport", result);
         Server.Log($"[{Id}] library: {want.Count} album(s) ({Js.Num(added)} new, {Js.Num(dropped)} no longer kept, {Js.Num(failed)} failed), in {Js.Num((double)result["seconds"]!)}s");
         await Changed();
         return result;

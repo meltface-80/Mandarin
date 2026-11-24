@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 9 of 33: the Library wall's controls: its filter, Focus and Sort. */
+/* The page's core (app.js until v1.0.5), 9 of 31: the Library wall's controls: its filter, Focus and Sort. */
 // Roon's own phone layout for this row: Focus on the left behind a chevron,
 // the current Sort on the right behind a caret, and NOTHING between them.
 //
@@ -34,8 +34,7 @@ function renderLibraryControls() {
     filt.id = "library-filter";
     filt.className = "library-filter in-topbar";
     const row = document.querySelector(".topbar-row");
-    const before = document.getElementById("labels-tools");
-    if (row) row.insertBefore(filt, before && before.parentNode === row ? before : null);
+    if (row) row.appendChild(filt);
     else bar.appendChild(filt);
   }
   // Both controls open a sheet rather than mutating the view in place, so a

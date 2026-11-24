@@ -63,6 +63,8 @@ test("item 443: iBroadcast signed in with a code, its account read, a stale toke
   ib.approve();
   const signed = await until(async () => { const s = await state(); return s.connected && s.user && s.user.name && s; }, 20000, "the sign-in and the account read");
   ib.statusDelayMs = 0;
+  // Read once while it was slow, not again at each look (item 495: a read left over landed later, over what came after).
+  assert.equal(ib.apiBodies.filter(b => b.path === "/api/status").length, 1, "the account read once");
   assert.deepEqual(signed.user, { name: "tester" });
   assert.equal(signed.premium, true);
   assert.deepEqual(signed.formats, ["flac", "m4a", "mp3", "wav"]);
@@ -79,10 +81,12 @@ test("item 443: iBroadcast signed in with a code, its account read, a stale toke
   const calls = ib.apiBodies.length;
   await state();
   await until(() => ib.refreshes === 1 && ib.apiBodies.length === calls + 2, 15000, "the refresh and the call again");
-  const after = JSON.parse(ctx.db.raw.prepare("SELECT value FROM settings WHERE key = 'ibroadcast'").get().value);
+  // The stand-in notes the call as it is asked; the server keeps what it read once the answer is in (IBroadcast.Describe).
+  // Waited for (item 495: read at once, it was found not yet kept once in a full run).
+  const kept2 = () => JSON.parse(ctx.db.raw.prepare("SELECT value FROM settings WHERE key = 'ibroadcast'").get().value);
+  const after = await until(() => { const a = kept2(); return a.checked > Date.now() - 60000 && a.token.access === ib.access && a; }, 15000, "read again, and kept");
   assert.equal(after.token.access, ib.access, "the new token kept");
   assert.equal(after.token.refresh, ib.refreshToken, "the refresh token kept when none came back");
-  assert.ok(after.checked > Date.now() - 60000, "read again");
 
   // The log says what happened, never a token.
   const log = await until(() => { const s = fs.readFileSync(path.join(lib.data, "Logs", "Mandarin_log.txt"), "utf8"); return /\[ibroadcast\] signed in as/.test(s) && s; });

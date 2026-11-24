@@ -160,6 +160,9 @@ jobs:
         env:
           # Each signed with Mandarin's release key (item 371): <file>.sig beside it, which the updater checks.
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          # Mandarin's own AcoustID and FanArt.tv keys (item 491), carried in the program, never in the source.
+          MANDARIN_ACOUSTID_KEY: ${{ secrets.MANDARIN_ACOUSTID_KEY }}
+          MANDARIN_FANART_KEY: ${{ secrets.MANDARIN_FANART_KEY }}
         run: |
           set -e
           v=${{ steps.v.outputs.version }}

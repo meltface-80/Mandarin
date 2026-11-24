@@ -1,8 +1,7 @@
 // Jobs.cs — the server's background work, which it took from the Node server
 // one part at a time (v0.8.19 on) and since v0.9.0 has had from its start:
 // the identification scan with the MusicBrainz pack (Identify/), and measuring
-// loudness (Identify/Loudness.cs); from v0.8.20 the record labels' lookups and
-// logos, the release days after each library scan, and the taste work (Smart
+// loudness (Identify/Loudness.cs); from v0.8.20 the release days after each library scan, and the taste work (Smart
 // Picks, the share card's suggestions) (Extras/); from v0.8.22 the built-in
 // Tailscale engine (Admin/Tailscale.cs); from v0.8.34 the library scans
 // (Scans.cs); from v0.8.44 the month's prune of Qobuz's and Tidal's albums
@@ -22,7 +21,7 @@ namespace Mandarin.Server;
 
 internal static partial class Jobs
 {
-    public static readonly string[] Names = ["identify", "mbpack", "loudness", "labels", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback", "covers"];
+    public static readonly string[] Names = ["identify", "mbpack", "loudness", "days", "taste", "tailscale", "scan", "prune", "import", "services", "update", "cpu", "playback", "covers"];
 
     public static Identifier? Identify { get; private set; }
     public static PackStore? Packs { get; private set; }
@@ -37,12 +36,7 @@ internal static partial class Jobs
     public static Admin.Updater? Updater { get; private set; }
     // The wall display's artist photos (v0.8.48, HousekeepingRoutes.cs): MusicBrainz for the act, FanArt.tv for its pictures, where each is asked.
     public static MusicBrainz? Mb { get; private set; }
-    public static string FanartBase { get; private set; } = LabelLogos.FanartBase;
-    // Last.fm (v0.8.26, LastfmRoutes.cs): where it is asked (LASTFM_URL), and the key from the environment (LASTFM_KEY).
-    private static Lastfm? lastfm;
-    public static Lastfm Lastfm => lastfm ??= NewLastfm(Environment.GetEnvironmentVariable("LASTFM_URL"));
-    public static string? LastfmEnvKey { get; private set; } = Environment.GetEnvironmentVariable("LASTFM_KEY") is { Length: > 0 } ek ? ek : null;
-    private static Lastfm NewLastfm(string? url) => new(url is { Length: > 0 } ? url : null, Library.LastfmKey, "Mandarin/" + Server.Version + " (+https://github.com/meltface-80/Mandarin)") { KeptInDb = true };
+    public static string FanartBase { get; private set; } = Fanart.Base;
     // Headphone profiles (v0.8.26, DspRoutes.cs): where AutoEq is.
     public static AutoEq? AutoEq { get; private set; }
     // Qobuz's and Tidal's catalogue (v0.8.39, ServiceRoutes.cs): where each is asked.
@@ -110,24 +104,22 @@ internal static partial class Jobs
         var mqaHere = !Lookups.LoopbackOnly || (cfg["mqa"] is JsonValue mq && mq.TryGetValue<bool>(out var mqOn) && mqOn);
         MqaPass?.Stop();
         MqaPass = new Mqa.MqaPass(Log, Int(cfg["mqa_tick_ms"], 3000)) { Ready = () => Held && mqaHere };
-        // Record labels, release days and the taste work (v0.8.20): MusicBrainz as
-        // itself (no pack), Discogs, FanArt.tv and Deezer where the configuration says.
-        var labelsMb = new MusicBrainz(Text(cfg["musicbrainz_url"]), version);
+        // Release days and the taste work (v0.8.20): MusicBrainz as itself (no
+        // pack), FanArt.tv and Deezer where the configuration says.
         Mb = new MusicBrainz(Text(cfg["musicbrainz_url"]), version);
-        FanartBase = (Text(cfg["fanart_url"]) ?? LabelLogos.FanartBase).TrimEnd('/');
-        var pause = Pause(cfg["logo_pause_ms"], 1100);
-        Labels.Lookup = new LabelLookup(labelsMb, Text(cfg["discogs_url"]), pause, version, Log) { Ready = () => Holds("labels"), OnDone = Library.AfterLookups };
-        Labels.Logos = new LabelLogos(dataDir, labelsMb, Text(cfg["discogs_url"]), Text(cfg["fanart_url"]), pause, version, Log) { Ready = () => Holds("labels") };
+        FanartBase = (Text(cfg["fanart_url"]) ?? Fanart.Base).TrimEnd('/');
         Days = new ReleaseDays(Text(cfg["musicbrainz_url"]), version, Log) { Ready = () => Holds("days") };
         Taste = new Taste(Text(cfg["deezer_url"]), Log) { Ready = () => Holds("taste") };
-        // Headphone profiles and Last.fm (v0.8.26): where AutoEq and Last.fm are, and the environment's Last.fm key.
+        // Headphone profiles (v0.8.26): where AutoEq is.
         AutoEq = new AutoEq(Text(cfg["autoeq_url"]), Log);
-        LastfmEnvKey = Text(cfg["lastfm_key"]);
+        BuiltInKeys.Configure(Text(cfg["acoustid_built_in"]), Text(cfg["fanart_built_in"]));
         // Qobuz's and Tidal's catalogue (v0.8.39): their addresses as set up (the tests' fakes).
         // Their albums' rows (v0.8.44): the covers kept in the data folder, beside the database. Tidal's sign-in (v0.8.47): where it is asked.
         Qobuz = new Services.QobuzCatalogue(Text(cfg["qobuz_url"])) { DataDir = dataDir };
         Tidal = new Services.TidalCatalogue(Text(cfg["tidal_url"]), Text(cfg["tidal_images_url"]), Text(cfg["tidal_auth_url"])) { DataDir = dataDir };
         IBroadcast = new Services.IBroadcast.IBroadcast(Text(cfg["ibroadcast_url"]));
+        // The uploaded albums' booklets kept here (item 510), shown from the start.
+        Services.IBroadcast.IBroadcastBooklets.Init(dataDir);
         IBroadcastLibrary = new Services.IBroadcast.IBroadcastLibrary(IBroadcast, dataDir)
             { WatchMs = cfg["ibroadcast_watch_ms"] is JsonValue ibw && ibw.TryGetValue<double>(out var ibms) && ibms > 0 ? ibms : 10 * 60 * 1000 };
         IBroadcastStreams = new Services.IBroadcast.IBroadcastStreams(IBroadcast) { DataDir = dataDir };
@@ -135,18 +127,19 @@ internal static partial class Jobs
         {
             LimitBytes = cfg["ibroadcast_upload_limit"] is JsonValue ibl && ibl.TryGetValue<double>(out var lim) && lim > 0 ? (long)lim : 1_500_000_000,
             HoldMs = cfg["ibroadcast_upload_limit"] != null ? 200 : 5000,
+            // The tests' uploads follow one another at once: no wait unless one asks for it (item 488).
+            WaitMs = cfg["ibroadcast_upload_wait_ms"] is JsonValue ibq && ibq.TryGetValue<double>(out var wait) ? wait : cfg["ibroadcast_upload_limit"] != null ? 0 : Services.IBroadcast.IBroadcastUploadSent.WaitMs,
+            AgainMs = cfg["ibroadcast_upload_again_ms"] is JsonValue iba && iba.TryGetValue<double>(out var again) && again > 0 ? again : Services.IBroadcast.IBroadcastUploadSent.AgainMs,
             ResumeEveryMs = cfg["ibroadcast_upload_limit"] != null ? 200 : 15_000,
             Files = new Services.IBroadcast.IBroadcastUploadFiles(IBroadcast.Api, dataDir) { Waits = cfg["ibroadcast_upload_limit"] != null ? [TimeSpan.FromMilliseconds(200)] : [TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(5)] },
         };
         IBroadcastSchedule = new Services.IBroadcast.IBroadcastSchedule(IBroadcastUpload)
             { TickMs = cfg["ibroadcast_schedule_tick_ms"] is JsonValue ibt && ibt.TryGetValue<double>(out var tick) && tick > 0 ? (int)tick : 30_000 };
-        // What a service no longer here left behind (item 152), and gone albums and tracks (item 179): gone before the library is read.
+        // What a service no longer here left behind (items 152, 525: Spotify's), and gone albums and tracks (item 179): gone before the library is read.
         Orphans.Sweep(Log);
         if (Services.Leftovers.Remove(dataDir, Log)) _ = Library.Tell(new JsonObject { ["services"] = "changed" });
         // The playlists' settings and the albums they held, gone with the playlists.
         Services.Leftovers.RemovePlaylists(Log);
-        // Kept (its answers and its spacing with it) unless Last.fm is asked elsewhere.
-        if (NewLastfm(Text(cfg["lastfm_url"])) is var said && said.BaseUrl != Lastfm.BaseUrl) lastfm = said;
         // A record's write-up and links (v0.8.21): asked of MusicBrainz, Wikipedia, Pitchfork and Qobuz's site where the configuration says.
         WriteUps = new WriteUpSources(Text(cfg["musicbrainz_url"]), Text(cfg["wikipedia_url"]), Text(cfg["pitchfork_url"]), Text(cfg["qobuz_web_url"]), version);
         // The albums' credits and the acts behind them (bug list item 129): MusicBrainz, Wikidata, FanArt.tv and Deezer where the configuration says.

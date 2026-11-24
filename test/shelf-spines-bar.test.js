@@ -5,8 +5,8 @@
  * another in a shared depth). Item 206 (Rouen v1.9.67 to v1.9.69-t1): the spines the one look, each in one line —
  * the artist, the album and its version down from the top, the format, the year and the catalogue number up from the
  * foot, on a phone too; a phone held upright shows the case in front as a tall card; the album view's chosen tracks
- * played from under its cover, its parts on screen and apart; the Labels and Types tiles and the label and catalogue
- * orders; and on a phone the choices full screen, Show N albums taking them away.
+ * played from under its cover, its parts on screen and apart; the Types tiles and the catalogue
+ * order (Labels gone, item 492); and on a phone the choices full screen, Show N albums taking them away.
  *
  * The spines are proved in the picture itself: the fronts painted green and the spines red, the shelf held halfway
  * between two albums on a tablet and on a phone, a screenshot taken, and the row across the covers found in it. No
@@ -84,7 +84,7 @@ const READY = `
   const pe = (type, x, y, id) => stage.dispatchEvent(new PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: "touch", isPrimary: true }));
 `;
 
-test("Shelf: spines never through a turning case; one line along each spine; the album view's chosen tracks; labels, types and the phone", { skip, timeout: 300000 }, async (t) => {
+test("Shelf: spines never through a turning case; one line along each spine; the album view's chosen tracks; types and the phone", { skip, timeout: 300000 }, async (t) => {
   const lib = library();
   const srv = createServer({ port: PORT, musicDir: lib.music, dataDir: lib.data, serverIp: "127.0.0.1", sonosHosts: [], upnpMulticast: false, identify: false });
   await srv.start();
@@ -92,7 +92,6 @@ test("Shelf: spines never through a turning case; one line along each spine; the
     const token = await signIn(B);
     const H = { Authorization: "Bearer " + token };
     await fetch(B + "/api/settings/shelf", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ enabled: true }) });
-    await fetch(B + "/api/settings/labels", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, H), body: JSON.stringify({ enabled: true }) });
     for (let i = 0; i < 150; i++) {
       const st = await (await fetch(B + "/api/status", { headers: H })).json();
       if (st.index_count >= 10 && !st.scan.running) break;
@@ -201,32 +200,25 @@ test("Shelf: spines never through a turning case; one line along each spine; the
       });
     }
 
-    await t.test("Labels and Types: tiles that narrow the shelf; by label and catalogue №, and by catalogue № alone", async () => {
+    await t.test("Types: tiles that narrow the shelf; by catalogue №; no Labels tab nor label order (item 492)", async () => {
       const r = await at({ width: 1440, height: 900 }, "spines", (page) => page.eval(`(async () => { ${READY}
         const tiles = () => [...document.querySelectorAll("#tiles .tile")].map(t => (t.querySelector(".t-name, .ch") || t).textContent.trim() + " " + (t.querySelector(".t-count") || { textContent: "" }).textContent);
         const out = {};
-        document.querySelector('.tab[data-tab="label"]').click(); out.labels = tiles();
-        [...document.querySelectorAll('.tile[data-cat="label"]')].find(t => t.textContent.includes("Columbia")).click();
-        out.columbia = window.__shelfOrder();
-        [...document.querySelectorAll('.tile[data-cat="label"]')].find(t => t.textContent.includes("Columbia")).click();
+        out.labelTab = !!document.querySelector('.tab[data-tab="label"]');
         document.querySelector('.tab[data-tab="type"]').click(); out.types = tiles();
         [...document.querySelectorAll('.tile[data-cat="type"]')].find(t => t.textContent.includes("Compilation")).click();
         out.comps = window.__shelfOrder();
         [...document.querySelectorAll('.tile[data-cat="type"]')].find(t => t.textContent.includes("Compilation")).click();
         document.querySelector('.tab[data-tab="order"]').click();
-        document.querySelector('.tile[data-cat="order"][data-id="label"]').click();
-        out.byLabel = window.__shelfOrder().slice(0, 6);
+        out.labelOrder = !!document.querySelector('.tile[data-cat="order"][data-id="label"]');
         document.querySelector('.tile[data-cat="order"][data-id="catno"]').click();
         out.byCat = window.__shelfOrder();
         return out; })()`));
-      assert.deepEqual(r.labels, ["Apple 1", "Blue Note 1", "Columbia 1", "One Little Indian 1", "Parlophone 1", "Virgin 1"], "a tile for each label, with its count");
-      assert.deepEqual(r.columbia, ["Kind of Blue"]);
+      assert.deepEqual([r.labelTab, r.labelOrder], [false, false], "no Labels tab, no label order");
       assert.deepEqual(r.types, ["Compilations 1", "Unknown 9"], "the kinds the library has, then Unknown");
       assert.deepEqual(r.comps, ["Best Of"]);
-      assert.deepEqual(r.byLabel, ["Abbey Road", "Hi Res", "Kind of Blue", "Homogenic", "Album One", "Discovery (Deluxe Edition)"],
-        "each label together, in a shop's order; the unlabelled last");
       assert.deepEqual(r.byCat, ["Kind of Blue", "Abbey Road", "Homogenic", "Discovery (Deluxe Edition)",
-        "Album One", "Best Of", "Hi Res", "Myth Takes", "Pastel Blues", "The Original Soundtrack"], "the numbers in order across every label, then the unnumbered (by title, as Rouen sorts them)");
+        "Album One", "Best Of", "Hi Res", "Myth Takes", "Pastel Blues", "The Original Soundtrack"], "the numbers in order, then the unnumbered (by title, as Rouen sorts them)");
     });
 
     await t.test("a phone: the choices full screen, Show N albums takes them away; a tablet keeps its side pull-out (Rouen v1.9.69-t1)", async () => {

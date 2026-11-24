@@ -17,7 +17,7 @@
       "lines": 456
     },
     "public/display.js": {
-      "lines": 643
+      "lines": 639
     },
     "public/sharecard.js": {
       "lines": 578
@@ -35,10 +35,7 @@
       "lines": 430
     },
     "server/Mandarin.Server/Covers.cs": {
-      "lines": 559
-    },
-    "server/Mandarin.Server/Extras/LabelLogos.cs": {
-      "lines": 430
+      "lines": 538
     },
     "server/Mandarin.Server/Extras/Taste.cs": {
       "lines": 419
@@ -53,7 +50,7 @@
       "lines": 514
     },
     "server/Mandarin.Server/Library.cs": {
-      "lines": 488
+      "lines": 440
     },
     "server/Mandarin.Server/Playback/JsMath.cs": {
       "lines": 615

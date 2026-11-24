@@ -34,19 +34,8 @@ internal static partial class Library
     {
         var scan = Scans.State;
         var running = scan["running"] is JsonValue rv && rv.TryGetValue<bool>(out var r) && r;
-        bool labelsOn = false;
-        var depth = 0;
-        try
-        {
-            using var c = Db.Open();
-            labelsOn = Js.Truthy(Db.Setting(c, "labelsEnabled"));
-            // parseInt(v, 10) || 0, kept to 0–6 (api-library.js labelRules).
-            var d = Js.ParseInt(Db.Setting(c, "labelFolderDepth"));
-            depth = d == int.MinValue ? 0 : (int)Math.Max(0, Math.Min(6, d));
-        }
-        catch (Microsoft.Data.Sqlite.SqliteException) { /* as none set */ }
         var now = DateTime.Now;
-        return new LibState(boot, Interlocked.Read(ref version), Interlocked.Read(ref marks), running && (current?.Count ?? 0) == 0, scan["progress"]?.DeepClone(), labelsOn, depth, Scans.Roots())
+        return new LibState(boot, Interlocked.Read(ref version), Interlocked.Read(ref marks), running && (current?.Count ?? 0) == 0, scan["progress"]?.DeepClone(), Scans.Roots())
         {
             Day = DayKey(now), DayStart = DayStart(now), Week = WeekKey(now), BaseUrl = LocalBaseUrl(), Scanning = running, BuiltAt = builtAt
         };
@@ -123,7 +112,7 @@ internal static partial class Library
     {
         var keys = what.Select(kv => kv.Key).ToList();
         var scan = what["scan"] as JsonObject;
-        var reload = keys.Any(k => k is "edits" or "merges" or "labels" or "lookups" or "days" or "services" or "artists" or "versions")
+        var reload = keys.Any(k => k is "edits" or "lookups" or "days" or "services" or "artists" or "versions")
             || (scan != null && (Js.Truthy(scan["progress"]) || Js.Truthy(scan["done"])));
         if (Js.Truthy(what["marks"])) Interlocked.Increment(ref marks);
         // An album edit made or dropped: album-edits.json written again (db.backupEdits), so a database that has to start over gets it back.

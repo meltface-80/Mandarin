@@ -6,25 +6,7 @@ import org.junit.Test
 
 /** Setup's small pages as the page says them (item 78). */
 class SetupSettingsTest {
-    @Test fun `what Record labels says, off and on, with its logos`() {
-        assertEquals("Off. 2 albums name a label in their tags; 1 has none.",
-            SetupSettings.labelsNote(JSONObject("""{"enabled":false,"tagged":2,"untagged":1}""")))
-        assertEquals("3 labels. 1 album names a label in its tags, 2 have one looked up; 0 have none. 2 logos.",
-            SetupSettings.labelsNote(JSONObject("""{"enabled":true,"count":3,"tagged":1,"looked_up":2,"untagged":0,"discogs":true,"logos":2}""")))
-        assertEquals("1 label. 1 album names a label in its tags; 4 have none (MusicBrainz and Discogs didn't know them). Logos need a Discogs token or a FanArt.tv key (Settings → Setup → API Keys).",
-            SetupSettings.labelsNote(JSONObject("""{"enabled":true,"count":1,"tagged":1,"untagged":4}""")))
-        assertEquals("No labels yet: none of the albums' files carry a LABEL tag.", SetupSettings.labelsNote(JSONObject("""{"enabled":true,"count":0}""")))
-        assertEquals("2 labels. 0 albums name a label in their tags; 0 have none. Looking up labels and logos now…",
-            SetupSettings.labelsNote(JSONObject("""{"enabled":true,"count":2,"scanning":true}""")))
-    }
-
-    @Test fun `Force rescan's answer, the folder depth, Smart Picks' words`() {
-        assertEquals("Labels re-read from the library's tags and folders: 1 label.", SetupSettings.rescanSaid(JSONObject("""{"started":false,"count":1}""")))
-        assertEquals("Done", SetupSettings.rescanWord(JSONObject("""{"started":false}""")))
-        assertEquals("Full rescan started — this may take several minutes. Label data will update as results come in.", SetupSettings.rescanSaid(JSONObject("""{"started":true}""")))
-        assertEquals("Rescan started", SetupSettings.rescanWord(JSONObject("{}")))
-        assertEquals("Off — using file label tags", SetupSettings.depthStatus(0))
-        assertEquals("Using folder depth 2", SetupSettings.depthStatus(2))
+    @Test fun `Smart Picks' words`() {
         assertEquals("Smart Picks will build at 04:00", SetupSettings.hourSaid(4))
         assertEquals("21:00", SetupSettings.HOURS[21].words)
     }
@@ -37,7 +19,7 @@ class SetupSettingsTest {
         assertEquals("list", SetupSettings.uiValue(p, "layout"))
         assertEquals("1.25", SetupSettings.uiValue(p, "tile"))
         assertEquals("2", WallPrefs.parse(SetupSettings.prefsWith("""{"layout":"auto"}""", "layout", "2")).layout)
-        assertEquals("random", WallPrefs.parse(SetupSettings.prefsWith(null, "labelOrder", "random")).labelOrder)
+        assertEquals("1.25", SetupSettings.uiValue(WallPrefs.parse(SetupSettings.prefsWith(null, "text", "1.25")), "text"))
         assertEquals("every choice is one the prefs take", SetupSettings.TILE.map { it.value }, SetupSettings.TILE.map { SetupSettings.uiValue(WallPrefs.parse("""{"tile":"${it.value}"}"""), "tile") })
     }
 

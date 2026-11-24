@@ -1,5 +1,6 @@
 package com.musicd.server.android
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,9 +26,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,6 +41,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -46,11 +51,17 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.AlbumSummary
 import com.musicd.server.client.ArtistAbout
+import com.musicd.server.client.ArtistAct
 import com.musicd.server.client.ArtistBio
+import com.musicd.server.client.ArtistDiscography
 import com.musicd.server.client.Contract
+import com.musicd.server.client.Failure
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.WallPrefs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /*
  * An artist's page in tabs (the page's artist-tabs.js): Overview, Discography and About under who
@@ -58,7 +69,8 @@ import com.musicd.server.client.WallPrefs
  * albums as the grid's own tiles (AlbumTile) in Home's row (ArtistRow), See all opening Discography, then similar
  * artists and albums (ArtistFoot). Each section's heading sits as Discography's (BlockTitle in its grid): 30 under the
  * tabs' line, its content 16 under the heading.
- * Discography: the album grid (ArtistScreen's blocks). About: the biography, asked for only when the tab is first
+ * Discography: the album grid (ArtistScreen's blocks), the default service's albums after the library's own
+ * (serviceShelf, item 522). About: the biography, asked for only when the tab is first
  * opened, and a band's members or a person's bands.
  */
 
@@ -118,6 +130,48 @@ internal fun OverviewAlbums(albums: List<AlbumSummary>, prefs: WallPrefs, coverP
                 color = MaterialTheme.colorScheme.secondary, fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W600)
         }
         ArtistRow(albums.size, key = { albums[it].offset }) { i -> Box(Modifier.width((144 * prefs.tile).dp)) { AlbumTile(albums[i], prefs, coverPx, client) { onOpen(i) } } }
+    }
+}
+
+/**
+ * Discography's albums on the default service that the library hasn't (item 522; the page's artist-discography.js): asked
+ * once the library's are in ([ready]), so the page never waits on the service; nothing for no default service, none of
+ * theirs, or the service not answering, and nothing once another artist is open. Each drawn as the search draws a
+ * service's album (ServiceAlbumTile, its favourite too); a tap makes it the library's and opens its page ([onAlbum], its
+ * offset), as the search's does. Under "More on {service}", ahead of block [before].
+ */
+@Composable
+internal fun serviceShelf(asked: String, ready: Boolean, before: Int, prefs: WallPrefs, client: () -> ServerClient?, onAlbum: (Long) -> Unit): GridExtra? {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var found by remember(asked) { mutableStateOf<ArtistDiscography?>(null) }
+    val favs = remember(asked) { mutableStateMapOf<String, Boolean>() }
+    LaunchedEffect(asked, ready) {
+        if (!ready || found != null) return@LaunchedEffect
+        val c = client() ?: return@LaunchedEffect
+        val (name, act) = ArtistAct.parse(asked)
+        withContext(Dispatchers.IO) { runCatching { c.artistDiscography(name, act) }.getOrNull() }?.let { found = it }
+    }
+    val d = found?.takeIf { it.albums.isNotEmpty() } ?: return null
+    fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+    fun open(id: String) {
+        val c = client() ?: return
+        scope.launch {
+            withContext(Dispatchers.IO) { runCatching { c.serviceOpen(d.service, id) } }
+                .onSuccess(onAlbum).onFailure { toast(Failure.said(it, "Couldn't open that album")) }
+        }
+    }
+    fun favourite(id: String, now: Boolean) {
+        val c = client() ?: return
+        scope.launch {
+            val ok = withContext(Dispatchers.IO) { runCatching { c.serviceFavourite(d.service, id, !now).optBoolean("ok", true) }.getOrDefault(false) }
+            if (ok) favs[id] = !now else toast("Couldn't change the favourite")
+        }
+    }
+    return GridExtra(before, d.heading, d.albums.size, key = { i -> "s" + d.albums[i].id + "/" + i }) { i ->
+        val a = d.albums[i]
+        val fav = favs[a.id] ?: a.favourited
+        ServiceAlbumTile(a, fav, prefs, onFav = { favourite(a.id, fav) }, onOpen = { open(a.id) })
     }
 }
 

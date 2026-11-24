@@ -47,11 +47,11 @@ import kotlinx.coroutines.withContext
  * they are (ArtistHero: their picture, what they are, their genres, Play and Shuffle; no links); then the tabs
  * (ArtistTabs), every artist's page the same. Overview: their albums in a row, See all opening Discography, then similar
  * artists and albums (ArtistFoot, item 140). Discography: each under its own small heading, their albums, those they
- * appear on, their bands' and those they are credited on; a tile opens the album's page over it with the page's albums
- * as its list, a long press starts selecting. About: the biography, asked for only when About is opened or for a
- * portrait the server hasn't (the page drawn without waiting on other services), and a band's members or a person's
- * bands. The mini player and the row along the foot. A page opened again is drawn at once from what it last had
- * (ArtistPages), and asked for afresh once that is old.
+ * appear on, their bands' and those they are credited on, the default service's after their own (item 522, serviceShelf);
+ * a tile opens the album's page over it with the page's albums as its list, a long press starts selecting. About: the
+ * biography, asked for only when About is opened or for a portrait the server hasn't (the page drawn without waiting on
+ * other services), and a band's members or a person's bands. The mini player and the row along the foot. A page opened
+ * again is drawn at once from what it last had (ArtistPages), and asked for afresh once that is old.
  */
 @Composable
 internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, client: () -> ServerClient?, onBack: () -> Unit, onAlbum: (Long, String, NavList) -> Unit,
@@ -164,8 +164,8 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
             "clear" -> { selecting = false; picks = emptyList() }
             else -> {
                 val c = client() ?: return
-                if (what != "later" && zone.isEmpty()) { toast("Pick a zone first"); return }
-                val made = ServerWrites.write { selectAct(c, chosen, zone, room.zoneName, what) }   // Listen later before Home reads (item 85)
+                if (what !in NoRoomActs && zone.isEmpty()) { toast("Pick a zone first"); return }
+                val made = selectWrite(what) { selectAct(c, chosen, zone, room.zoneName, what) }   // Listen later before Home reads (item 85)
                 scope.launch { toast(ServerWrites.await(made).getOrElse { com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }); selecting = false; picks = emptyList() }
             }
         }
@@ -176,6 +176,8 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
         if (a.primary.isNotEmpty()) GridBlock("Albums", a.primary) else null,
         if (a.featured.isNotEmpty()) GridBlock("Appears on", a.featured) else null
     ) + bands.map { GridBlock("With ${it.band}", it.albums) } + listOfNotNull(if (credited.isNotEmpty()) GridBlock("Credited on", credited) else null)
+    // The default service's albums of theirs the library hasn't (item 522), right after its own: ahead of what follows "Albums", else first.
+    val shelf = serviceShelf(asked, albums != null, blocks.indexOfFirst { it.title == "Albums" } + 1, prefs, client) { id -> onAlbum(id, zone, NavList(listOf(NavItem(id, "")), 0)) }
 
     // A similar album (the library's alone) opens with the others as its list.
     fun openSimilar(i: Int) {
@@ -187,7 +189,7 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         AlbumGrid(blocks, prefs, cols, coverPx, client, loaded = albums != null || failed != null, picks.map { it.offset }.toSet(), grid, list,
             onOpen = ::open, onLongPress = { i -> if (!selecting) { selecting = true; pick(i) } },
-            foot = { if (tab == "overview") ArtistFoot(similar, similarAlbums, prefs, coverPx, client, onArtist, onAlbum = ::openSimilar) }) {
+            foot = { if (tab == "overview") ArtistFoot(similar, similarAlbums, prefs, coverPx, client, onArtist, onAlbum = ::openSimilar) }, extra = if (tab == "discography") shelf else null) {
             // The name at once; the count when the albums come. An error as the page has it, in red under the heading.
             val n = (a?.primary?.size ?: 0) + (a?.featured?.size ?: 0) + bands.sumOf { it.albums.size }
             WallHead(if (a == null) name else "$n album" + (if (n == 1) "" else "s") + " · $name" + (a.note?.let { " ($it)" } ?: ""), prefs, failed?.let { "Error: $it" to true })
@@ -202,7 +204,7 @@ internal fun ArtistScreen(asked: String, prefs: WallPrefs, zoneId: String, clien
             if (tab != "about" && a != null && n == 0 && credited.isEmpty() && failed == null) Text("No albums found for \"$name\"", Modifier.parity("artist.empty").fillMaxWidth().padding(vertical = 48.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, lineHeight = 20.5.sp, textAlign = TextAlign.Center)
         }
         WallBack(onBack)
-        if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp))
+        if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp), picks)
         Column(Modifier.align(Alignment.BottomCenter)) {
             MiniPlayer(zone, room, client, onOpen = { onNowPlaying(zone) }, onRoom = { id -> zone = id; onRoom(id) }, onPage = onPage)
             if (selecting && picks.isEmpty()) SelectBar(onCancel = { selecting = false })

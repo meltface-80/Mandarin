@@ -155,12 +155,6 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
                             Spacer(Modifier.height(32.dp))
                         }
                     }
-                    "lotw" -> HomeKept.lotwName?.let { name -> if (HomeKept.rows["lotw"]!!.albums.isNotEmpty()) item(row.id) {
-                        Column {
-                            SectionTitle(Modifier.parity("home.lotw-title", Contract.label("home.lotw-title", 0, name)).clickable { onWall("label", name) }, "Label of the week", true, name)
-                            AlbumRowItems(HomeKept.rows["lotw"]!!, prefs, coverPx, client, onOpen = { list, i -> open(list, i) })
-                        }
-                    } }
                     else -> {
                         val kept = HomeKept.rows[row.id] ?: continue
                         if (HomeKept.hidesWhenEmpty(row.id) && kept.albums.isEmpty()) continue
@@ -211,15 +205,13 @@ private fun Greeting() {
 
 /**
  * A row's heading (the hifi .home-section-title): small brass capitals, with "›" at its end where it opens a wall
- * ([link]), 14 under it; the label of the week's [name] large in the serif beside it, the two on one foot.
+ * ([link]), 14 under it.
  */
 @Composable
-private fun SectionTitle(modifier: Modifier, text: String, link: Boolean, name: String? = null) {
-    Row(modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp).then(if (name == null) Modifier.height(if (link) 20.dp else 17.dp) else Modifier),
-        verticalAlignment = if (name == null) Alignment.CenterVertically else Alignment.Bottom) {
+private fun SectionTitle(modifier: Modifier, text: String, link: Boolean) {
+    Row(modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp).height(if (link) 20.dp else 17.dp),
+        verticalAlignment = Alignment.CenterVertically) {
         Text(text.uppercase(), color = MaterialTheme.colorScheme.secondary, fontSize = 12.sp, lineHeight = 17.sp, fontWeight = FontWeight.W700, letterSpacing = 0.18.em)
-        if (name != null) Text(name, Modifier.parity("home.lotw-name").padding(start = 6.dp, top = 5.dp).lineBox(24.sp, 27.6.sp, Face.YOUNG_SERIF), color = MaterialTheme.colorScheme.onSurface,
-            fontFamily = youngSerif, fontWeight = FontWeight.W400, fontSize = 24.sp, lineHeight = 27.6.sp)
         if (link) { Spacer(Modifier.weight(1f)); Text("›", Modifier.lineBox(20.sp, 20.sp), color = MaterialTheme.colorScheme.onSurface, fontSize = 20.sp, lineHeight = 20.sp) }
     }
 }

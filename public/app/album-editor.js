@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 23 of 33: the album view closed, and the album editor. */
+/* The page's core (app.js until v1.0.5), 23 of 31: the album view closed, and the album editor. */
 function closeModal() {
   // Track selection belongs to the album that is closing. Leaving it set
   // would arm the next album's rows with someone else's picks.

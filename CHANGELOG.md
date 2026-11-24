@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.3.6
+
+One library from everywhere your music is: an album you have in several places shows once with its versions, an artist's page shows their whole discography from your default service, and iBroadcast albums get their folders' covers and booklets and can be merged or deleted. Spotify is gone.
+
+- New - Default service, in Settings → Services: an artist's Discography lists that service's albums of theirs you don't have yet, under More on Qobuz (or Tidal)
+- New - An album you have in several places (your files, Qobuz, Tidal, iBroadcast) shows once; its Versions tab lists every copy with where it is from, its edition and year, and the default service's copy is the main one
+- New - Merge albums, from the selection menu: albums of your own files, or iBroadcast's, made one, the first disc first; a merged album offers Unmerge
+- New - Delete from iBroadcast, from the selection menu: iBroadcast albums deleted from your iBroadcast account and from Mandarin, after you are asked twice
+- New - iBroadcast albums you uploaded with Mandarin show their folder's cover and booklets, kept in Mandarin so they show with the drive away, and carried in backups
+- Changed - Mandarin carries its own AcoustID and FanArt.tv keys: nothing to enter for matching albums by sound or for artist photos
+- Removed - Spotify and Spotify Connect; what they left in the library goes at the first start
+- Removed - Last.fm (scrobbling, and Settings → API Keys): similar artists and albums come from Deezer
+- Removed - Record labels: the Labels screen, Label of the week on Home and labels in search
+- Fixed - No iBroadcast album was traced to the folder it was uploaded from, so none had its folder's cover; an album with no picture showed an empty square, and now shows a drawn cover
+- Fixed - iBroadcast discs uploaded as albums of their own ("The Wall (Disc 1)", "The Wall (Disc 2)") are one album
+- Fixed - iBroadcast: the library read failing where iBroadcast moved a track to another album, the first Play Now of an album new to the library, signing in while iBroadcast is slow, and an upload sending files again before iBroadcast had listed them
+- Fixed - Away from home, screens opened at home follow and play in this phone's room; and Now playing no longer shows the phone's own queue for a server's room after a moment offline
+- Fixed - A cover no longer fails to draw now and then when many are asked for at once
+- Fixed - On a new library, streamed albums brought in before the first scan finished are no longer renamed and added again
+
 ## v1.3.5
 
 Uploads to iBroadcast are easier to live with: a limit on how much of your internet upload they use, any number of drives at once, and files with long or accented names kept.

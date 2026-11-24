@@ -8,7 +8,8 @@
 // level inside any of those that hold no music ("Scans", "Booklet", "Artwork").
 // A folder with music in it is another album's, so a single loose in an
 // artist's folder never shows the booklets of the artist's albums; nor is a
-// music folder itself looked through. Twenty at most.
+// music folder itself looked through. Twenty at most. An iBroadcast album Mandarin uploaded: the folder it was sent
+// from, and the folder above a disc's, as for a file of the library (item 505, Services/IBroadcast/IBroadcastArt.cs).
 //
 // Drawn with poppler (pdfinfo for the page count, pdftoppm for a page), as
 // covers are drawn with ffmpeg: two at a time, in the background's place
@@ -101,9 +102,22 @@ internal static partial class Booklets
     /* An album's booklets, looked for afresh (a folder's PDFs can come and go between scans); `roots`: the music folders. */
     public static async Task<List<Booklet>> Of(Album al, IEnumerable<string> roots)
     {
-        if (!Ready || al.Service != null) return [];
+        if (!Ready || al.Service is not (null or "ibroadcast")) return [];
         var places = new List<string>();
-        using (var c = Db.Open())
+        // An iBroadcast album Mandarin uploaded (item 505): its booklets as kept here (item 510: shown with the drive away),
+        // else the folder it was sent from, where it is here.
+        // An album merged into it (item 512): its booklets too.
+        if (al.Service == "ibroadcast")
+            foreach (var key in Services.IBroadcast.IBroadcastMerges.MembersOf(al.Key).Prepend(al.Key))
+            {
+                if (Services.IBroadcast.IBroadcastBooklets.KeptFor(key) is { } kept) places.Add(kept);
+                else if (Services.IBroadcast.IBroadcastArt.FolderOf(key) is { } from)
+                {
+                    places.Add(from);
+                    if (DiscFolder().IsMatch(System.IO.Path.GetFileName(from)) && System.IO.Path.GetDirectoryName(from) is { Length: > 0 } up) places.Add(up);
+                }
+            }
+        else using (var c = Db.Open())
         {
             using (var a = c.CreateCommand())
             {
@@ -123,6 +137,23 @@ internal static partial class Booklets
                 if (DiscFolder().IsMatch(System.IO.Path.GetFileName(folder)) && System.IO.Path.GetDirectoryName(folder) is { Length: > 0 } up) places.Add(up);
             }
         }
+        var found = new List<Booklet>();
+        var pdfs = PdfsIn(places, roots);
+        foreach (var path in pdfs.OrderBy(p => p, StringComparer.OrdinalIgnoreCase).Take(Most))
+        {
+            FileInfo f;
+            try { f = new FileInfo(path); if (!f.Exists) continue; }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
+            var pages = await PageCount(f);
+            if (pages < 1) continue;
+            found.Add(new Booklet(IdOf(f), System.IO.Path.GetFileNameWithoutExtension(path), path, pages));
+        }
+        return found;
+    }
+
+    /* The PDFs of [places] (an album's folders) and of the folders in them that hold no music; none in a music folder itself. */
+    internal static SortedSet<string> PdfsIn(IEnumerable<string> places, IEnumerable<string> roots)
+    {
         var music = roots.Select(Same).ToHashSet(StringComparer.Ordinal);
         var pdfs = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var place in places.Select(Same).Distinct(StringComparer.Ordinal))
@@ -136,17 +167,7 @@ internal static partial class Booklets
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* gone, or not ours to read */ }
         }
-        var found = new List<Booklet>();
-        foreach (var path in pdfs.OrderBy(p => p, StringComparer.OrdinalIgnoreCase).Take(Most))
-        {
-            FileInfo f;
-            try { f = new FileInfo(path); if (!f.Exists) continue; }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { continue; }
-            var pages = await PageCount(f);
-            if (pages < 1) continue;
-            found.Add(new Booklet(IdOf(f), System.IO.Path.GetFileNameWithoutExtension(path), path, pages));
-        }
-        return found;
+        return pdfs;
     }
 
     /* A folder's PDFs; `notMusic`: none at all if it holds music (another album's folder). */

@@ -162,7 +162,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
         again = album == null && got.exceptionOrNull()?.let(Failure::worthAgain) == true
         val a = album ?: return@LaunchedEffect
         // Its booklets, as the page asks: an album of your own files only.
-        if (a.album.source == null || a.album.source == "local") booklets = withContext(Dispatchers.IO) { runCatching { lib.booklets(offset) }.getOrNull().orEmpty() }
+        if (a.album.source == null || a.album.source == "local" || a.album.source == "ibroadcast") booklets = withContext(Dispatchers.IO) { runCatching { lib.booklets(offset) }.getOrNull().orEmpty() }
         extras = withContext(Dispatchers.IO) { runCatching { lib.albumExtras(a.album.title, a.album.subtitle) }.getOrNull() }
         // Its credits (item 132): the server may find them there and then, for a few seconds; the rows under them meanwhile.
         coroutineScope {
@@ -170,7 +170,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
             launch { more = withContext(Dispatchers.IO) { runCatching { loadMore(lib, a) }.getOrNull() } }
         }
     }
-    // A page of Last.fm's, or a write-up's: the phone's browser.
+    // A write-up's page: the phone's browser.
     fun openUrl(url: String) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } }
     val cover = if (phone != null) rememberTileCover(album?.album?.imageKey, 640, client) else rememberCover(album?.album?.imageKey, 640, client)
     val glow by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, cover) { value = cover?.let { albumGlowOf(it) } }
@@ -188,20 +188,25 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
         }
     }
     // The phone's own album, track [index] (-1, the whole album) played on this phone, said as the page's invokePhone says it.
+    var starting by remember(offset) { mutableStateOf(false) }   // a play sent and not yet answered (item 490)
     fun playPhone(index: Int, kind: String) {
         val key = phone ?: return
         DownloadsBridge(context as? Activity ?: return).playLocal(key, index, kind)
         toast((if (kind == "queue") "Queued" else if (kind == "play_next" || kind == "add_next") "Next" else "Playing") + " → This phone")
     }
     // To the room: what came of it said as the page says it; nothing when [said] is empty (Play Now: the mini player shows what
-    // plays, and a toast over it said the same, bug list item 58), unless it failed.
+    // plays, and a toast over it said the same, bug list item 58), unless it failed. One at a time, the buttons dimmed till it
+    // is answered (item 490: an album new to the library waits on its rates, and each tap again started it afresh).
     fun play(said: String, block: (ServerClient) -> JSONObject?) {
         val c = client() ?: return
         if (zone.isEmpty()) { toast("Pick a zone first"); return }
+        if (starting) return else starting = true
         scope.launch {
-            val r = withContext(Dispatchers.IO) { runCatching { block(c) } }
-            val err = r.exceptionOrNull()?.message
-            if (err != null) toast(err) else if (said.isNotEmpty()) toast(said)
+            try {
+                val r = withContext(Dispatchers.IO) { runCatching { block(c) } }
+                val err = r.exceptionOrNull()?.message
+                if (err != null) toast(err) else if (said.isNotEmpty()) toast(said)
+            } finally { starting = false }
         }
     }
     // Made on the app's lane of changes to what Home shows (item 85): to the end if this page closes, and before Home reads.
@@ -267,9 +272,9 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         val stadium = RoundedCornerShape(999.dp)
                         val pill = ButtonDefaults.buttonColors(containerColor = brass, contentColor = MaterialTheme.colorScheme.onPrimary)
-                        Button(onClick = { if (phone != null) playPhone(-1, "play_now") else play("") { it.playAlbum(shown, a.album.title, a.album.subtitle, zone, "play_now") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
+                        Button(onClick = { if (phone != null) playPhone(-1, "play_now") else play("") { it.playAlbum(shown, a.album.title, a.album.subtitle, zone, "play_now") } }, enabled = !starting, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
                             modifier = Modifier.parity("album.play-now", Contract.label("album.play-now")).weight(1f).height(42.dp)) { Text(Contract.label("album.play-now"), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
-                        Button(onClick = { if (phone != null) playPhone(-1, "queue") else play("Queued") { it.playAlbum(shown, a.album.title, a.album.subtitle, zone, "queue") } }, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
+                        Button(onClick = { if (phone != null) playPhone(-1, "queue") else play("Queued") { it.playAlbum(shown, a.album.title, a.album.subtitle, zone, "queue") } }, enabled = !starting, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
                             modifier = Modifier.parity("album.queue", Contract.label("album.queue")).weight(1f).height(42.dp)) { Text(Contract.label("album.queue"), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                         OutlinedIconButton(onClick = { favourite = !favourite; val on = favourite; mark { it.favourite(shown, on) } }, shape = stadium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                             colors = IconButtonDefaults.outlinedIconButtonColors(contentColor = if (favourite) paletteColor(Palette.HEART) else dim),

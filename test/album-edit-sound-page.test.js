@@ -5,7 +5,7 @@
  * it has got (the tracks fingerprinted, AcoustID asked), then lists the releases the tracks are on by sound — each
  * with its year and tracks, how many of the album's tracks are on it, how sure the scan is and why; one tapped is
  * applied as yours, and the match line says it was matched by sound. Against a slow fake AcoustID and the fake
- * MusicBrainz. Settings → API Keys' AcoustID row then says how many albums are matched by sound. Nothing wider than
+ * MusicBrainz. The Album Scanner's page then says how many albums are matched by sound. Nothing wider than
  * the phone. Skipped where no Chromium or Chrome is found.
  */
 const ports = require("./ports");
@@ -137,14 +137,13 @@ test("Edit album's Match by sound at a phone's size: beside Find match, how far 
       assert.match(r.applied.reasons, /^matched by sound: 3 of 3 tracks, chosen by you · 3 of 3 tracks' lengths agree/);
       assert.equal(r.applied.picked, true, "the release tapped still picked: not drawn again by a second following");
       assert.equal(r.doneShown, 1, "the releases drawn once as the job was done: followed once");
-      // Settings → API Keys' AcoustID row: one album matched by sound.
+      // The Album Scanner's page (since item 491; it was Settings → API Keys' AcoustID row): one album matched by sound.
       const tally = await page.eval(`(async () => {
         document.getElementById("album-edit-overlay").querySelector("[data-ae-close]").click();
-        await loadAcoustIdKey();
-        const el = document.getElementById("acoustid-sound");
-        return { text: el.textContent, parity: el.getAttribute("data-parity"), hidden: el.classList.contains("hidden") };
+        const j = await (await fetch("/api/album-scanner")).json();
+        return { text: scanSoundTally(j.sound_tally), shown: scannerProgressBlock.toString().includes("scanSoundTally(scan.sound_tally)") };
       })()`);
-      assert.deepEqual(tally, { text: "By sound: 1 album matched so far, 0 still to look at.", parity: "settings-keys.sound", hidden: false });
+      assert.deepEqual(tally, { text: "By sound: 1 album matched so far, 0 still to look at.", shown: true });
     } finally { await b.close(); }
     const row = ctx.db.raw.prepare("SELECT status, mbid, candidate FROM album_matches WHERE key = ?").get(key);
     assert.deepEqual([row.status, row.mbid, JSON.parse(row.candidate).manual, JSON.parse(row.candidate).sound_of], ["applied", "real-one", "sound", "3/3"]);

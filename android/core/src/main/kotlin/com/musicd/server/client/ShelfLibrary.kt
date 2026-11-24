@@ -9,26 +9,25 @@ import java.util.Locale
 
 /*
  * The Shelf's library natively (bug list item 207): /api/shelf/albums as the page's shelf-pick.js reads it — the whole
- * library once, each album with the places of its genres and its label, its letter, year, catalogue number, kinds,
+ * library once, each album with the places of its genres, its letter, year, catalogue number, kinds,
  * format and version, and (item 208) the Format tile it is under and whether it is a favourite — and the orders the shelf is filed in (shelf-pick.js): by artist as the server
- * sends it (item 213: by album no longer), by label and catalogue number, by catalogue number alone, by year, or shuffled.
+ * sends it (item 213: by album no longer), by catalogue number, by year, or shuffled (by label went with the labels, item 492).
  */
 
-/** A genre or a label as the shelf lists it: its name and how many albums carry it. */
+/** A genre as the shelf lists it: its name and how many albums carry it. */
 data class ShelfName(val name: String, val count: Int)
 
 /** A kind of release as the server names it: its id ("ep"), one ("EP") and many ("EPs"). */
 data class ShelfKind(val id: String, val one: String, val many: String)
 
 /**
- * An album on the Shelf (the answer's o, t, a, k, g, b, y, l, c, ty, fm, v, q, fv): its id, title and artist, its cover's
- * key, the places of its genres in [ShelfLibrary.genres], the letter its artist is filed under, its year, the place of its
- * label in [ShelfLibrary.labels], its catalogue number, its kinds, its format ("FLAC 16/44.1"), its title split from its
+ * An album on the Shelf (the answer's o, t, a, k, g, b, y, c, ty, fm, v, q, fv): its id, title and artist, its cover's
+ * key, the places of its genres in [ShelfLibrary.genres], the letter its artist is filed under, its year, its catalogue number, its kinds, its format ("FLAC 16/44.1"), its title split from its
  * version ("Discovery", "Deluxe Edition"), the Format tile it is under ("24/96 Multichannel") and whether it is a favourite.
  */
 data class ShelfCase(
     val offset: Long, val title: String, val artist: String, val imageKey: String?, val genres: List<Int>, val bucket: String,
-    val year: Int?, val label: Int?, val catno: String?, val kinds: List<String>, val format: String?, val version: Pair<String, String>?,
+    val year: Int?, val catno: String?, val kinds: List<String>, val format: String?, val version: Pair<String, String>?,
     val tile: String? = null, val favourite: Boolean = false,
 ) {
     /** The title as a spine and a card read it, its version apart. */
@@ -39,16 +38,13 @@ data class ShelfCase(
 }
 
 /**
- * The shelf as the server sent it: genres and labels commonest first, the kinds it names, the albums in artist order, the
+ * The shelf as the server sent it: genres commonest first, the kinds it names, the albums in artist order, the
  * signature to ask again with, and the Format tiles in their order (item 208).
  */
 data class ShelfLibrary(
-    val genres: List<ShelfName>, val labels: List<ShelfName>, val kinds: List<ShelfKind>, val albums: List<ShelfCase>, val sig: String?,
+    val genres: List<ShelfName>, val kinds: List<ShelfKind>, val albums: List<ShelfCase>, val sig: String?,
     val formats: List<String> = emptyList(),
 ) {
-    /** The label's name of [a], or "" for none. */
-    fun labelName(a: ShelfCase): String = a.label?.let { labels.getOrNull(it)?.name }.orEmpty()
-
     companion object {
         /** Where it is asked for: with the signature held, the answer is "the same" while nothing on the shelf changed. */
         fun path(sig: String?): String = "/api/shelf/albums" + if (sig.isNullOrEmpty()) "" else "?sig=" + java.net.URLEncoder.encode(sig, "UTF-8")
@@ -56,7 +52,7 @@ data class ShelfLibrary(
         /** The answer read; null when it says the shelf held is still the same. */
         fun parse(j: JSONObject): ShelfLibrary? {
             if (j.optBoolean("same", false)) return null
-            return ShelfLibrary(names(j.optJSONArray("genres")), names(j.optJSONArray("labels")),
+            return ShelfLibrary(names(j.optJSONArray("genres")),
                 objects(j.optJSONArray("kinds")).map { ShelfKind(it.optString("id"), it.optString("one"), it.optString("many")) },
                 objects(j.optJSONArray("albums")).map(::case), j.str("sig"),
                 j.optJSONArray("formats")?.let { a -> (0 until a.length()).map { a.optString(it) }.filter { it.isNotEmpty() } }.orEmpty())
@@ -64,7 +60,7 @@ data class ShelfLibrary(
 
         private fun case(o: JSONObject) = ShelfCase(
             offset = o.optLong("o"), title = o.optString("t"), artist = o.optString("a"), imageKey = o.str("k"),
-            genres = ints(o.optJSONArray("g")), bucket = o.str("b") ?: "#", year = o.int("y"), label = o.int("l"), catno = o.str("c"),
+            genres = ints(o.optJSONArray("g")), bucket = o.str("b") ?: "#", year = o.int("y"), catno = o.str("c"),
             kinds = o.optJSONArray("ty")?.let { a -> (0 until a.length()).map { a.optString(it) }.filter { it.isNotEmpty() } }.orEmpty(),
             format = o.str("fm"),
             version = o.optJSONArray("v")?.takeIf { it.length() == 2 }?.let { it.optString(0) to it.optString(1) },
@@ -85,8 +81,7 @@ object ShelfSort {
     /** The orders, each with its name and its line on the Order tab, the artist order first (the default). */
     val ORDERS = listOf(
         Triple("artist", "A → Z by artist", "As a shop files them: by the artist's name, then the title."),
-        Triple("label", "By label and catalogue №", "Each label together, its releases in catalogue order. Albums with no label come last, by artist."),
-        Triple("catno", "By catalogue №", "The numbers in order across every label, as a shop's stock list. Albums with no number come last, by artist."),
+        Triple("catno", "By catalogue №", "The numbers in order, as a shop's stock list. Albums with no number come last, by artist."),
         Triple("year", "By year", "Oldest first. Albums with no year come last."),
         Triple("random", "Random order", "The shelf in a random order, as on the Random albums screen. Only the albums your other choices leave, if any."),
     )
@@ -98,7 +93,7 @@ object ShelfSort {
 
     /**
      * Two names in a shop's order, as the page's Intl.Collator("en", numeric, base) has them: numbers as numbers ("WARP 61"
-     * before "WARP 123", "Label 9" before "Label 10"), case and accents alike.
+     * before "WARP 123"), case and accents alike.
      */
     fun natural(a: String, b: String): Int = Natural(a).compareTo(Natural(b))
 
@@ -137,15 +132,11 @@ object ShelfSort {
         return out
     }
 
-    /** [list] filed in the order [by] ([seed] the shuffle's), from the artist order the server sends; a stable sort keeps it within a label or a year. */
+    /** [list] filed in the order [by] ([seed] the shuffle's), from the artist order the server sends; a stable sort keeps it within a year. */
     fun filed(lib: ShelfLibrary, list: List<ShelfCase>, by: String, seed: Long): List<ShelfCase> = when (by) {
         "random" -> shuffled(list, seed)
         // each album's names split once, then sorted (item 211)
-        "label" -> list.map { Keyed(it, Natural(lib.labelName(it)), it.catno?.let(::Natural), Natural(it.title)) }.sortedWith { x, y ->
-            if ((x.a.label == null) != (y.a.label == null)) (if (x.a.label == null) 1 else -1)
-            else x.first.compareTo(y.first).takeIf { it != 0 } ?: lastIfNone(x.second, y.second).takeIf { it != 0 } ?: x.title.compareTo(y.title)
-        }.map { it.a }
-        "catno" -> list.map { Keyed(it, Natural(it.catno.orEmpty()), null, Natural(it.title)) }.sortedWith { x, y ->
+        "catno" -> list.map { Keyed(it, Natural(it.catno.orEmpty()), Natural(it.title)) }.sortedWith { x, y ->
             if ((x.a.catno == null) != (y.a.catno == null)) (if (x.a.catno == null) 1 else -1)
             else x.first.compareTo(y.first).takeIf { it != 0 } ?: x.title.compareTo(y.title)
         }.map { it.a }
@@ -153,16 +144,8 @@ object ShelfSort {
         else -> list
     }
 
-    /** An album with its names split for a sort: its label's or catalogue number, its catalogue number, its title. */
-    private class Keyed(val a: ShelfCase, val first: Natural, val second: Natural?, val title: Natural)
-
-    /** Two catalogue numbers in order, none after any (the page compares "\uffff" for none, which its collator puts after every letter). */
-    private fun lastIfNone(x: Natural?, y: Natural?): Int = when {
-        x == null && y == null -> 0
-        x == null -> 1
-        y == null -> -1
-        else -> x.compareTo(y)
-    }
+    /** An album with its names split for a sort: its catalogue number, its title. */
+    private class Keyed(val a: ShelfCase, val first: Natural, val title: Natural)
 
     /** The page's shuffle (shelf.js rng, a xorshift from [seed]): the same seed, the same order. */
     fun shuffled(list: List<ShelfCase>, seed: Long): List<ShelfCase> {

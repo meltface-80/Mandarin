@@ -37,7 +37,7 @@ internal abstract partial class Catalogue
     public virtual async Task<JsObj> SignOut()
     {
         try { await Stop(); } catch (Exception) { /* as .catch(() => {}) */ }
-        Extras.Labels.SetSetting(Id, null);
+        Extras.SavedSettings.SetSetting(Id, null);
         ForgetAnswers();
         Server.Log($"[{Id}] signed out");
         await Changed();
@@ -52,11 +52,11 @@ internal sealed partial class QobuzCatalogue
     /* A stable id for this server, as Qobuz's "device" in the reports (index.js deviceId): made once, kept. */
     private object? DeviceId()
     {
-        var id = Extras.Labels.Setting("qobuzDeviceId");
+        var id = Extras.SavedSettings.Setting("qobuzDeviceId");
         if (!Js.Truthy(id))
         {
             id = Guid.NewGuid().ToString();
-            Extras.Labels.SetSetting("qobuzDeviceId", id);
+            Extras.SavedSettings.SetSetting("qobuzDeviceId", id);
         }
         return id;
     }
@@ -79,7 +79,7 @@ internal sealed partial class QobuzCatalogue
             ("subscription", Js.Truthy(sub) ? Obj(("offer", P(sub, "offer")), ("end_date", P(sub, "end_date"))) : null),
             ("credential", Js.Truthy(cred) ? Obj(("id", P(cred, "id")), ("label", P(cred, "label")), ("parameters", P(cred, "parameters"))) : null),
             ("device", Js.Truthy(device) ? Obj(("id", P(device, "id"))) : null));
-        Extras.Labels.SetSetting(Id, Obj(("token", token), ("user", u), ("since", NowMs())));
+        Extras.SavedSettings.SetSetting(Id, Obj(("token", token), ("user", u), ("since", NowMs())));
         Api.Cache.Clear();
         var offer = AndP(u["subscription"], "offer");
         Server.Log($"[qobuz] signed in as {new Personal(Js.Str(u["login"]))}{(Js.Truthy(offer) ? " (" + Js.Str(offer) + ")" : "")}");
@@ -201,7 +201,7 @@ internal sealed partial class TidalCatalogue
         var u0 = Or(tu, new JsObj());
         var user = Obj(("id", userId), ("username", Or(P(u0, "username"), "")), ("email", Or(P(u0, "email"), "")), ("countryCode", Or(P(u0, "countryCode"), "US")),
             ("firstName", Or(P(u0, "firstName"), "")), ("nickname", Or(P(u0, "nickname"), "")));
-        Extras.Labels.SetSetting(Id, Obj(("token", Obj(("access", t["access"]), ("refresh", t["refresh"]), ("expires", t["expires"]))),
+        Extras.SavedSettings.SetSetting(Id, Obj(("token", Obj(("access", t["access"]), ("refresh", t["refresh"]), ("expires", t["expires"]))),
             ("userId", userId), ("user", user), ("subscription", null), ("since", NowMs())));
         CancelSignIn();
         HiresDenied = false;
@@ -222,7 +222,7 @@ internal sealed partial class TidalCatalogue
             if (Js.Truthy(sub))
                 (a as JsObj ?? throw new JsError("Cannot set properties of " + Js.Str(a) + " (setting 'subscription')"))["subscription"] = Obj(("type", Or(Or(AndP(P(sub, "subscription"), "type"), P(sub, "type")), "")),
                     ("highestSoundQuality", Or(P(sub, "highestSoundQuality"), "")), ("validUntil", Or(P(sub, "validUntil"), null)));
-            Extras.Labels.SetSetting(Id, a);
+            Extras.SavedSettings.SetSetting(Id, a);
         }
         catch (Exception) { /* the page shows less */ }
         Api.Cache.Clear();

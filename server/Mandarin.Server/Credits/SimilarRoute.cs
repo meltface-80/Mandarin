@@ -3,21 +3,16 @@
 //   GET /api/artist/similar?name=          { source, artists: [{ name, in_library, photo_key }] }
 //   GET /api/artist/similar-albums?name=   { enabled, source, albums: [{ title, artist, url, image_key, album }] }
 //
-// Last.fm's when a key is set (Settings → Setup → API Keys), else Deezer's
-// related acts, which need none (Taste.SimilarActs, kept a week). Twelve at
-// most. Each with a picture of the act: its own once the credits have found
-// one (item 129), else Deezer's, else one of its covers in the library; none
-// from Last.fm, whose pictures of acts are a blank star now. Every one opens
-// its page here, in the library or not, as a band's members do.
+// Deezer's related acts, which need no key (Taste.SimilarActs, kept a week; Last.fm's
+// went with its key, item 494). Twelve at most. Each with a picture of the act: its own
+// once the credits have found one (item 129), else Deezer's, else one of its covers in
+// the library. Every one opens its page here, in the library or not, as a band's
+// members do. An album's page asks the same of its lead artist (item 494).
 //
 // Similar albums: the library's alone (the owner's call: none that leave the
-// app). With a Last.fm key, Last.fm's (each similar act's top album, as an
-// album's page has them) that the library has; without one, or none of
-// those, the library's albums by the acts Deezer relates, one each. The shape
-// is /api/lastfm/similar-albums', so the clients read both alike.
+// app), its albums by the acts Deezer relates, one each, none the artist is on.
 using System.Text.Json.Nodes;
 using Mandarin.Server.Credits;
-using Mandarin.Server.Extras;
 using Mandarin.Server.Identify;
 using Mandarin.Server.Tags;
 
@@ -34,12 +29,7 @@ internal static partial class Library
         if (name.Length == 0) return await Send(ctx, new JsonObject { ["error"] = "name required" }, 400);
         var found = new List<(string Name, string? Picture)>();
         var source = "";
-        if (LastfmKey().Length > 0 && HeldLastfm is { } fm)
-        {
-            try { found = [.. (await fm.SimilarArtists(name)).Artists.Take(12).Select(a => (a.Name, (string?)null))]; source = "Last.fm"; }
-            catch (Exception e) when (e is LastfmError or HttpRequestException) { /* Deezer's, then */ }
-        }
-        if (found.Count == 0 && Jobs.Taste is { } taste)
+        if (Jobs.Taste is { } taste)
         {
             try
             {
@@ -67,34 +57,16 @@ internal static partial class Library
         if (name.Length == 0) return await Send(ctx, new JsonObject { ["error"] = "name required" }, 400);
         var albums = new JsonArray();
         var source = "";
-        if (LastfmKey().Length > 0 && HeldLastfm is { } fm)
+        if (Jobs.Taste is { } taste)
         {
             try
             {
-                var (_, found) = await fm.SimilarAlbums(name, 9, () => !ctx.RequestAborted.IsCancellationRequested);
-                foreach (var al in found)
-                {
-                    // The library's alone: one it hasn't would leave the app for Last.fm's page.
-                    if (LastfmInLibrary(s, al.Title, al.Artist) is not { } own) continue;
-                    albums.Add(new JsonObject
-                    {
-                        ["title"] = al.Title, ["artist"] = al.Artist, ["url"] = al.Url, ["image"] = al.Image,
-                        ["image_key"] = Picture(al.Image), ["album"] = AlbumJson(s, own),
-                    });
-                }
-                source = "Last.fm";
-            }
-            catch (Exception e) when (e is LastfmError or HttpRequestException) { /* the library's, then */ }
-        }
-        if (albums.Count == 0 && Jobs.Taste is { } taste)
-        {
-            try
-            {
+                // Not the artist's own: an album they are on is theirs, shown as theirs already.
+                var (mine, on) = ArtistAlbumsOf(s, name);
+                var own = mine.Concat(on).ToHashSet();
                 foreach (var act in (await taste.SimilarActs(name)).OfType<JsObj>().Select(o => TJs.Str(o["name"])).Where(n => n.Length > 0))
                 {
-                    var (primary, _) = ArtistAlbumsOf(s, act);
-                    if (primary.Count == 0) continue;
-                    var al = primary[0];
+                    if (ArtistAlbumsOf(s, act).Primary.FirstOrDefault(a => !own.Contains(a)) is not { } al) continue;
                     albums.Add(new JsonObject { ["title"] = al.Title, ["artist"] = al.Artist, ["url"] = null, ["image"] = null, ["image_key"] = al.ImageKey, ["album"] = AlbumJson(s, al) });
                     if (albums.Count == 12) break;
                 }

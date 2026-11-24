@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http;
 namespace Mandarin.Tests;
 
 /// <summary>
-/// An act's similar acts for its page (bug list item 137; Credits/SimilarRoute.cs): with no Last.fm key, Deezer's
+/// An act's similar acts for its page (bug list item 137; Credits/SimilarRoute.cs): Deezer's
 /// related acts, each with whether the library has them and a picture (Deezer's here), twelve at most; asked again,
 /// as kept (Deezer not asked twice). Deezer stood in for.
 /// </summary>
@@ -17,7 +17,7 @@ public sealed class SimilarArtistsTests
     }
 
     [Test]
-    public async Task Deezer_s_related_acts_without_a_Last_fm_key_those_in_the_library_marked_each_with_a_picture()
+    public async Task Deezer_s_related_acts_those_in_the_library_marked_each_with_a_picture()
     {
         Needs.Server(); Needs.Ffmpeg();
         var asked = 0;

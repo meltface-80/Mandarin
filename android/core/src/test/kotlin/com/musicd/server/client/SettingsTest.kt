@@ -38,41 +38,11 @@ class SettingsTest {
         assertNull(AccountDevices.passwordProblem("old", "longenough", "longenough"))
     }
 
-    @Test fun `an API key as the server has it, and what the box and the line under it say`() {
-        val none = ApiKey.parse(JSONObject("""{"set":false,"check":null}"""))
-        assertEquals("Paste FanArt.tv API key…", none.placeholder("Paste FanArt.tv API key…"))
-        assertEquals("Not set", none.status)
-        assertNull(none.badge)
-        val ok = ApiKey.parse(JSONObject("""{"set":true,"masked":"ab…yz","check":"ok"}"""))
-        assertEquals("✓", ok.badge)
-        assertEquals("Checked and working — ab…yz", ok.placeholder(""))
-        assertEquals("✓ Checked and working: ab…yz", ok.status)
-        val bad = ok.copy(check = "invalid")
-        assertEquals("✕", bad.badge)
-        assertTrue(bad.bad)
-        assertEquals("Not accepted — paste a new one", bad.placeholder(""))
-        assertEquals("The service refused this key (ab…yz). Check it was copied in full.", bad.status)
-        val unasked = ok.copy(check = null)
-        assertFalse(unasked.ok)
-        assertEquals("Saved — ab…yz", unasked.placeholder(""))
-        assertEquals("Current: ab…yz — couldn’t reach the service to check it.", unasked.status)
-        // The page's rows, in its order (item 414c: AcoustID's after FanArt.tv's).
-        assertEquals(listOf("discogs-token", "fanart-key", "acoustid-key", "lastfm-key", "lastfm-secret"), ApiKeySpec.ALL.map { it.route })
-        val acoustid = ApiKeySpec.ALL[2]
-        assertEquals(listOf("AcoustID key", "key", "Paste AcoustID application key…"), listOf(acoustid.name, acoustid.field, acoustid.emptyHint))
-        assertEquals("AcoustID key saved — checked and working", acoustid.saved(ok))
-        assertEquals("Saved, but AcoustID refused this key", acoustid.saved(bad))
-        val discogs = ApiKeySpec.ALL[0]
-        assertEquals("Discogs token saved — checked and working", discogs.saved(ok))
-        assertEquals("Saved, but Discogs refused this token", discogs.saved(bad))
-        assertEquals("Discogs token saved", discogs.saved(unasked))
-    }
-
     @Test fun `the lists in the page's order, and Settings' address`() {
         assertEquals(listOf("account", "folders", "streaming", "playback", "identify", "setup", "backup", "sqtool", "system"), SettingsLists.HOME.map { it.pane })
-        assertEquals("Downloads", SettingsLists.SETUP[6].title)
+        assertEquals("Downloads", SettingsLists.SETUP[5].title)
         assertEquals("no Share Card page (item 336)", false, SettingsLists.SETUP.any { it.pane == "sharecard" })
-        assertEquals("API Keys", SettingsLists.SETUP.last().title)
+        assertEquals("no API Keys page (item 494)", "Away from home", SettingsLists.SETUP.last().title)
         assertEquals("settings/home", ShellRoute.settings())
         assertEquals("settings/metadata", ShellRoute.settings("metadata"))
     }

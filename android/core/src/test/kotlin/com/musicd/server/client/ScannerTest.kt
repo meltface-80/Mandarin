@@ -59,12 +59,17 @@ class ScannerTest {
         assertNull(Scanner.coversUnreachable(j("""{"unreachable":[]}""")))
         assertNull(Scanner.coversUnreachable(s))
         // Item 414c: why the albums left unsure aren't matched by sound, as the page says it.
-        assertEquals("Matching by sound needs an AcoustID key (Settings → API Keys).", Scanner.soundNote(j("""{"sound":"needs-key"}""")))
-        assertEquals("AcoustID refused the key, so albums aren't matched by sound (Settings → API Keys).", Scanner.soundNote(j("""{"sound":"refused"}""")))
+        assertEquals("This build of Mandarin carries no AcoustID key, so albums aren't matched by sound.", Scanner.soundNote(j("""{"sound":"needs-key"}""")))
+        assertEquals("AcoustID refused Mandarin's key, so albums aren't matched by sound for now.", Scanner.soundNote(j("""{"sound":"refused"}""")))
         assertEquals("AcoustID asked to wait: matching by sound rests a few minutes.", Scanner.soundNote(j("""{"sound":"limited"}""")))
         assertEquals("AcoustID can't be reached: matching by sound rests a few minutes.", Scanner.soundNote(j("""{"sound":"unreachable"}""")))
         assertNull(Scanner.soundNote(j("""{"sound":null}""")))
         assertNull(Scanner.soundNote(s))
+        // Item 491: how far it has got, here since its key is Mandarin's own, as the page's scanSoundTally says it.
+        assertEquals("By sound: 13 albums matched so far, 848 still to look at, when the Album Scanner is on.",
+            Scanner.soundTally(j("""{"sound_tally":{"matched":13,"waiting":848,"held":"off"}}""")))
+        assertNull(Scanner.soundTally(j("""{"sound_tally":null}""")))
+        assertNull(Scanner.soundTally(s))
     }
 
     @Test fun `paused while music plays, and where (item 417b), as the page says it`() {

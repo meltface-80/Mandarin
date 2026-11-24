@@ -1,4 +1,4 @@
-/* The page's core, beside 7 of 33 (bug list item 52): the Library's view as the Android app's native wall hands it back. */
+/* The page's core, beside 7 of 31 (bug list item 52): the Library's view as the Android app's native wall hands it back. */
 // The view as the Android app's native wall says it changed (native-handoff.js, item 52): the same query
 // string this wall asks with, read back and kept, so this wall and Home's Library row follow.
 function applyLibViewQuery(qs) {

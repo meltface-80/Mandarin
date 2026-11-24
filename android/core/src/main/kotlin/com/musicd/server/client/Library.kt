@@ -50,7 +50,9 @@ data class AlbumSummary(
     /** Its title without its version's words ("Metallic 'KO" of "Metallic 'KO (2015 Remaster)"): its page's, whichever version is shown (item 349). */
     val baseTitle: String? = null,
     /** MQA, every track of it (item 418). */
-    val mqa: Mqa? = null
+    val mqa: Mqa? = null,
+    /** Albums merged into it from the selection menu (item 512): Unmerge offered. */
+    val merged: Boolean = false
 ) {
     /** The service's name as the page writes it ("Qobuz", "Tidal"); null for the library's own files. */
     val serviceName: String? get() = when (source) { "qobuz" -> "Qobuz"; "tidal" -> "Tidal"; else -> null }
@@ -72,7 +74,8 @@ data class AlbumSummary(
             serviceId = j.str("service_id"),
             serviceFavourite = if (j.opt("service_favourite") is Boolean) j.getBoolean("service_favourite") else null,
             artistId = if (j.has("artist_id")) j.optLong("artist_id") else null, artistNote = j.str("artist_note"),
-            versions = j.int("versions"), version = j.str("version"), baseTitle = j.str("base_title"), mqa = Mqa.parse(j.optJSONObject("mqa"))
+            versions = j.int("versions"), version = j.str("version"), baseTitle = j.str("base_title"), mqa = Mqa.parse(j.optJSONObject("mqa")),
+            merged = j.optBoolean("merged", false)
         )
     }
 }
@@ -227,7 +230,7 @@ data class Album(
                 composers = a.optJSONArray("composers").strings(),
                 conductor = a.str("conductor"),
                 performers = a.optJSONArray("performers").strings(),
-                versions = j.optJSONArray("versions").items(AlbumVersion::parse)
+                versions = AlbumVersion.list(j.optJSONArray("versions"))
             )
         }
     }
@@ -255,20 +258,19 @@ data class ArtistAlbums(val artist: String, val primary: List<AlbumSummary>, val
 }
 
 /**
- * The library searched (/api/search): the albums found, best first, and the artists and labels whose names match; while
+ * The library searched (/api/search): the albums found, best first, and the artists whose names match; while
  * the index is first being built, [building] with how far ([progress], 0 to 1) and nothing found yet (item 61).
  */
-data class SearchResults(val query: String, val albums: List<AlbumSummary>, val artists: List<String>, val labels: List<String>,
+data class SearchResults(val query: String, val albums: List<AlbumSummary>, val artists: List<String>,
                          val building: Boolean = false, val progress: Double = 0.0) {
     /** Nothing found of any kind. */
-    val empty: Boolean get() = albums.isEmpty() && artists.isEmpty() && labels.isEmpty()
+    val empty: Boolean get() = albums.isEmpty() && artists.isEmpty()
 
-    /** The count beside the field, as the page writes it: "3 artists, 1 label, 60+ albums" (the + where the 60 asked for came back). */
+    /** The count beside the field, as the page writes it: "3 artists, 60+ albums" (the + where the 60 asked for came back). */
     fun status(): String {
         if (building) return "Building index… " + Math.round(progress * 100) + "%"
         val parts = ArrayList<String>()
         if (artists.isNotEmpty()) parts += "${artists.size} artist" + (if (artists.size == 1) "" else "s")
-        if (labels.isNotEmpty()) parts += "${labels.size} label" + (if (labels.size == 1) "" else "s")
         if (albums.isNotEmpty()) parts += "${albums.size}" + (if (albums.size >= 60) "+" else "") + " album" + (if (albums.size == 1) "" else "s")
         return parts.joinToString(", ")
     }
@@ -276,11 +278,11 @@ data class SearchResults(val query: String, val albums: List<AlbumSummary>, val 
     companion object {
         fun parse(j: JSONObject) = SearchResults(
             j.optString("query", ""), j.optJSONArray("results").items(AlbumSummary::parse),
-            names(j.optJSONArray("artists")), names(j.optJSONArray("labels")),
+            names(j.optJSONArray("artists")),
             j.optBoolean("building", false), j.optDouble("progress", 0.0).let { if (it.isNaN()) 0.0 else it }
         )
 
-        // A name, or an object with one (an artist's "name", a label's "display").
+        // A name, or an object with one (an artist's "name").
         private fun names(a: JSONArray?): List<String> = if (a == null) emptyList() else (0 until a.length()).map { i ->
             a.optJSONObject(i)?.let { it.optString("name", it.optString("display", it.optString("title", ""))) } ?: a.optString(i)
         }

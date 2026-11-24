@@ -86,7 +86,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
     {
         get
         {
-            var s = Extras.Labels.Setting("tailscale");
+            var s = Extras.SavedSettings.Setting("tailscale");
             return !Js.Truthy(s) || !(s is JsObj o && Js.StrictEq(o["enabled"], false));
         }
     }
@@ -370,7 +370,7 @@ internal sealed partial class Tailscale(string imageBin, string dir, int port, s
     {
         var v = new JsObj();
         v["enabled"] = on;
-        Extras.Labels.SetSetting("tailscale", v);
+        Extras.SavedSettings.SetSetting("tailscale", v);
         if (on) await Start(); else Stop();
         return Status();
     }

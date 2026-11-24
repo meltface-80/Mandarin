@@ -2,10 +2,13 @@
 // of the library with nothing to tell them apart, are one album with two versions. Versions are albums of one MusicBrainz
 // release group (their tags' MUSICBRAINZ_RELEASEGROUPID, or their applied match's), else of one act and one title once its
 // version words are taken off ("Metallic 'KO (2015 Remaster)"): never two of different release groups, and never two of
-// one title from different years with no word of an edition between them (Peter Gabriel's four "Peter Gabriel"). A
-// compilation, a box set's disc and a service's album are each their own. The lists show the main version alone, with how
-// many there are; the album's page lists every version (LibraryRoutes.Versions.cs). The main version is the one chosen on
-// an album's page, else the highest resolution, the newest release where two are alike. Each version says what tells it
+// one title from different years with no word of an edition between them (Peter Gabriel's four "Peter Gabriel"), but
+// for one album from two sources, whose years can be a year apart (a store's release date, your files' tag) where their
+// tracks are as many. Your files, Qobuz's, Tidal's and iBroadcast's albums are versions of one another (item 523): an
+// album held in several shows once. A compilation and a box set's disc are each their own. The lists show the main version alone, with how
+// many there are; the album's page lists every version, each saying where it is from (LibraryRoutes.Versions.cs). The
+// main version is the one chosen on an album's page, else the default service's (Settings → Services, item 522), else the
+// highest resolution, the newest release where two are alike. Each version says what tells it
 // from the others: its edition (MusicBrainz's word, else its title's version words), else its release's year, else
 // Original for the earliest; and its format, "2015 Remaster · 24/96". A name and a year you gave it in Edit album's
 // Version (item 420, AlbumVersionEdit.cs) are said in their place.
@@ -62,7 +65,8 @@ internal static partial class Library
                 : facts.TryGetValue(al.Id, out var f) ? f.Year : null;
         }
 
-        var pool = s.Albums.Where(al => !al.Compilation && !al.Transient && al.Service == null && al.Box == null && al.ArtistNames.Length > 0).ToList();
+        var pool = s.Albums.Where(al => !al.Compilation && !al.Transient && al.Box == null && al.ArtistNames.Length > 0).ToList();
+        var preferred = Mandarin.Server.Services.Discography.Default();
         string? Group(Album al) => facts.TryGetValue(al.Id, out var f) ? f.Group : null;
         // A hand split's part (item 424) says its part's name where nothing else names its edition.
         string? Edition(Album al) => (facts.TryGetValue(al.Id, out var f) ? f.Edition : null) is { Length: > 0 } e ? e
@@ -81,12 +85,12 @@ internal static partial class Library
             if (list.Count < 2 || list.Select(Group).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1) continue;   // two releases of one title
             for (var i = 0; i < list.Count; i++)
                 for (var j = i + 1; j < list.Count; j++)
-                    if (list[i].Year == list[j].Year || Edition(list[i]) != null || Edition(list[j]) != null) Join(list[i].Id, list[j].Id);
+                    if (list[i].Year == list[j].Year || Edition(list[i]) != null || Edition(list[j]) != null || OneAlbumTwoSources(list[i], list[j])) Join(list[i].Id, list[j].Id);
         }
 
         foreach (var set in pool.GroupBy(al => Root(al.Id)).Select(g => g.ToList()).Where(l => l.Count > 1))
         {
-            var main = set.FirstOrDefault(al => chosen.Contains(al.Key)) ?? set.OrderByDescending(al => al.Lossless).ThenByDescending(al => al.Rate ?? 0)
+            var main = set.FirstOrDefault(al => chosen.Contains(al.Key)) ?? set.OrderByDescending(al => preferred.Length > 0 && al.Service == preferred).ThenByDescending(al => al.Lossless).ThenByDescending(al => al.Rate ?? 0)
                 .ThenByDescending(al => al.Bits ?? 0).ThenByDescending(al => al.ReleaseYear ?? al.Year ?? 0).ThenByDescending(al => al.Added ?? 0).ThenBy(al => al.Id).First();
             var order = new List<long> { main.Id };
             order.AddRange(set.Where(al => al != main).OrderBy(al => al.ReleaseYear ?? al.Year ?? long.MaxValue).ThenBy(al => al.Id).Select(al => al.Id));
@@ -108,6 +112,16 @@ internal static partial class Library
         }
         s.Shown = s.Albums.Where(Listed).ToList();
     }
+
+    /*
+     * Whether [a] and [b], from two sources (your files and a service, or two services), are one album with nothing but its
+     * year between them: a year apart at most, with as many tracks.
+     */
+    private static bool OneAlbumTwoSources(Album a, Album b) =>
+        a.Service != b.Service && a.Year is long ya && b.Year is long yb && Math.Abs(ya - yb) <= 1 && a.TrackCount is double ta && ta == b.TrackCount;
+
+    /* Where an album is from, as its row on the Versions tab says it (item 523). */
+    public static string SourceName(Album al) => al.Service switch { null => "Your files", "qobuz" => "Qobuz", "tidal" => "Tidal", "ibroadcast" => "iBroadcast", var other => other };
 
     /* The keys of the albums chosen as the main of their versions. */
     private static HashSet<string> MainVersionKeys(SqliteConnection c)

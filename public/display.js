@@ -397,10 +397,6 @@
         extras.push({ kind: "more", heading: "More from " + more.artist.name,
                       sub: "From your library", albums: more.artist.albums });
       }
-      if (more.label && more.label.albums && more.label.albums.length) {
-        extras.push({ kind: "more", heading: "More on " + more.label.name,
-                      sub: "From your library", albums: more.label.albums });
-      }
       slides = base.concat(extras);
       if (!base.length && extras.length) { slideIdx = -1; nextSlide(); }   // no art: first visual is an extra
     } catch (e) { /* content is best-effort — art-only rotation is fine */ }

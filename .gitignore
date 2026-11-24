@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 data/
 *.log
 .DS_Store
@@ -31,7 +31,7 @@ test/Mandarin.Tests/bin/
 test/Mandarin.Tests/obj/
 .claude/*
 !.claude/settings.json
-tools/lint/node_modules/
+tools/lint/node_modules
 
 # The stand-ins the C# tests start (test/StandIns)
 test/StandIns/bin/

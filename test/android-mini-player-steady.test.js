@@ -15,7 +15,8 @@ const SRC = fs.readFileSync(path.join(__dirname, "..", "android/app/src/main/jav
 
 test("a screen starts from the room's state as the last screen left it", () => {
   assert.match(SRC, /private val kept = HashMap<String, RoomState>\(\)/);
-  assert.match(SRC, /val room = remember\(zoneId\) \{ kept\.getOrPut\(zoneId\) \{ RoomState\(\) \} \}/);
+  // Kept by the room followed: the screen's own, or offline the phone's (item 485), never one under the other's name.
+  assert.match(SRC, /val id = followed\.id\s+val room = remember\(id\) \{ kept\.getOrPut\(id\) \{ RoomState\(id\) \} \}/);
 });
 
 test("a cover already fetched is drawn at once", () => {

@@ -67,54 +67,6 @@ if (waveEnabledEl) {
   });
 }
 
-// ----- Labels on/off -----
-const labelsEnabledEl = document.getElementById("labels-enabled");
-const labelsEnabledNote = document.getElementById("labels-enabled-note");
-async function loadLabelsEnabled() {
-  if (!labelsEnabledEl) return;
-  try {
-    const r = await fetch("/api/settings/labels");
-    if (!r.ok) return;
-    const j = await r.json();
-    labelsEnabledEl.checked = !!j.enabled;
-    if (window.__applyFeatureMenu) window.__applyFeatureMenu({ labels: !!j.enabled });
-    if (labelsEnabledNote) {
-      const tagged = j.tagged || 0, untagged = j.untagged || 0, lookedUp = j.looked_up || 0;
-      const have = tagged + " album" + (tagged === 1 ? "" : "s") + " name" + (tagged === 1 ? "s" : "") + " a label in " + (tagged === 1 ? "its" : "their") + " tags" +
-        (lookedUp ? ", " + lookedUp + " " + (lookedUp === 1 ? "has" : "have") + " one looked up" : "") + "; " +
-        untagged + " " + (untagged === 1 ? "has" : "have") + " none" + (j.enabled && untagged && !j.scanning && !lookedUp ? " (MusicBrainz and Discogs didn't know them)" : "") + ".";
-      const logos = j.count
-        ? (j.scanning ? " Looking up labels and logos now…"
-           : (j.discogs || j.fanart) ? " " + (j.logos || 0) + " logo" + (j.logos === 1 ? "" : "s") + "."
-           : " Logos need a Discogs token or a FanArt.tv key (Settings → Setup → API Keys).")
-        : "";
-      labelsEnabledNote.textContent = j.enabled
-        ? (j.count ? j.count + " label" + (j.count === 1 ? "" : "s") + ". " + have + logos
-                   : "No labels yet: none of the albums' files carry a LABEL tag.")
-        : "Off. " + have;
-    }
-  } catch (e) { /* keep the last shown value */ }
-}
-if (labelsEnabledEl) {
-  labelsEnabledEl.addEventListener("change", async () => {
-    const on = labelsEnabledEl.checked;
-    try {
-      const r = await fetch("/api/settings/labels", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: on })
-      });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok || j.error) throw new Error(j.error || "Couldn't save");
-      settingsToast(on ? "Labels on" : "Labels off");
-      if (window.__applyFeatureMenu) window.__applyFeatureMenu({ labels: on });
-      loadLabelsEnabled();
-    } catch (e) {
-      labelsEnabledEl.checked = !on;   // the server refused — do not lie about it
-      settingsToast(e.message, "error");
-    }
-  });
-}
-
 // ----- Home Screen: which rows show, and in what order -----
 //
 // Rendered from the same HOME_ROWS table the Home screen itself loops, via
@@ -277,7 +229,7 @@ async function loadHomeRowsSettings() {
   renderHomeRowsList();
 }
 
-const openSettings = () => { settingsAppPane = null; showView("home"); loadVersion(); loadDiscogsToken(); loadFanartKey(); loadAcoustIdKey(); loadLastfmKey(); loadLastfmSecret(); loadScrobbling(); loadDisplaySettings(); loadLabelFolderDepth(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadLabelsEnabled(); loadWaveformEnabled(); loadHomeRowsSettings(); settingsOverlay.classList.remove("hidden"); };
+const openSettings = () => { settingsAppPane = null; showView("home"); loadVersion(); loadDisplaySettings(); loadQobuzStatus(); loadTidalStatus(); loadSmartPicksSettings(); loadWaveformEnabled(); loadHomeRowsSettings(); settingsOverlay.classList.remove("hidden"); };
 const closeSettings = () => { settingsOverlay.classList.add("hidden"); };
 // One page of Settings for the Android app's own Settings (item 76), opened by its row as the list opens it (each loads
 // what it shows when its row is tapped), its Back closing Settings again.

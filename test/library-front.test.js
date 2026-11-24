@@ -2,8 +2,8 @@
 /*
  * The library read in C# (v0.8.4, server/Mandarin.Server/Library.cs): every
  * screen it answers gives what the Node server gave, asked the same thing —
- * then the library changes (a heart, Listen later, an edit, labels switched
- * on, a merge, a play) and it must still. Files are sent as the Node server
+ * then the library changes (a heart, Listen later, an edit, a play) and it
+ * must still (labels switched on and merged too, until item 492). Files are sent as the Node server
  * sent them, range for range; conversions and the phone's downloads are the
  * very files ffmpeg makes with the Node server's own arguments.
  *
@@ -148,7 +148,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     const battery = async (label) => {
       const qs = ["", "?sort=artist", "?sort=year&dir=desc", "?sort=year", "?sort=added&dir=desc", "?sort=random&seed=42", "?sort=plays&dir=desc",
         "?sort=lastplayed", "?genre=Rock", "?genre=!Rock&genre=Jazz", "?decade=1960", "?format=FLAC&rate=96000", "?bits=24", "?letter=A",
-        "?added=7", "?prefix=the", "?prefix=b", "?played=never", "?played=played", "?played=6", "?label=Columbia", "?offset=3&count=2", "?count=0"];
+        "?added=7", "?prefix=the", "?prefix=b", "?played=never", "?played=played", "?played=6", "?offset=3&count=2", "?count=0"];
       for (const q of qs) await same("/api/library/albums" + q, label);
       await same("/api/library/facets", label);
       for (const q of ["beatles", "the beatles", "bjork", "björk", "abbey", "abby rd", "a", "jazz", "dark moon", "simon garfunkel", "&", "columbia", "  ", "zzzz", "kndblue"])
@@ -163,8 +163,8 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
         "/api/random-albums?seed=3&count=5", "/api/random-albums?seed=3&filter_type=genre&filter_value=rock", "/api/random-albums?seed=1&filter_type=decade&filter_value=1960"])
         await same(p, label);
       // Shelf (/shelf): the whole list, and "the same" for the signature it gave. Since item 206 (Rouen's Shelf of
-      // v1.9.69-t1) Mandarin's list says more than the Node server's did: each album's label as a place in a list of
-      // labels, its catalogue number, kinds, format and version, and the kinds' names. The recording holds what the
+      // v1.9.69-t1) Mandarin's list says more than the Node server's did: each album's catalogue number, kinds,
+      // format and version, and the kinds' names (its label too, until item 492). The recording holds what the
       // Node server said, every key of it; what it never said is held to the library here.
       const NODE_KEYS = ["o", "t", "a", "k", "g", "b", "y"];
       const sameShelf = async (p, step = p) => {
@@ -174,7 +174,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
         const want = await rec.want(label + step);
         assert.equal(c.status, want.status, label + p + ": the same status");
         const node = Object.assign({}, cj, { albums: cj.albums.map(a => Object.fromEntries(NODE_KEYS.map(k => [k, a[k]]))) });
-        delete node.labels; delete node.kinds; delete node.formats;
+        delete node.kinds; delete node.formats;
         assert.deepStrictEqual(steady(node), want.j, label + p + ": the Node server's answer");
         return cj;
       };
@@ -194,15 +194,10 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
       assert.deepStrictEqual(named("Now 1").ty, ["compilation"], label + "a compilation, by its flag, with no match to say");
       assert.equal(named("Abbey Road").ty, null, label + "no kind where nothing says");
       assert.ok(shelf.albums.every(a => a.c === null && a.v === null), label + "no catalogue numbers tagged, no versions in the titles");
-      // The labels: as each album's page names its label (labels off: none), commonest first.
-      for (const a of shelf.albums) {
-        const page = await getJ("/api/album?offset=" + a.o);
-        assert.equal(a.l === null ? null : shelf.labels[a.l].name, (page.album && page.album.label) || null, label + a.t + ": its label, as its page names it");
-      }
-      for (let i = 1; i < shelf.labels.length; i++) assert.ok(shelf.labels[i - 1].count >= shelf.labels[i].count, label + "labels commonest first");
-      for (const [i, l] of shelf.labels.entries()) assert.equal(shelf.albums.filter(a => a.l === i).length, l.count, label + l.name + ": its count");
+      // No record label on the shelf (item 492).
+      assert.ok(!("labels" in shelf) && shelf.albums.every(a => !("l" in a)), label + "no labels on the shelf");
       // Home's rows (v0.8.6).
-      for (const p of ["/api/home/album-of-the-day", "/api/home/label-of-the-week", "/api/home/history", "/api/home/history?count=1"]) await same(p, label);
+      for (const p of ["/api/home/album-of-the-day", "/api/home/history", "/api/home/history?count=1"]) await same(p, label);
       for (const q of ["", "?months=1&count=3", "?months=0", "?months=99&count=500"]) {
         const shape = j => ({ n: j.albums.length, total: j.total, months: j.months, no_history: j.no_history, ready_at: j.ready_at });
         const want = await rec.want(label + "/api/home/unplayed" + q);
@@ -220,7 +215,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     const abbeyRoad = raw.prepare("SELECT id, key FROM albums WHERE title = 'Abbey Road'").get();
     ctx.db.setSetting("album_of_the_day", { day, key: abbeyRoad.key, id: abbeyRoad.id, at: 1, rule: 2 });
     await battery("as scanned: ");
-    // The library changes: hearts, Listen later and labels made by C# (v0.8.16); the Node server's copy told (recording).
+    // The library changes: hearts and Listen later made by C# (v0.8.16); the Node server's copy told (recording).
     const change = async (p, body, method = "POST") => {
       const r = await fetch(B + p, { method, headers: JH, body: body === undefined ? undefined : JSON.stringify(body) });
       assert.equal(r.headers.get("x-mandarin-answered"), "C#", p + ": made by C#");
@@ -239,13 +234,6 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     [ids[1], ids[4]].forEach((id, i) => raw.prepare("UPDATE listen_later SET added_at = ? WHERE key = (SELECT key FROM albums WHERE id = ?)").run(laterAt + i, id));
     await ctx.library.reload();
     await post("/api/album/edit", { offset: ids[3], title: "Edited Title", artist: "The Edited", year: 1988 });
-    assert.deepEqual((await change("/api/settings/labels", {})).body, { error: "enabled required" });
-    assert.deepEqual((await change("/api/settings/labels", { enabled: true })).body, { ok: true, enabled: true });
-    assert.deepEqual(await change("/api/labels/merge", { items: [{ key: "columbia" }] }), { status: 400, body: { error: "Two or more labels are needed" } });
-    assert.deepEqual((await change("/api/labels/merge", { items: [{ key: "columbia", display: "Columbia" }, { key: "impulse", display: "Impulse!" }, { key: "BAD!" }] })).body,
-      { ok: true, target: "columbia", merged: ["impulse"] });
-    assert.deepEqual(await change("/api/settings/label-folder-depth", { depth: 9 }), { status: 400, body: { ok: false, error: "depth must be 0–6" } });
-    assert.deepEqual((await change("/api/settings/label-folder-depth", { depth: "0" })).body, { ok: true, depth: 0, rescanning: false });
     const now = Date.now();
     const ins = raw.prepare("INSERT INTO plays(album_id, track_id, ts) VALUES(?, NULL, ?)");
     ins.run(ids[5], now - 1000); ins.run(ids[5], now - 2000); ins.run(ids[6], now - 400 * 86400000);
@@ -256,13 +244,6 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     ins.run(today.album.offset, Date.now());
     const after = await same("/api/home/album-of-the-day");
     assert.deepEqual([after.album, after.played], [null, true]);
-    const week = await same("/api/home/label-of-the-week");
-    assert.ok(week.label && week.albums.length >= 3, "a label of the week, labels on");
-    // A merge let go, by C#; one that isn't there, said so.
-    assert.deepEqual(await change("/api/labels/merge/nothing", undefined, "DELETE"), { status: 404, body: { error: "Not a merged label" } });
-    assert.deepEqual(await change("/api/labels/merge/impulse", undefined, "DELETE"), { status: 200, body: { ok: true } });
-    await same("/api/library/facets", "unmerged: ");
-    await post("/api/labels/merge", { items: [{ key: "columbia", display: "Columbia" }, { key: "impulse", display: "Impulse!" }] });
     // Settings kept and read (v0.8.7).
     for (const p of ["/api/settings/display", "/api/settings/smart-picks", "/api/settings/home-rows"]) await same(p, "as set: ");
     let r = await post("/api/settings/display", { enabled: false, seconds: "30" });
@@ -279,7 +260,7 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     const fav = await same("/api/favourites");
     assert.deepEqual(fav.albums.map(a => a.offset), [ids[0], ids[2]], "hearts, newest first");
     const s = await same("/api/search?q=columbia");
-    assert.ok(s.labels.length >= 1, "labels found by search once on");
+    assert.ok(!("labels" in s), "no labels in a search (item 492)");
 
     // Covers (v0.8.5): drawn the first time, sent from the cache after, as send sends a file.
     const albums = (await getJ("/api/library/albums?count=200")).albums;
@@ -309,17 +290,8 @@ test("the library in C# answers as the Node server did", { skip, timeout: 180000
     assert.equal(x.status, 401, "neither signed nor signed in: still refused");
     x = await fetch(B + "/api/image/" + key + "?size=300&s=" + "A".repeat(22));
     assert.equal(x.status, 401, "a wrong signature: refused");
-    // A label's logo, as kept in <data>/labels.
-    const logo = Buffer.from("89504e470d0a1a0a", "hex");
-    fs.mkdirSync(path.join(lib.data, "labels"), { recursive: true });
-    fs.writeFileSync(path.join(lib.data, "labels", "columbia.png"), logo);
-    raw.prepare("INSERT INTO label_logos(key, file, type, source, url, updated_at) VALUES('columbia', 'columbia.png', 'image/png', 'manual', NULL, 1)").run();
-    const lc = await fetch(B + "/api/image/label-columbia?v=1", { headers: H });
-    assert.deepEqual([lc.status, lc.headers.get("x-mandarin-answered"), lc.headers.get("content-type")], [200, "C#", "image/png"]);
-    assert.deepEqual(Buffer.from(await lc.arrayBuffer()), logo);
-    const logoCache = await rec.want("a label's logo");
-    assert.equal(lc.headers.get("cache-control"), logoCache);
-    assert.equal((await fetch(B + "/api/image/label-nobody", { headers: H })).status, 404, "no such logo");
+    // A label's logo is no image of the server's (item 492).
+    assert.equal((await fetch(B + "/api/image/label-columbia?v=1", { headers: H })).status, 404, "no label's logo");
 
     // Music files sent as they are (v0.8.9): byte for byte and range for range as the Node server sent them.
     let sentByCsharp = 0, converted = 0;

@@ -1,4 +1,4 @@
-/* The page's core (app.js until v1.0.5), 1 of 33: the page's elements, and the state its screens share. */
+/* The page's core (app.js until v1.0.5), 1 of 31: the page's elements, and the state its screens share. */
 /*
  * TWO ZOOM HACKS USED TO LIVE HERE. Both are gone (v1.8.42), with the
  * viewport meta's `maximum-scale=1,user-scalable=no`, and the reasons are
@@ -161,7 +161,7 @@ function resetBooklets() {
   closeBooklet();
 }
 async function loadBooklets(album) {
-  if (!bookletBtn || currentSource === "now-playing" || typeof album.offset !== "number" || (album.source && album.source !== "local")) return;
+  if (!bookletBtn || currentSource === "now-playing" || typeof album.offset !== "number" || (album.source && album.source !== "local" && album.source !== "ibroadcast")) return;
   let list = [];
   try {
     const r = await fetch(`/api/album/booklets?offset=${album.offset}`, { cache: "no-store" });
@@ -306,7 +306,6 @@ let libFilterOpen = false;
 // The Library filter's text as typed, spaces and all (library-controls.js).
 let libFilterTyped = "";
 let libPrefixDropped = false;
-let labelsActive = false;        // viewing the record-label browser?
 let unplayedWallActive = false;  // viewing the full "Not played in 6 months" grid?
 let libraryWallActive = false;   // viewing the full A-Z library grid?
 // Declared up here with the other view flags, NOT beside showSmartPicks():

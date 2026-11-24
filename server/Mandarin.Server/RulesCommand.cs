@@ -22,8 +22,6 @@
 //   { fn: "joins", parts: [dsf], whole: dsf }                          Upsample/JoinRules.cs: tracks joined, against their whole
 //   { fn: "soapcall", calls: [{ url, service, action, args, wait }] }     Playback/SoapHttp.cs
 //      → { results: [{ out } | { error }] }, one after another, each [wait] ms after the last
-//   { fn: "labelnames", canonical, keys, not_labels, folders: [[dir, roots, depth]] }  Names.cs
-//      → { canonical, keys, not_labels, folders }
 //   { fn: "phoneplays", tracks: [{ path, codec, channels, bits }] }       Downloads.cs
 //      → { plays }
 //   { fn: "uris", uris }                                                  Playback/Phones.Commands.cs
@@ -44,8 +42,6 @@
 //      → { devices, hidden, hw, ids, amplitude }                         Local/LocalDevices.cs, EngineOutput.cs
 //   { fn: "scorecall" | "itunes" | "mbpack", … }                          Identify/ScoreCalls.cs
 //   { fn: "mqa", files | rates | items | untouched | headers }            Mqa/MqaCommand.cs: MQA found, planned, said (item 418)
-//   { fn: "logos", … }                                                    Extras/LogosCommand.cs: the label-logo finder, step by step
-//   { fn: "lastfm", … }                                                   Extras/LastfmCommand.cs: the Last.fm client, step by step
 //   { fn: "shelf", buckets: [sortArtist], shelves: [[{ id, title, artist, sortArtist, genres, image_key, year }]] }
 //      → { buckets, shelves: [{ genres, albums, sig }] }                  ShelfRoutes.cs
 //   { fn: "addresses", ips, hosts, art: [[url, loopbackTaken]], connect: [{ url, loopbackTaken, proxy }], linkplay: [base] }
@@ -67,23 +63,20 @@ internal static class RulesCommand
     private static List<object?> Each(object? list, Func<object?, object?> f) => L(list).Select(f).ToList();
     private static JsObj O(object? v) => v as JsObj ?? new JsObj();
 
-    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "labelnames", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "logos", "lastfm", "shelf", "mbpack", "addresses", "librarycopy", "watchmisses", "logscrub", "daypick", "upsample", "dsdmod", "dither", "joins", "mqa", "ibroadcastrenew"];
+    public static readonly string[] Fns = ["mounts", "versions", "soapcall", "phoneplays", "uris", "cpu", "auth", "register", "ssdp", "engine", "local", "scorecall", "itunes", "shelf", "mbpack", "addresses", "librarycopy", "watchmisses", "logscrub", "daypick", "upsample", "dsdmod", "dither", "joins", "mqa", "ibroadcastrenew"];
 
     public static JsObj Run(string fn, JsObj job) => fn switch
     {
         "mounts" => MountFns(job),
         "versions" => VersionFns(job),
         "soapcall" => SoapCalls(job).GetAwaiter().GetResult(),
-        "labelnames" => LabelNameFns(job),
         "phoneplays" => new JsObj { ["plays"] = Each(job["tracks"], t => Downloads.PhonePlays(new Downloads.Track(0, S(O(t)["path"]), S(O(t)["codec"]), 0, N(O(t)["bits"]), N(O(t)["channels"]), 0, 0))) },
         "cpu" => CpuFns(job),
         "auth" => AuthFns(job),
-        "logos" => Extras.LogosCommand.Run(job),
         "mqa" => Mqa.MqaCommand.Run(job),
         // When iBroadcast's token is renewed (item 456): each case's { now, expires, life } (ms; life null where not known).
         "ibroadcastrenew" => new JsObj { ["due"] = Each(job["cases"], c => Services.IBroadcast.IBroadcastApi.RenewDue(TJs.ToNumber(O(c)["now"]), TJs.ToNumber(O(c)["expires"]),
             TJs.IsNullish(O(c)["life"]) ? null : TJs.ToNumber(O(c)["life"]))) },
-        "lastfm" => Extras.LastfmCommand.Run(job),
         "shelf" => ShelfFns(job),
         "librarycopy" => new JsObj { ["due"] = Each(job["due"], d => Library.ReadDue(N(At(d, 0)), N(At(d, 1)), N(At(d, 2)), N(At(d, 3)), N(At(d, 4)), (int)N(At(d, 5)), (int)N(At(d, 6)))) },
         "daypick" => DayPick.Rules(L(job["albums"]), L(job["plays"]), N(job["now"]), S(job["day"])),
@@ -142,14 +135,6 @@ internal static class RulesCommand
         }
         return new JsObj { ["results"] = results };
     }
-
-    private static JsObj LabelNameFns(JsObj job) => new()
-    {
-        ["canonical"] = Each(job["canonical"], n => Names.CanonicalLabelName(TJs.IsNullish(n) ? null : TJs.Str(n))),
-        ["keys"] = Each(job["keys"], n => Names.LabelKey(TJs.IsNullish(n) ? null : TJs.Str(n))),
-        ["not_labels"] = Each(job["not_labels"], n => Names.IsLikelyNotALabel(TJs.IsNullish(n) ? null : TJs.Str(n))),
-        ["folders"] = Each(job["folders"], f => Names.LabelFromFolder(S(At(f, 0)), L(At(f, 1)).Select(S).ToList(), (int)N(At(f, 2))))
-    };
 
     /* A split decided as Cpu.Decide decides it, from a case's cores, its PLAYBACK_CORES / PLAYBACK_CORE, its DSP and its making (item 260). */
     private static (bool Split, int[] Cores, int[] Playback, int[] Background, int? Core) Decided(object? c, bool taskset) =>
@@ -258,7 +243,7 @@ internal static class RulesCommand
         ["buckets"] = Each(job["buckets"], v => Library.ShelfBucket(v as string)),
         ["shelves"] = Each(job["shelves"], list =>
         {
-            // Its label, catalogue number, kind and files' facts too (item 206: the Labels and Types tiles, the spine's foot).
+            // Its catalogue number, kind and files' facts too (item 206: the Types tile, the spine's foot).
             string? Str(object? v) => TJs.IsNullish(v) ? null : S(v);
             // item 208: each album's channels and whether it is a favourite, as the route reads them
             var given = L(list).Select(O).ToList();
@@ -268,11 +253,11 @@ internal static class RulesCommand
             {
                 Id = N(a["id"]), Title = S(a["title"]), Artist = S(a["artist"]), SortArtist = S(a["sortArtist"]), ImageKey = S(a["image_key"]),
                 Genres = L(a["genres"]).Select(S).ToList(), Year = TJs.IsNullish(a["year"]) ? null : N(a["year"]),
-                Label = Str(a["label"]), Catno = Str(a["catno"]), MbType = Str(a["type"]), Compilation = TJs.Truthy(a["compilation"]),
+                Catno = Str(a["catno"]), MbType = Str(a["type"]), Compilation = TJs.Truthy(a["compilation"]),
                 Lossless = TJs.Truthy(a["lossless"]), Container = Str(a["container"]), Service = Str(a["service"]),
                 Bits = TJs.IsNullish(a["bits"]) ? null : N(a["bits"]), Rate = TJs.IsNullish(a["rate"]) ? null : N(a["rate"])
-            }).ToList(), al => al.Label, channels, al => favs.Contains(al.Id));
-            return new JsObj { ["genres"] = Scan.JsJson.Parse(shelf.Genres.ToJsonString()), ["labels"] = Scan.JsJson.Parse(shelf.Labels.ToJsonString()),
+            }).ToList(), channels, al => favs.Contains(al.Id));
+            return new JsObj { ["genres"] = Scan.JsJson.Parse(shelf.Genres.ToJsonString()),
                 ["formats"] = Scan.JsJson.Parse(shelf.Formats.ToJsonString()),
                 ["albums"] = Scan.JsJson.Parse(shelf.Albums.ToJsonString()), ["sig"] = shelf.Sig };
         })

@@ -33,6 +33,9 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
     public int ResumeEveryMs { get; init; } = 15_000;
     /// <summary>iBroadcast's limit on a file: 1.5 GB (the tests' ibroadcast_upload_limit).</summary>
     public long LimitBytes { get; init; } = 1_500_000_000;
+    /// <summary>How long iBroadcast is given to list a file it took, and a file left to be tried again (item 488; the tests' shorter).</summary>
+    public double WaitMs { get; init; } = IBroadcastUploadSent.WaitMs;
+    public double AgainMs { get; init; } = IBroadcastUploadSent.AgainMs;
     /// <summary>How often a hold for music playing is looked at again.</summary>
     public int HoldMs { get; init; } = 5000;
     // One FLAC made at a time, however many are sent at once.
@@ -52,7 +55,7 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
     private sealed class Run
     {
         public double Started, Finished;
-        public int FilesTotal, FilesDone, Uploaded, Already, Converted, Skipped, Failed;
+        public int FilesTotal, FilesDone, Uploaded, Already, Converted, Skipped, Failed, Waiting;
         public long BytesTotal, BytesDone, Sent;
         public double SendingMs, SendingSince;
         public int Sending;
@@ -152,21 +155,30 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             var sent = IBroadcastUploadSent.All();
             var todo = new List<LocalFile>();
             var notKept = new List<(LocalFile F, IBroadcastUploadSent.Was W)>();
+            var later = new IBroadcastUploadLater();
+            var at = IBroadcastApi.Now();
             foreach (var f in files)
             {
                 if (!sent.TryGetValue(f.Path, out var r) || !IBroadcastUploadSent.Same(r, f)) todo.Add(f);
                 else if (have.Contains(r.Md5)) run.Already++;
-                // Left where it would go as it went (item 480: under a shorter name now, it is tried again).
-                else if (r.Taken >= IBroadcastUploadSent.TakenMost && r.SentAs == SentAs(f, run, Dsd.Contains(Ext(f)) || f.Size > LimitBytes)) notKept.Add((f, r));
-                else todo.Add(f);
+                // Under a shorter name now (item 480), it is tried again as any other.
+                else if (r.SentAs != SentAs(f, run, Dsd.Contains(Ext(f)) || f.Size > LimitBytes)) todo.Add(f);
+                // Sent as it would go and iBroadcast hasn't it (item 488): waited for, sent again, or left for now.
+                else switch (IBroadcastUploadSent.NextFor(r, at, WaitMs, AgainMs))
+                {
+                    case IBroadcastUploadSent.Next.Wait: run.Waiting++; later.Add(f, r, r.At + WaitMs, left: false); break;
+                    case IBroadcastUploadSent.Next.Leave: notKept.Add((f, r)); later.Add(f, r, IBroadcastUploadSent.AgainAt(r, AgainMs), left: true); break;
+                    default: todo.Add(f); break;
+                }
             }
-            foreach (var (f, w) in notKept) Problem(run, f, IBroadcastUploadSent.Why(w), failed: false, log: false);
+            foreach (var (f, w) in notKept) Problem(run, f, IBroadcastUploadSent.Why(w, at, AgainMs), failed: false, log: false);
             run.FilesTotal = todo.Count;
             run.BytesTotal = todo.Sum(f => f.Size);
             Server.Log($"[ibroadcast] upload: {todo.Count} of {files.Count} files to look at, {run.Already} there already as sent before"
-                + (notKept.Count > 0 ? $", {notKept.Count} left as iBroadcast took them {IBroadcastUploadSent.TakenMost} times but didn't keep them (from {Path.GetFileName(Path.GetDirectoryName(notKept[0].F.Path))})" : ""));
+                + (run.Waiting > 0 ? $", {run.Waiting} sent a short while ago and waited for (iBroadcast hasn't listed them yet)" : "")
+                + (notKept.Count > 0 ? $", {notKept.Count} left for now as iBroadcast took them but didn't keep them (from {Path.GetFileName(Path.GetDirectoryName(notKept[0].F.Path))})" : ""));
             var queue = new System.Collections.Concurrent.ConcurrentQueue<LocalFile>(todo);
-            await Task.WhenAll(Enumerable.Range(0, IBroadcastUploadChoices.Most).Select(slot => Worker(slot, queue, have, sent, run, all)));
+            await Task.WhenAll(Enumerable.Range(0, IBroadcastUploadChoices.Most).Select(slot => Worker(slot, queue, have, sent, later, run, all)));
             run.Stopped = run.Error == null && token.IsCancellationRequested;
         }
         catch (OperationCanceledException) { run.Stopped = true; }
@@ -193,12 +205,13 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
 
     /* One of the senders: the next file, while its place ([slot]) is let go on; the sign-in refused or a file not read, all of them ended. */
     private async Task Worker(int slot, System.Collections.Concurrent.ConcurrentQueue<LocalFile> queue, HashSet<string> have,
-        Dictionary<string, IBroadcastUploadSent.Was> sent, Run run, CancellationTokenSource all)
+        Dictionary<string, IBroadcastUploadSent.Was> sent, IBroadcastUploadLater later, Run run, CancellationTokenSource all)
     {
         try
         {
             while (true)
             {
+                await Again(run, later, queue, have, all.Token);
                 if (!await Turn(slot, run, queue, all.Token) || !queue.TryDequeue(out var f)) return;
                 lock (run) { run.Album = f.Album; run.File = Path.GetFileName(f.Path); }
                 try { await One(f, have, sent.GetValueOrDefault(f.Path), run, all.Token); }
@@ -212,6 +225,36 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             lock (run) run.Error ??= e is IOException ? "A file couldn't be read: " + e.Message : e.Message;
             await all.CancelAsync();
         }
+    }
+
+    /*
+     * What was put off whose time has come (item 488), looked at again as the upload goes: iBroadcast asked what it has
+     * now; what it has is there already, and what it still hasn't is sent with the rest.
+     */
+    private async Task Again(Run run, IBroadcastUploadLater later, System.Collections.Concurrent.ConcurrentQueue<LocalFile> queue, HashSet<string> have, CancellationToken token)
+    {
+        var due = later.Due(IBroadcastApi.Now());
+        if (due.Count == 0) return;
+        try { var has = await Files.Md5s(token); lock (have) have.UnionWith(has); }
+        catch (ServiceError e)
+        {
+            Server.Log($"[ibroadcast] upload: {due.Count} put off earlier not looked at again yet: {e.Message}");
+            later.Back(due, IBroadcastApi.Now() + 60_000);
+            return;
+        }
+        int there = 0;
+        foreach (var p in due)
+        {
+            bool has; lock (have) has = have.Contains(p.W.Md5);
+            lock (run)
+            {
+                if (p.Left) run.Skipped--; else run.Waiting--;
+                if (has) { run.Already++; there++; } else { run.FilesTotal++; run.BytesTotal += p.F.Size; }
+            }
+            if (p.Left) lock (run.Problems) run.Problems.RemoveAll(x => x.File == p.F.Path);
+            if (!has) queue.Enqueue(p.F);
+        }
+        Server.Log($"[ibroadcast] upload: {due.Count} put off earlier looked at again: iBroadcast has {there} now, {due.Count - there} sent again");
     }
 
     /*
@@ -273,10 +316,12 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             var md5 = await IBroadcastUploadFiles.Md5(send, token);
             bool there;
             lock (have) there = have.Contains(md5);
-            if (there) { IBroadcastUploadSent.Note(f, md5, made != null, 0, null); lock (run) run.Already++; return; }
+            // iBroadcast has it already: noted with the name it went as when sent before (item 513: noted with none, the link from
+            // iBroadcast's track back to this file, its folder's cover and booklets, was lost).
+            var sentAs = SentAs(f, run, made != null);
+            if (there) { IBroadcastUploadSent.Note(f, md5, made != null, 0, null, was?.SentAs ?? sentAs); lock (run) run.Already++; return; }
             // Sent before as it is, under the name it goes as now, and iBroadcast hasn't it: taken and not kept (item 477),
             // said with what iBroadcast said then. Under another name (item 480), counted afresh.
-            var sentAs = SentAs(f, run, made != null);
             var taken = was != null && was.Md5 == md5 && was.SentAs == sentAs ? was.Taken : 0;
             if (taken > 0) Server.Log($"[ibroadcast] upload: {Path.GetFileName(f.Path)} was taken before but iBroadcast hasn't it"
                 + (string.IsNullOrWhiteSpace(was!.Said) ? "" : $" (it said: \"{was.Said}\")") + "; sent again");
@@ -319,6 +364,7 @@ internal sealed class IBroadcastUpload(IBroadcast account, string dataDir)
             ["album"] = run.Album, ["file"] = run.File, ["speed"] = Math.Round(speed),
             ["eta"] = running && speed > 0 ? Math.Round((run.BytesTotal - run.BytesDone) / speed) : null,
             ["uploaded"] = run.Uploaded, ["already"] = run.Already, ["converted"] = run.Converted, ["skipped"] = run.Skipped, ["failed"] = run.Failed,
+            ["waiting"] = run.Waiting,
             ["problems"] = Problems(run),
             ["stopped"] = run.Stopped, ["error"] = run.Error,
         };

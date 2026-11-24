@@ -23,6 +23,8 @@ if (args.Length == 1 && args[0] == "--version")
     Console.WriteLine(version);
     return 0;
 }
+// Which of Mandarin's own keys the build carries (item 491), by name only.
+if (args.Length == 1 && args[0] == "--built-in-keys") { Console.WriteLine(Mandarin.Server.BuiltInKeys.Said()); return 0; }
 
 // `mandarin-server --srp-vector test/srp-vector.json`: the server's half of
 // SRP against the fixed example the page and the Android app are checked
@@ -213,7 +215,7 @@ SqTool.Use(app, appDir, dataDir);
 Pages.Use(app, Path.Combine(appDir, "public"));
 // The library (Library.cs): read from the copy held here (Library.State.cs).
 Library.Use(app);
-// Covers and label logos (Images.cs).
+// Covers (Images.cs).
 Images.Use(app, dataDir);
 // An album's booklets, their pages drawn in data/booklets (v0.8.33, Booklets.cs).
 Booklets.Init(dataDir);

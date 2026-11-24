@@ -6,7 +6,7 @@ import org.json.JSONObject
 /*
  * Settings, typed (the group T of old/plan-android-native.md, T1; bug list item 76): the list and Setup's list
  * as the page has them, the server's version at the list's foot (settings.js's loadVersion), the devices signed in to the
- * account (settings-account.js) and the API keys with what the server says of each (settings.js's wireKey).
+ * account (settings-account.js). The API keys' page went in item 494: Mandarin carries its own, and Last.fm's went.
  */
 
 /** A row of a Settings list: the page it opens ([pane], the page's own name for it) and its title. */
@@ -22,11 +22,11 @@ object SettingsLists {
     const val SQ_TOOL = "/sq-tool/"
 
     /** Setup's list, the app's Downloads before Away from home, as the page puts it in the app. */
-    val SETUP = listOf(SettingsRow("smartpicks", "Smart Picks"), SettingsRow("labels", "Record labels"), SettingsRow("homescreen", "Home Screen"),
+    val SETUP = listOf(SettingsRow("smartpicks", "Smart Picks"), SettingsRow("homescreen", "Home Screen"),
         SettingsRow("ui", "UI Settings"), SettingsRow("display", "Wall Display"), SettingsRow("shelfset", "Shelf"),
-        SettingsRow("downloads", "Downloads"), SettingsRow("away", "Away from home"), SettingsRow("metadata", "API Keys"))
+        SettingsRow("downloads", "Downloads"), SettingsRow("away", "Away from home"))
 
-    const val SETUP_DESC = "Smart Picks, record labels, the Home screen, the look, the wall display and Shelf, away from home, API keys"
+    const val SETUP_DESC = "Smart Picks, the Home screen, the look, the wall display and Shelf, away from home"
     const val REPO = "https://github.com/meltface-80/Mandarin"
 
     /** The version at the list's foot, from /api/update/status: "Mandarin v1.0 (Build 17)"; null when there is none to say. */
@@ -81,60 +81,6 @@ data class AccountDevices(val username: String, val devices: List<SignedInDevice
             new != again -> "The two new passwords don't match."
             else -> null
         }
-    }
-}
-
-/**
- * One of the API keys: whether one is saved, its first and last letters, and what its service said of it ("ok", "invalid",
- * or not asked); AcoustID's with the Album Scanner's matching by sound ([sound], item 419).
- */
-data class ApiKey(val set: Boolean, val masked: String, val check: String?, val sound: SoundTally? = null) {
-    val ok: Boolean get() = set && check == "ok"
-    val bad: Boolean get() = set && check == "invalid"
-    /** The ✓ or ✕ in the box, once checked. */
-    val badge: String? get() = if (ok) "✓" else if (bad) "✕" else null
-
-    /** What the empty box says. */
-    fun placeholder(emptyHint: String): String = when {
-        !set -> emptyHint
-        ok -> "Checked and working — $masked"
-        bad -> "Not accepted — paste a new one"
-        else -> "Saved — $masked"
-    }
-
-    /** The line under the box. */
-    val status: String get() = when {
-        !set -> "Not set"
-        ok -> "✓ Checked and working: $masked"
-        bad -> "The service refused this key ($masked). Check it was copied in full."
-        else -> "Current: $masked — couldn’t reach the service to check it."
-    }
-
-    companion object {
-        fun parse(j: JSONObject): ApiKey = ApiKey(j.optBoolean("set"), j.optString("masked"), j.optString("check").takeIf { it.isNotEmpty() && !j.isNull("check") },
-            SoundTally.parse(j.optJSONObject("sound")))
-    }
-}
-
-/** A key the page asks for: its route and field, its name, the empty box's words, its service and what it is called, its ⓘ. */
-data class ApiKeySpec(val route: String, val field: String, val name: String, val emptyHint: String, val service: String, val noun: String, val info: String) {
-    /** What is said once it is saved ([k]: the server's answer): refused, or saved (and checked). */
-    fun saved(k: ApiKey): String = if (k.bad) "Saved, but $service refused this $noun" else "$service $noun saved" + if (k.ok) " — checked and working" else ""
-
-    companion object {
-        const val DESC = "Discogs token — record label logos and label lookups; FanArt.tv key — artist photos on the wall display and label logos; AcoustID key — albums matched by sound; Last.fm key — similar artists and albums, and with its shared secret, scrobbling. All optional."
-        val ALL = listOf(
-            ApiKeySpec("discogs-token", "token", "Discogs token", "Paste personal access token…", "Discogs", "token",
-                "A personal access token from discogs.com/settings/developers. Finds record label logos, and the label of albums whose files carry none. Not required, but recommended."),
-            ApiKeySpec("fanart-key", "key", "FanArt.tv key", "Paste FanArt.tv API key…", "FanArt.tv", "key",
-                "A free API key from fanart.tv. Artist photos on the wall display, and record label logos where Discogs has none. Get one at fanart.tv/get-an-api-key — free registration required."),
-            // Matching albums by sound (item 414c): the Album Scanner's fingerprints looked up on AcoustID.
-            ApiKeySpec("acoustid-key", "key", "AcoustID key", "Paste AcoustID application key…", "AcoustID", "key", ACOUSTID_INFO),
-            ApiKeySpec("lastfm-key", "key", "Last.fm key", "Paste Last.fm API key…", "Last.fm", "key", LASTFM_KEY_INFO),
-            ApiKeySpec("lastfm-secret", "secret", "Last.fm shared secret", "Paste Last.fm shared secret…", "Last.fm", "shared secret", LASTFM_SECRET_INFO))
-        const val ACOUSTID_INFO = "A free application key from acoustid.org/new-application (sign in, and any application name will do). The Album Scanner then matches the albums it can't place by their names by how they sound: each track's fingerprint, made on the server, is looked up on AcoustID."
-        const val LASTFM_KEY_INFO = "A free API key from last.fm/api/account/create (any application name will do). Artist and album pages then show similar artists and albums from Last.fm. With its shared secret below and your account connected, what you play is scrobbled to Last.fm."
-        const val LASTFM_SECRET_INFO = "The shared secret Last.fm shows beside your API key (last.fm/api/accounts). It signs scrobbling: with it saved, Connect to Last.fm below and allow Mandarin there, and every room, Bridge and this phone scrobble what they play."
     }
 }
 

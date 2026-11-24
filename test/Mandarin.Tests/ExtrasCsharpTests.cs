@@ -95,24 +95,4 @@ public sealed partial class ExtrasCsharpTests(ExtrasCsharpTests.Book book) : ICl
         Same("queryFor", batches, got["query"]);
         Same("matchDays", batches, got["days"]);
     }
-
-    [Test]
-    public async Task The_labels_rules_Discogs_numbered_names_an_images_kind_from_its_bytes()
-    {
-        Needs.Server();
-        object?[] names = ["Blue Note (2)", "4AD", "Label (12) ", "Label(3)", "Label (2) (3)", " (5)", "Label (x)", "", null, Undefined, 5, "Nonesuch (2) "];
-        static byte[] L(string s) => Encoding.Latin1.GetBytes(s);
-        (byte[] B, string? T)[] bufs =
-        [
-            (Convert.FromHexString("89504e470d0a1a0a0000000d"), null), (Convert.FromHexString("ffd8ffe000104a46"), "image/jpeg"), (L("GIF89a\x01\x00\x01\x00"), null),
-            ([0xc7, 0xc9, 0xc6, 0xb8, 0x39, 0x61, 1, 0], null), (L("RIFF\x10\x00\x00\x00WEBPVP8 "), null),
-            (Encoding.UTF8.GetBytes("﻿  <?xml version='1.0'?><svg/>"), null), (Encoding.UTF8.GetBytes("<SVG xmlns='x'/>"), null), (Encoding.UTF8.GetBytes("<html>no</html>"), "text/html"),
-            (Encoding.UTF8.GetBytes("<html>no</html>"), "image/svg+xml; charset=utf-8"), ([], null), (Convert.FromHexString("8950"), null), (Encoding.UTF8.GetBytes(" <svg/>"), null),
-            (L("RIFF\x10\x00\x00\x00webp"), null), ([0xff, 0xd8, 0xff], null), ([0xff, 0xd8, 0xff, 0xdb], null)
-        ];
-        var images = new JsonArray([.. bufs.Select(x => (JsonNode?)Obj(("b64", Convert.ToBase64String(x.B)), ("type", x.T)))]);
-        var got = await Csharp(new JsonObject { ["fn"] = "labels", ["plain"] = Arr(names), ["images"] = images.DeepClone() });
-        Same("plainName", Arr(names), got["plain"]);
-        Same("typeOf", images, got["types"]);
-    }
 }

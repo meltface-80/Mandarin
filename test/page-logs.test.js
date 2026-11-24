@@ -37,7 +37,8 @@ const SETUP = `(async () => {
   const row = await until(() => [...document.querySelectorAll('#settings-overlay .settings-nav-item[data-pane="setup"]')].find(shown));
   if (!row) return { why: "no setup" };
   row.click();
-  await until(() => [...document.querySelectorAll('#settings-overlay .settings-nav-item[data-pane="metadata"]')].find(shown));
+  // Setup's last row (Away from home since item 494's API Keys went): the list drawn.
+  if (!await until(() => [...document.querySelectorAll('#settings-overlay .settings-nav-item[data-pane="away"]')].find(shown))) return { why: "no Away from home" };
   return { logs: document.querySelectorAll('[data-pane="logs"], #logs-lines, #logs-download').length };
 })()`;
 

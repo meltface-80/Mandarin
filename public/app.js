@@ -21,7 +21,7 @@ async function bootstrap() {
   // it before the first paint; on failure the table's own default order
   // stands, which is a working Home rather than a blank one.
   // Not in the Shelf's frame (embed-flag.js): there the page is its album view alone, no Home, no menu.
-  if (!EMBED) { await loadHomeLayout(); applyFeatureMenuFromServer(); }
+  if (!EMBED) await loadHomeLayout();
   const painted = !EMBED && !activeFilter && hydrateHomeFromCache();
   if (!painted) setBanner("Connecting to Mandarin…");
   for (let i = 0; i < 30; i++) {

@@ -1,5 +1,5 @@
-// Leftovers.cs — what a service Mandarin no longer has left behind, taken away as the server starts (bug list item
-// 152): its albums (with their edits, hearts and Listen later; plays stay, as text, as Clean up leaves them), its
+// Leftovers.cs — what a service Mandarin no longer has left behind, taken away as the server starts (bug list items
+// 152 and 525, Spotify's, Spotify Connect's Soloist and its downloads in the folder among them): its albums (with their edits, hearts and Listen later; plays stay, as text, as Clean up leaves them), its
 // marks, its settings (its sign-in among them), and its folder in the data folder. Once done, it finds nothing. Its
 // albums are deleted with foreign keys on, as Clean up deletes them (Rows.cs OpenRows): their tracks go with them, and
 // the tracks' tags, loudness and tag checks with those (item 179; with them off, a Spotify track stayed under its

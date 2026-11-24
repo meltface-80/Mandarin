@@ -1,5 +1,4 @@
-// AcoustIdRoutes.cs — Settings → API Keys' AcoustID key (bug list item 414c), as the others there (LabelRoutes.cs'
-// FanArt.tv and Discogs): GET says enough of the key to know it and whether AcoustID takes it, POST keeps one and
+// AcoustIdRoutes.cs — Settings → API Keys' AcoustID key (bug list item 414c; Mandarin's own since item 491): GET says enough of the key to know it and whether AcoustID takes it, POST keeps one and
 // checks it at once. The check is remembered as theirs: twelve hours when it works, an hour when it was refused, ten
 // minutes with no answer either way. A key saved that works puts the albums the scan couldn't place, or only
 // proposed, back in its queue (Identifier.PackUpdated's rule: never one declined or matched by hand), to be matched by
@@ -62,7 +61,7 @@ internal static partial class Library
         if (b == null) return true;
         var given = TJs.Trim(TJs.Truthy((FromNode(b) as JsObj ?? new JsObj())["key"]) ? TJs.Str((FromNode(b) as JsObj)!["key"]) : "");
         var before = AcoustId.Key();
-        Labels.SetSetting(AcoustId.Setting, given);
+        SavedSettings.SetSetting(AcoustId.Setting, given);
         sound.State = null;
         Interlocked.Exchange(ref sound.PausedUntil, 0);
         var o = await AcoustIdState(sound, true);

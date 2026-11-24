@@ -2,9 +2,9 @@
 // S7, old/audit-b4-main.md): an answer's ETag (Http.cs, Pages.cs), a
 // cover's fingerprint (Scan/Scanner.cs, AlbumEditRoutes.cs), a kept cover's
 // file name (Services/Rows.cs), a sound device's id (Local/LocalDevices.cs),
-// which keys found the label logos (Extras/LabelLogos.cs), a drawn cover's
-// colour (CoversDrawn.cs), the request signatures Qobuz's API and
-// Last.fm's ask for (Services/QobuzApi.cs, Extras/LastfmAccount.cs), and the
+// a drawn cover's
+// colour (CoversDrawn.cs), the request signatures Qobuz's API asks for
+// (Services/QobuzApi.cs), and the
 // MD5 iBroadcast knows each of its files by, an upload's checked against
 // (Services/IBroadcast/IBroadcastUpload.cs, item 446). The analyzers call both hashes weak, and they are
 // for anything that must hold against an attacker; none of these must, and

@@ -13,15 +13,13 @@
  *   - the grid screens have no strip: their buttons float where they were,
  *     their title is the page's heading; on the Library, Focus and Sort are
  *     up in ‹'s line on the right, its glass gone, and Search opens its
- *     filter with the strip back under the field; the Labels list the same
- *     (#–Z alone on the right, Search finds a label); the Artists wall the
+ *     filter with the strip back under the field; the Artists wall the
  *     same (Sort alone on the right, Search finds an artist), Artists lit;
  *   - on a tablet either way round the mini player docked on the row, edge to
  *     edge, as the Android app's (item 215); on a phone the pill over it;
  *   - the four buttons evenly across, or five with Shelf; Offline is a pill at the top of the
  *     screen, in the middle, over everything, for as long as it lasts (bug
- *     list item 134), and the row doesn't move when it comes; the scan's
- *     progress a line along the top edge;
+ *     list item 134), and the row doesn't move when it comes;
  *   - while a field has the keyboard, in the Android app (android.css) the
  *     row and the mini player give way; a browser's keyboard goes over them;
  *     Now playing keeps the row (item 296), its screen ending above it;
@@ -78,7 +76,7 @@ const DRIVER = `(async () => {
   out.homeOn = html.classList.contains("tn-home") && getComputedStyle($("tnav-home")).color;
   out.libraryColour = getComputedStyle($("tnav-library")).color;
 
-  // The row evenly across. Offline: the pill at the top, over everything. The scan: a line along the top.
+  // The row evenly across. Offline: the pill at the top, over everything.
   out.row = buttons().map(b => { const r = b.getBoundingClientRect(); return [r.left, r.width]; });
   out.offlineHidden = !shown($("offline-toast"));
   const rowBefore = [...nav.querySelectorAll(".tnav-btn")].map(box);
@@ -87,9 +85,7 @@ const DRIVER = `(async () => {
   { const t = out.offline, at = document.elementFromPoint(t.l + t.w / 2, t.t + t.h / 2); out.offlineOnTop = !!at && $("offline-toast").contains(at); }
   out.rowStill = JSON.stringify([...nav.querySelectorAll(".tnav-btn")].map(box)) === JSON.stringify(rowBefore);
   $("offline-btn").classList.add("hidden");
-  $("scan-progress-bar").classList.remove("hidden"); await frame();
-  out.scan = box($("scan-progress-bar"));
-  $("scan-progress-bar").classList.add("hidden");
+  out.scanStrip = !!$("scan-progress-bar");
 
   // Search: the top bar back, the field across it, the page moved down under it.
   $("tnav-search").click();
@@ -147,20 +143,6 @@ const DRIVER = `(async () => {
   out.randomStrip = bg(document.querySelector(".topbar"));
   out.randomShuffle = box($("topbar-refresh"));
   out.randomTitle = [$("album-count").textContent, box($("album-count"))];
-
-  // The Labels list: as the Library, its glass gone, #–Z on the right in ‹'s line, Search finds a label.
-  window.__showHome(); await until(() => html.classList.contains("tn-home"), "Home");
-  $("labels-toggle").click();
-  await until(() => html.classList.contains("tn-labels"), "the Labels list");
-  await frame();
-  out.labelsStrip = bg(document.querySelector(".topbar"));
-  out.labelsGlass = shown($("labels-search-btn"));
-  out.labelsOrder = box($("labels-sort-btn")); out.labelsBack = box($("topbar-back"));
-  $("tnav-search").click();
-  await until(() => html.classList.contains("tn-filter") && document.activeElement === $("labels-search-input"), "Find a label");
-  await frame();
-  out.labelsSearchStrip = bg(document.querySelector(".topbar"));
-  $("labels-search-input").dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 
   // Artists (bug list item 130): the Artists wall, its button lit; Sort on the right in ‹'s line, Search finds an artist.
   $("tnav-artists").click();
@@ -250,7 +232,7 @@ test("the touch layout: Menu, Home, Library, Artists, Shelf when on and Search a
       assert.ok(r.offline.t <= 20 && Math.abs((r.offline.l + r.offline.r) / 2 - w / 2) <= 1 && r.offline.h <= 40, `${size}: Offline a pill at the top, in the middle (${JSON.stringify(r.offline)})`);
       assert.equal(r.offlineOnTop, true, size + ": the pill over what is under it");
       assert.equal(r.rowStill, true, size + ": the buttons don't move when Offline comes");
-      assert.ok(r.scan.t === 0 && r.scan.h <= 4 && r.scan.w === w, `${size}: the scan's line along the top (${JSON.stringify(r.scan)})`);
+      assert.equal(r.scanStrip, false, size + ": no scan strip: it was the labels scan's (item 492)");
       assert.ok(r.searchField.w >= w - 60, `${size}: the search field across the screen (${r.searchField.w} of ${w})`);
       assert.ok(r.searchTopbar.t === 0 && r.searchTopbar.h > 30, `${size}: the top bar back with the search (${JSON.stringify(r.searchTopbar)})`);
       assert.ok(r.result.t >= r.searchTopbar.b, `${size}: the results under the top bar, not behind it (${r.result.t} vs ${r.searchTopbar.b})`);
@@ -278,11 +260,6 @@ test("the touch layout: Menu, Home, Library, Artists, Shelf when on and Search a
       assert.ok(r.randomShuffle.r >= w - 24 && r.randomShuffle.t < 30, `${size}: its Shuffle floats where it was (${JSON.stringify(r.randomShuffle)})`);
       assert.equal(r.randomTitle[0], "Random albums");
       assert.ok(r.randomTitle[1].t >= r.randomShuffle.b, size + ": its title the heading, under the buttons");
-      assert.ok(clear(r.labelsStrip), size + ": the Labels list has no strip");
-      assert.equal(r.labelsGlass, false, size + ": the Labels list's glass gives way to Search in the row");
-      assert.ok(r.labelsOrder.r >= w - 24 && Math.abs((r.labelsOrder.t + r.labelsOrder.b) / 2 - (r.labelsBack.t + r.labelsBack.b) / 2) <= 2,
-        `${size}: #–Z on the right, in ‹'s line (${JSON.stringify([r.labelsBack, r.labelsOrder])})`);
-      assert.ok(!clear(r.labelsSearchStrip), size + ": Search finds a label, the strip back under the field");
       assert.ok(r.artistsOn !== r.artistsHomeOff, size + ": Artists lit on the Artists wall");
       assert.ok(clear(r.artistsStrip), size + ": the Artists wall has no strip");
       assert.match(r.artistsHeading, /^Artists · \d+$/, size + ": its title, with how many, the heading");

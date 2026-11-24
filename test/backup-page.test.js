@@ -72,7 +72,7 @@ test("Backup & restore in a browser: back up to the server, restore settings and
       r = await page.eval(DRIVER);
       assert.deepEqual(page.errors, []);
     } finally { await b.close(); }
-    assert.deepEqual(r.parts, ["settings", "devices", "collection", "keys", "database", "page"], "no app part in a browser");
+    assert.deepEqual(r.parts, ["settings", "devices", "collection", "keys", "database", "ibroadcast", "page"], "no app part in a browser");
     assert.equal(r.file_buttons, false, "the file buttons are the Android app's");
     assert.equal(r.listed, "On the server", "the card says where the backup is");
     assert.match(r.listed_meta, /v\d+\.\d+\.\d+ · \d+ KB · from /, "and what it was made from");
@@ -136,7 +136,7 @@ test("a sealed backup in a browser: the passphrase seals it, and its restore ask
   const ctx = await srv.start();
   const boot = async () => { try { return (await (await fetch(U + "/server-info")).json()).boot; } catch (e) { return null; } };
   const boot0 = await boot();
-  ctx.db.setSetting("discogsToken", "page-secret");
+  ctx.db.setSetting("fanartKey", "page-secret");
   try {
     const token = await signIn(U);
     // The first scan done before the page opens, as above: a page drawn on an empty
@@ -152,7 +152,7 @@ test("a sealed backup in a browser: the passphrase seals it, and its restore ask
       const page = await b.page(U + "/", { cookies: [{ name: "musicd_session", value: token, url: U }] });
       made = await page.eval(SEALED_BACKUP);
       assert.match(made.meta, / · sealed · from /, "the card says it is sealed");
-      ctx.db.setSetting("discogsToken", "changed");
+      ctx.db.setSetting("fanartKey", "changed");
       back = await page.eval(SEALED_RESTORE);
       assert.deepEqual(page.errors, []);
     } finally { await b.close(); }
@@ -164,7 +164,7 @@ test("a sealed backup in a browser: the passphrase seals it, and its restore ask
     for (let i = 0; i < 150 && !(boot1 && boot1 !== boot0); i++) { await new Promise(res => setTimeout(res, 100)); boot1 = await boot(); }
     assert.ok(boot0 && boot1 && boot1 !== boot0, `the server started again: ${boot0} → ${boot1}`);
     ctx.db.close();
-    assert.equal(ctx.db.setting("discogsToken"), "page-secret", "the keys put back with the passphrase");
+    assert.equal(ctx.db.setting("fanartKey"), "page-secret", "the keys put back with the passphrase");
   } finally {
     await srv.stop();
   }

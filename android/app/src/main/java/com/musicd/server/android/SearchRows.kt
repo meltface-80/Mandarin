@@ -58,7 +58,7 @@ import kotlinx.coroutines.delay
  * The search's parts (docs/specs/screens.json, search; style.css's search
  * section, the hifi palette, a phone's sizes as tools/quality/page-metrics.js
  * measures them): Home's greeting above the results, a section's small
- * heading, the library's artists and labels as chips, a service's artists as
+ * heading, the library's artists as chips, a service's artists as
  * a strip of portraits and its albums as tiles with their favourite as + or ✓,
  * Pitchfork's reviews as rows with the score. SearchScreen.kt lays them out.
  */
@@ -87,16 +87,13 @@ internal fun SearchSection(text: String, first: Boolean) {
         fontSize = 11.sp, lineHeight = 15.sp, fontWeight = FontWeight.W700, letterSpacing = 0.08.em, maxLines = 1)
 }
 
-/** The library's artists or labels as chips (.search-chip-row): wrapping, 8 apart, 6 under; each a tap ([onTap]) with its name. */
+/** The library's artists as chips (.search-chip-row): wrapping, 8 apart, 6 under; each a tap ([onTap]) with its name. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun SearchChips(names: List<String>, labels: Boolean, onTap: (String) -> Unit) {
+internal fun SearchChips(names: List<String>, onTap: (String) -> Unit) {
     FlowRow(Modifier.fillMaxWidth().padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         for (n in names) {
-            // Each key written out, as the gate reads keys from the source: a label's chip, or an artist's.
-            if (labels) Box(Modifier.parity("search.label", Contract.label("search.label", 0, n)).clip(RoundedCornerShape(20.dp)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
-                .clickable { onTap(n) }.padding(horizontal = 14.dp, vertical = 6.dp)) { ChipText(n) }
-            else Box(Modifier.parity("search.artist", Contract.label("search.artist", 0, n)).clip(RoundedCornerShape(20.dp)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
+            Box(Modifier.parity("search.artist", Contract.label("search.artist", 0, n)).clip(RoundedCornerShape(20.dp)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
                 .clickable { onTap(n) }.padding(horizontal = 14.dp, vertical = 6.dp)) { ChipText(n) }
         }
     }

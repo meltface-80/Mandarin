@@ -102,10 +102,16 @@ object Scanner {
         return if (room.isNotEmpty()) "Paused while a track is made for $room" else "Paused while a track is made as it plays"
     }
 
+    /**
+     * How far matching by sound has got (item 419; the server's sound_tally, the page's scanSoundTally): matched so far,
+     * still to look at, and when. On API Keys until its key became Mandarin's own (item 491); null with none.
+     */
+    fun soundTally(c: JSONObject?): String? = SoundTally.parse(c?.optJSONObject("sound_tally"))?.line
+
     /** Why the albums left unsure aren't matched by sound (item 414c, the server's sound; the page's scanSoundNote); null when they are. */
     fun soundNote(c: JSONObject?): String? = when (c?.text("sound")) {
-        "needs-key" -> "Matching by sound needs an AcoustID key (Settings → API Keys)."
-        "refused" -> "AcoustID refused the key, so albums aren't matched by sound (Settings → API Keys)."
+        "needs-key" -> "This build of Mandarin carries no AcoustID key, so albums aren't matched by sound."
+        "refused" -> "AcoustID refused Mandarin's key, so albums aren't matched by sound for now."
         "limited" -> "AcoustID asked to wait: matching by sound rests a few minutes."
         "unreachable" -> "AcoustID can't be reached: matching by sound rests a few minutes."
         else -> null

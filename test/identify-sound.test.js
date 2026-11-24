@@ -11,7 +11,7 @@
  *     changed since is fingerprinted again;
  *   - no more than three requests a second;
  *   - no key, a key AcoustID refuses, AcoustID busy or not reached: the step skipped quietly, the readout saying why.
- * And the key itself: Settings → API Keys' AcoustID row, kept through a sealed backup and its restore.
+ * And the key itself, kept through a sealed backup and its restore (no page asks for it since item 491).
  */
 const ports = require("./ports");
 const test = require("node:test");
@@ -234,20 +234,14 @@ test("no key, a key refused, AcoustID busy or not reached: skipped quietly, the 
   }
 });
 
-test("Settings → API Keys: AcoustID's row as the others, page and app in step; its key kept through a sealed backup", { skip: rules, timeout: 120000 }, async () => {
-  // The page's rows and the app's (ApiKeySpec.ALL), in the same order, with the same names, boxes and help.
+test("no API Keys page, on the web or in the app (item 494); a key saved kept through a sealed backup", { skip: rules, timeout: 120000 }, async () => {
+  // AcoustID's and FanArt.tv's keys Mandarin's own since item 491, Discogs gone with the labels (item 492), Last.fm's
+  // shared secret with scrobbling (item 493) and its key with the similar lists (item 494): nothing left to ask for.
   const root = path.join(__dirname, "..");
   const html = fs.readFileSync(path.join(root, "public", "index.html"), "utf8");
-  const pane = html.slice(html.indexOf('data-pane="metadata" data-parent="setup"'), html.indexOf('data-pane="metadata" data-parent="setup"') + 20000);
-  const page = [...pane.matchAll(/data-parity="settings-keys\.name">([^<]+?) <button[^>]*data-info="([^"]+)"[\s\S]*?<input id="([a-z-]+)-input"[^>]*placeholder="([^"]+)"/g)]
-    .map(m => ({ name: m[1], info: m[2].replace(/&#39;/g, "'"), route: m[3], hint: m[4] }));
+  for (const gone of ['data-pane="metadata"', "settings-keys", "lastfm-key", "API Keys"]) assert.ok(!html.includes(gone), gone);
   const kt = fs.readFileSync(path.join(root, "android", "core", "src", "main", "kotlin", "com", "musicd", "server", "client", "Settings.kt"), "utf8");
-  const consts = Object.fromEntries([...kt.matchAll(/const val ([A-Z_]+) = "((?:[^"\\]|\\.)*)"/g)].map(m => [m[1], m[2]]));
-  const app = [...kt.matchAll(/ApiKeySpec\("([a-z-]+)", "[a-z]+", "([^"]+)", "([^"]+)", "[^"]+", "[^"]+",\s*(?:"((?:[^"\\]|\\.)*)"|([A-Z_]+))\)/g)]
-    .map(m => ({ name: m[2], info: m[4] != null ? m[4] : consts[m[5]], route: m[1], hint: m[3] }));
-  assert.deepEqual(page.map(x => x.route), ["discogs-token", "fanart-key", "acoustid-key", "lastfm-key", "lastfm-secret"]);
-  assert.deepEqual(app, page);
-  assert.match(page[2].info, /acoustid\.org\/new-application/);
+  assert.doesNotMatch(kt, /ApiKeySpec|API Keys/);
 
   // The key in a backup sealed with a passphrase: in no part of the file in the clear; back with the passphrase.
   const lib = makeLibrary();

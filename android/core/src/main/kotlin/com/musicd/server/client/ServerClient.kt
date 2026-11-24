@@ -154,6 +154,19 @@ class ServerClient(
     fun listenLater(offset: Long, on: Boolean) { listenLater(listOf(offset), on) }
 
     /** Albums onto Listen later, or off it (item 52: a selection). */
+    /** Albums merged into one (item 512), the first volume or disc first whichever was picked first: { ok, offset, title }. */
+    fun mergeAlbums(offsets: List<Long>): JSONObject = post("/api/albums/merge", JSONObject().put("offsets", org.json.JSONArray().also { a -> offsets.forEach { a.put(it) } }))
+
+    /** A merged album's albums each their own again (item 512). */
+    fun unmergeAlbum(offset: Long): JSONObject = post("/api/albums/unmerge", JSONObject().put("offset", offset))
+
+    /**
+     * iBroadcast's albums deleted at iBroadcast (item 527): { ok, albums, tracks, emptied, note? }. A minute allowed: the
+     * server asks iBroadcast and then reads its library again.
+     */
+    fun deleteFromIBroadcast(offsets: List<Long>): JSONObject =
+        post("/api/ibroadcast/delete-albums", JSONObject().put("offsets", org.json.JSONArray().also { a -> offsets.forEach { a.put(it) } }), 60_000)
+
     fun listenLater(offsets: List<Long>, on: Boolean) { post("/api/listen-later", JSONObject().put("offsets", org.json.JSONArray().also { a -> offsets.forEach { a.put(it) } }).put("on", on)) }
 
     /**
@@ -209,21 +222,10 @@ class ServerClient(
     fun playingAlbum(zoneId: String): Boolean = RoomMove.playing(getJson("/api/album/now-playing?zone=" + enc(zoneId)))
     fun transferZone(from: String, to: String) { post("/api/transfer-zone", JSONObject().put("from", from).put("to", to)) }
 
-    /** Labels (item 71): a logo saved for one (the address the server kept), labels merged into the first, one taken out again, the scan run again, its log. */
-    fun saveLabelLogo(label: String, url: String): String {
-        val j = post("/api/labels/logo", JSONObject().put("label", label).put("url", url))
-        if (!j.optBoolean("ok")) throw IOException(j.optString("error").ifEmpty { "Failed to save logo" })
-        return j.optString("storedUrl").ifEmpty { url }
-    }
-    fun mergeLabels(items: List<MergedLabel>) { post("/api/labels/merge", JSONObject().put("items", org.json.JSONArray(items.map { JSONObject().put("key", it.key).put("display", it.display) }))) }
-    fun unmergeLabel(key: String) { send("DELETE", "/api/labels/merge/" + enc(key)) }
     /** One of the server's backups deleted (item 92). */
     fun deleteBackup(id: String) { send("DELETE", "/api/backup/" + enc(id)) }
-    fun rescanLabels() { post("/api/labels/rescan", JSONObject()) }
     /** The library's own files as a CSV for Mandarin Migration (item 436, [Export]): two minutes for a large library. */
     fun exportCsv(): ByteArray = transport.bytes(Export.PATH, 120_000)
-
-    fun labelsScanLog(): String = String(transport.bytes("/api/labels-scan-log", timeoutMs), Charsets.UTF_8)
 
     /**
      * The album editor (item 74): the editor's view of an album; the covers found on the web and the releases
@@ -252,32 +254,19 @@ class ServerClient(
     fun mergedAlbums(): Merged = AlbumSplitEdit.merged(getJson("/api/library/merged"))
 
     /**
-     * Settings (item 76): the server's version; the devices signed in to the account, and one signed out; an API key as
-     * the server has it ([route]: "discogs-token", "fanart-key", "lastfm-key"), and a new one saved (checked by its service).
+     * Settings (item 76): the server's version; the devices signed in to the account, and one signed out.
      */
     fun updateStatus(): JSONObject = getJson("/api/update/status")
     fun accountDevices(): AccountDevices = AccountDevices.parse(getJson(AccountDevices.PATH))
     fun revokeDevice(id: String) { post("/api/auth/devices/revoke", JSONObject().put("id", id)) }
-    fun apiKey(route: String): ApiKey = ApiKey.parse(getJson("/api/settings/$route"))
-    /** Scrobbling to Last.fm: where it stands; Connect's page on Last.fm to approve on; Disconnect. */
-    fun scrobbling(): Scrobbling = Scrobbling.parse(getJson(Scrobbling.PATH))
-    fun lastfmConnect(): String = post(Scrobbling.CONNECT, JSONObject(), 20_000).let { j -> j.optString("url").ifEmpty { throw IOException(j.optString("error").ifEmpty { "Couldn't reach Last.fm" }) } }
-    fun lastfmDisconnect(): Scrobbling = Scrobbling.parse(post(Scrobbling.DISCONNECT, JSONObject(), 20_000))
-    fun saveApiKey(route: String, field: String, value: String): ApiKey {
-        val j = post("/api/settings/$route", JSONObject().put(field, value), 20_000)
-        if (!j.optBoolean("ok")) throw IOException(j.optString("error").ifEmpty { "Failed to save" })
-        return ApiKey.parse(j)
-    }
 
     /**
-     * Setup's pages (item 78): one of the server's settings as it has it ([name]: "smart-picks", "labels", "display",
-     * "shelf", "label-folder-depth"), a change to it saved (its answer), today's picks built again, the labels looked
-     * for again.
+     * Setup's pages (item 78): one of the server's settings as it has it ([name]: "smart-picks", "display", "shelf"),
+     * a change to it saved (its answer), today's picks built again.
      */
     fun setting(name: String): JSONObject = getJson("/api/settings/$name")
     fun saveSetting(name: String, body: JSONObject): JSONObject = post("/api/settings/$name", body, 20_000)
     fun rebuildPicks(): JSONObject = post("/api/smart-picks/rebuild", JSONObject())
-    fun rescanLabelsNow(): JSONObject = post("/api/labels/rescan-force", JSONObject())
     /** The server's built-in Tailscale (item 80), and [what] done to it ("enable" with {on}, "login", "logout"): its state after. */
     fun tailscale(): AwayState = AwayState.parse(getJson(AwayState.PATH))
     fun tailscaleDo(what: String, body: JSONObject = JSONObject()): AwayState = AwayState.parse(post("/api/tailscale/$what", body, 30_000))
@@ -294,6 +283,13 @@ class ServerClient(
 
     fun serviceFavourite(source: String, albumId: String, on: Boolean): JSONObject =
         post("/api/$source/" + (if (on) "favorite" else "unfavorite"), JSONObject().put("album_id", albumId))
+
+    /** Settings → Services' default service (item 522): as the server has it, and [service] ("" for none) made it; each its list. */
+    fun defaultService(): DefaultService = DefaultService.parse(getJson(DefaultService.PATH))
+    fun saveDefaultService(service: String): DefaultService = DefaultService.parse(post(DefaultService.PATH, JSONObject().put("service", service), 20_000))
+
+    /** [artist]'s albums (act [act] where acts share the name) on the default service that the library hasn't (item 522); the service may be asked there and then. */
+    fun artistDiscography(artist: String, act: Long?): ArtistDiscography = ArtistDiscography.parse(getJson(ArtistDiscography.path(artist, act), 30_000))
 
     /** A page of an album's booklet, drawn [width] pixels wide (the server keeps a few widths). */
     fun bookletPageUrl(offset: Long, bookletId: String, page: Int, width: Int): String =

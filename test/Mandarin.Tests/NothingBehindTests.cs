@@ -103,25 +103,20 @@ public sealed class NothingBehindTests
     }
 
     [Test]
-    public async Task A_library_write_that_fails_says_why_a_merged_label_let_go_by_a_key_of_any_shape()
+    public async Task A_library_write_that_fails_says_why()
     {
         await using var s = await Session.Started();
-        Task<(int, JsonNode?)> Delete(string p) => Answer(Http.Send(HttpMethod.Delete, s.Base + p, null, s.H));
-        Same(await Delete("/api/labels/merge/not-a-key"), 404, """{"error":"Not a merged label"}""");
         // The database held by another writer, past the server's wait for it.
         s.Server.Exec("BEGIN IMMEDIATE");
         bool held = true;
         try
         {
-            var (status, body) = await Delete("/api/labels/merge/abc");
-            Assert.True(status == 500, body?.ToJsonString());
-            Assert.Matches("database is locked", body.Str("error"));
-            (status, body) = await Answer(s.Api("settings/labels", new { enabled = true }));
+            var (status, body) = await Answer(s.Api("settings/waveform", new { enabled = true }));
             Assert.True(status == 500, body?.ToJsonString());
             Assert.Matches("database is locked", body.Str("error"));
             s.Server.Exec("ROLLBACK");
             held = false;
-            Same(await Answer(s.Api("settings/labels", new { enabled = true })), 200, """{"ok":true,"enabled":true}""");
+            Same(await Answer(s.Api("settings/waveform", new { enabled = true })), 200, """{"ok":true,"enabled":true,"qobuz_secret_set":false}""");
         }
         finally { if (held) s.Server.Exec("ROLLBACK"); }
     }

@@ -39,12 +39,6 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     /** The album's booklets, the PDFs in its folder (only an album of your own files has any). */
     fun booklets(offset: Long): List<Booklet> = Booklet.list(get("/api/album/booklets?offset=$offset"))
 
-    /** Last.fm's artists like [artist], for the row under an album's tracks (not enabled without a key). */
-    fun similarArtists(artist: String): SimilarArtists = SimilarArtists.parse(get("/api/lastfm/similar-artists?artist=" + enc(artist)))
-
-    /** Last.fm's albums like [artist]'s, likewise. */
-    fun similarAlbums(artist: String): SimilarAlbums = SimilarAlbums.parse(get("/api/lastfm/similar-albums?artist=" + enc(artist)))
-
     fun search(query: String): SearchResults = SearchResults.parse(get("/api/search?q=" + enc(query)))
 
     /** The search beyond the library (item 61): one [part] of it ("qobuz", "tidal", "pitchfork"), each asked on its own as the page asks. */
@@ -79,21 +73,20 @@ class LibraryClient(private val get: (String) -> JSONObject) {
         val (name, act) = ArtistAct.parse(artist)
         return ArtistAbout.parse(get("/api/artist?name=" + enc(name) + (if (act != null) "&artist_id=$act" else "")))
     }
-    /** An act's similar acts for its page (bug list item 137). */
+    /** An act's similar acts for its page (bug list item 137), and for an album's page, its lead artist's (item 494). */
     fun artistSimilar(artist: String): ArtistSimilar = ArtistSimilar.parse(get("/api/artist/similar?name=" + enc(artist)))
-    /** An act's similar albums for the foot of its page (item 140): Last.fm's with a key, else the library's by the acts Deezer relates. */
+    /** An act's similar albums for the foot of its page (item 140) and an album's: the library's by the acts Deezer relates. */
     fun artistSimilarAlbums(artist: String): SimilarAlbums = SimilarAlbums.parse(get("/api/artist/similar-albums?name=" + enc(artist)))
     /** Who played, sang, wrote and made an album (bug list item 132), by its offset. */
     fun albumCredits(offset: Long): AlbumCredits = AlbumCredits.parse(get("/api/album/credits?offset=$offset"))
 
     fun albumOfTheDay(): AlbumOfTheDay = AlbumOfTheDay.parse(get("/api/home/album-of-the-day?keep=1"))
 
-    /** Home's other rows (item 57): today's Smart Picks; the genres and their groups, as the Browse by genre cards; and the label of the week. */
+    /** Home's other rows (item 57): today's Smart Picks; the genres and their groups, as the Browse by genre cards. */
     fun smartPicks(): SmartPicks = SmartPicks.parse(get("/api/smart-picks"))
     fun genres(): List<Genre> = Genre.list(get("/api/filters/genres"))
     fun genreGroups(): GenreGroups = GenreGroups.parse(get("/api/home/genre-groups"))
     fun genreCards(): List<GenreCard> = GenreCard.build(genres(), genreGroups())
-    fun labelOfTheWeek(): LabelOfTheWeek = LabelOfTheWeek.parse(get("/api/home/label-of-the-week"))
 
     /** Random Album's choice, to be offered (Play now, Play next, Queue). */
     fun pickUnheard(): PickedAlbum = PickedAlbum.parse(get("/api/pick-unheard"))
@@ -101,10 +94,6 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     fun randomAlbums(count: Int, filter: WallFilter): AlbumRow = AlbumRow.parse(get("/api/random-albums?count=$count" + filter.query()))
 
     // A space as %20, as a browser's address has it ("+" means a space only in a form's body).
-    /** The record labels (item 71), one label's albums in its order ("alpha" or "random"), and the logos Discogs has for it. */
-    fun labels(): LabelList = LabelList.parse(get("/api/filters/labels"))
-    fun labelAlbums(name: String, order: String): LabelAlbums = LabelAlbums.parse(get("/api/label-albums?label=" + enc(name) + "&order=" + enc(order)))
-    fun labelLogoCandidates(name: String): List<LogoCandidate> = LogoCandidate.list(get("/api/labels/logo-candidates?label=" + enc(name)))
 
     /** Pitchfork's Latest Reviews or Best New Music (item 70), and the library's album a review is of. */
     fun pitchforkReviews(type: String): List<PitchforkHit> = PitchforkHit.list(get("/api/pitchfork/reviews?type=" + enc(type)))

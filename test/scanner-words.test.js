@@ -11,7 +11,7 @@ const path = require("path");
 const vm = require("vm");
 
 const words = vm.runInNewContext(fs.readFileSync(path.join(__dirname, "..", "public", "app", "scanner-words.js"), "utf8") +
-  "\n;({ scanPercent, scanProgressWords, scanNowWords, scanReasons, scanOtherName, scanSoundNote })", {});
+  "\n;({ scanPercent, scanProgressWords, scanNowWords, scanReasons, scanOtherName, scanSoundNote, scanSoundTally })", {});
 
 test("To confirm's words (item 414b): a verdict's reasons, and another release in place of the one proposed", () => {
   assert.strictEqual(words.scanReasons(["found by its barcode", "4 of 4 tracks' lengths agree", null, ""]), "found by its barcode · 4 of 4 tracks' lengths agree");
@@ -48,8 +48,9 @@ test("matching by sound (item 414c): the step on the Now line, and why the album
   const at = (step) => words.scanNowWords({ now: { reason: "working", step, album: { offset: 7, artist: "U2", title: "Pop" } } });
   assert.strictEqual(at("matching by sound"), "Now: U2 — Pop · matching by sound");
   assert.strictEqual(at("fingerprinting"), "Now: U2 — Pop · fingerprinting");
-  assert.strictEqual(words.scanSoundNote({ sound: "needs-key" }), "Matching by sound needs an AcoustID key (Settings → API Keys).");
-  assert.strictEqual(words.scanSoundNote({ sound: "refused" }), "AcoustID refused the key, so albums aren't matched by sound (Settings → API Keys).");
+  // Its key Mandarin's own since item 491: nothing for the owner to paste, so nowhere to send them.
+  assert.strictEqual(words.scanSoundNote({ sound: "needs-key" }), "This build of Mandarin carries no AcoustID key, so albums aren't matched by sound.");
+  assert.strictEqual(words.scanSoundNote({ sound: "refused" }), "AcoustID refused Mandarin's key, so albums aren't matched by sound for now.");
   assert.strictEqual(words.scanSoundNote({ sound: "limited" }), "AcoustID asked to wait: matching by sound rests a few minutes.");
   assert.strictEqual(words.scanSoundNote({ sound: "unreachable" }), "AcoustID can't be reached: matching by sound rests a few minutes.");
   assert.strictEqual(words.scanSoundNote({ sound: null }), "", "matched by sound, or nothing left unsure: nothing said");
@@ -69,4 +70,15 @@ test("paused while music plays, and where (item 417b): the rooms and phones by n
   // A server from before it says nothing of what plays.
   assert.strictEqual(at(undefined), "Paused while music plays");
   assert.strictEqual(at([]), "Paused while music plays");
+});
+
+test("how far matching by sound has got, on the Album Scanner's page since its key is Mandarin's own (item 491)", () => {
+  assert.strictEqual(words.scanSoundTally({ matched: 13, waiting: 848, held: "off" }), "By sound: 13 albums matched so far, 848 still to look at, when the Album Scanner is on.");
+  assert.strictEqual(words.scanSoundTally({ matched: 1, waiting: 3, held: "hours" }), "By sound: 1 album matched so far, 3 still to look at, in the Album Scanner's hours.");
+  assert.strictEqual(words.scanSoundTally({ matched: 5, waiting: 0, held: null }), "By sound: 5 albums matched so far, 0 still to look at.");
+  assert.strictEqual(words.scanSoundTally(null), "", "no key: nothing said of it");
+  // The page shows it beside why the albums aren't matched by sound, as the app does (ScannerTest.kt).
+  const blocks = fs.readFileSync(path.join(__dirname, "..", "public", "app", "settings-scanner-blocks.js"), "utf8");
+  assert.match(blocks, /tally = scanSoundTally\(scan\.sound_tally\)/);
+  assert.match(blocks, /\(tally \? '<div class="settings-note" data-parity="settings-scanner\.note">' \+ scanEsc\(tally\)/);
 });

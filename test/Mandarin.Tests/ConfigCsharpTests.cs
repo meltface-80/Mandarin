@@ -12,8 +12,8 @@ public sealed class ConfigCsharpTests
 {
     // Every name read: left out of the program's environment, so only what a test gives counts.
     private static readonly string[] Names = ["MUSIC_DIR", "SERVER_IP", "BRIDGE_IP", "SONOS_HOSTS", "UPNP_HOSTS", "UPNP_DISCOVERY", "INCLUDE_ZONES", "EXCLUDE_ZONES",
-        "SCAN_INTERVAL_HOURS", "MUSICDNET_BIN", "MUSICBRAINZ_URL", "ITUNES_URL", "MBPACK_URL", "MBPACK_DIR", "AUTOEQ_URL", "DISCOGS_URL",
-        "FANART_URL", "DEEZER_URL", "WIKIPEDIA_URL", "PITCHFORK_URL", "QOBUZ_WEB_URL", "LASTFM_URL", "LASTFM_KEY", "IDENTIFY", "IDENTIFY_TICK_MS",
+        "SCAN_INTERVAL_HOURS", "MUSICDNET_BIN", "MUSICBRAINZ_URL", "ITUNES_URL", "MBPACK_URL", "MBPACK_DIR", "AUTOEQ_URL",
+        "FANART_URL", "DEEZER_URL", "WIKIPEDIA_URL", "PITCHFORK_URL", "QOBUZ_WEB_URL", "IDENTIFY", "IDENTIFY_TICK_MS",
         "LOUDNESS_TICK_MS", "LOCAL_AUDIO", "UPDATE_REPO", "UPDATE_API", "UPDATE_CHECK", "QOBUZ_URL", "TIDAL_URL",
         "TIDAL_AUTH_URL", "TIDAL_IMAGES_URL", "IBROADCAST_URL", "ART_HOSTS", "TRUSTED_PROXIES", "MANDARIN_CONFIG"];
 
@@ -33,11 +33,11 @@ public sealed class ConfigCsharpTests
 
     private const string Defaults = """
         { "identify": true, "identify_tick_ms": 5000, "musicbrainz_url": null, "itunes_url": null, "mbpack_url": null, "mbpack_dir": null,
-          "loudness_tick_ms": 5000, "discogs_url": null, "fanart_url": null, "deezer_url": null, "logo_pause_ms": null,
+          "loudness_tick_ms": 5000, "fanart_url": null, "deezer_url": null,
           "wikipedia_url": null, "pitchfork_url": null, "qobuz_web_url": null,
           "tailscale_bin": "/usr/local/bin/musicdnet", "tailscale_dir": "/tmp/mandarin-config-test/tailscale", "tailscale_port": 3511, "tailscale_watchdog": null,
           "update_repo": null, "update_api": null, "update_check": true,
-          "lastfm_url": null, "lastfm_key": null, "autoeq_url": null,
+          "autoeq_url": null,
           "music_dir": "/music", "mass_removal": 500, "scan_hours": 6,
           "sonos_hosts": [], "server_ip": null, "sonos_include": [], "sonos_exclude": [], "upnp_hosts": [], "upnp_multicast": true, "upnp_offline_ms": null,
           "local_audio": true, "local_devices": null,
@@ -64,9 +64,9 @@ public sealed class ConfigCsharpTests
             ["MUSIC_DIR"] = "/srv/music", ["SERVER_IP"] = "10.0.0.5", ["SONOS_HOSTS"] = " 10.0.0.9, 10.0.0.10 ,", ["UPNP_HOSTS"] = "10.0.0.20", ["UPNP_DISCOVERY"] = "0",
             ["INCLUDE_ZONES"] = "Kitchen,Study", ["EXCLUDE_ZONES"] = "Loft", ["SCAN_INTERVAL_HOURS"] = "12", ["MUSICDNET_BIN"] = "/opt/musicdnet",
             ["MUSICBRAINZ_URL"] = "http://127.0.0.1:9/mb", ["ITUNES_URL"] = "http://127.0.0.1:9/it", ["MBPACK_URL"] = "http://127.0.0.1:9/pack", ["MBPACK_DIR"] = "/packs",
-            ["AUTOEQ_URL"] = "http://127.0.0.1:9/eq", ["DISCOGS_URL"] = "http://127.0.0.1:9/dc", ["FANART_URL"] = "http://127.0.0.1:9/fa", ["DEEZER_URL"] = "http://127.0.0.1:9/dz",
+            ["AUTOEQ_URL"] = "http://127.0.0.1:9/eq", ["FANART_URL"] = "http://127.0.0.1:9/fa", ["DEEZER_URL"] = "http://127.0.0.1:9/dz",
             ["WIKIPEDIA_URL"] = "http://127.0.0.1:9/wp", ["PITCHFORK_URL"] = "http://127.0.0.1:9/pf", ["QOBUZ_WEB_URL"] = "http://127.0.0.1:9/qw",
-            ["LASTFM_URL"] = "http://127.0.0.1:9/fm", ["LASTFM_KEY"] = "k1", ["IDENTIFY"] = "0", ["IDENTIFY_TICK_MS"] = "250", ["LOUDNESS_TICK_MS"] = "300", ["LOCAL_AUDIO"] = "0",
+            ["IDENTIFY"] = "0", ["IDENTIFY_TICK_MS"] = "250", ["LOUDNESS_TICK_MS"] = "300", ["LOCAL_AUDIO"] = "0",
             ["UPDATE_REPO"] = "someone/elsewhere", ["UPDATE_API"] = "http://127.0.0.1:9/gh", ["UPDATE_CHECK"] = "false",
             ["QOBUZ_URL"] = "http://127.0.0.1:9/qb", ["TIDAL_URL"] = "http://127.0.0.1:9/td", ["TIDAL_AUTH_URL"] = "http://127.0.0.1:9/ta", ["TIDAL_IMAGES_URL"] = "http://127.0.0.1:9/ti/", ["IBROADCAST_URL"] = "http://127.0.0.1:9/ib",
             ["ART_HOSTS"] = "radio.lan, 192.168.1.40,", ["TRUSTED_PROXIES"] = "127.0.0.1, 192.168.1.0/24"
@@ -75,9 +75,9 @@ public sealed class ConfigCsharpTests
             { "music_dir": "/srv/music", "server_ip": "10.0.0.5", "sonos_hosts": ["10.0.0.9", "10.0.0.10"], "upnp_hosts": ["10.0.0.20"], "upnp_multicast": false,
               "sonos_include": ["Kitchen", "Study"], "sonos_exclude": ["Loft"], "scan_hours": 12, "tailscale_bin": "/opt/musicdnet",
               "musicbrainz_url": "http://127.0.0.1:9/mb", "itunes_url": "http://127.0.0.1:9/it", "mbpack_url": "http://127.0.0.1:9/pack", "mbpack_dir": "/packs",
-              "autoeq_url": "http://127.0.0.1:9/eq", "discogs_url": "http://127.0.0.1:9/dc", "fanart_url": "http://127.0.0.1:9/fa", "deezer_url": "http://127.0.0.1:9/dz",
+              "autoeq_url": "http://127.0.0.1:9/eq", "fanart_url": "http://127.0.0.1:9/fa", "deezer_url": "http://127.0.0.1:9/dz",
               "wikipedia_url": "http://127.0.0.1:9/wp", "pitchfork_url": "http://127.0.0.1:9/pf", "qobuz_web_url": "http://127.0.0.1:9/qw",
-              "lastfm_url": "http://127.0.0.1:9/fm", "lastfm_key": "k1", "identify": false, "identify_tick_ms": 250, "loudness_tick_ms": 300, "local_audio": false,
+              "identify": false, "identify_tick_ms": 250, "loudness_tick_ms": 300, "local_audio": false,
               "update_repo": "someone/elsewhere", "update_api": "http://127.0.0.1:9/gh", "update_check": false,
               "qobuz_url": "http://127.0.0.1:9/qb", "tidal_url": "http://127.0.0.1:9/td", "tidal_auth_url": "http://127.0.0.1:9/ta", "tidal_images_url": "http://127.0.0.1:9/ti/", "ibroadcast_url": "http://127.0.0.1:9/ib",
               "art_hosts": ["radio.lan", "192.168.1.40"], "trusted_proxies": ["127.0.0.1", "192.168.1.0/24"] }
@@ -93,7 +93,7 @@ public sealed class ConfigCsharpTests
     public async Task The_tests_stand_ins_laid_over_the_whole()
     {
         const string over = """
-            { "logo_pause_ms": 0, "upnp_offline_ms": 1500, "tailscale_watchdog": { "rebindMs": 5000, "restartMs": 10000 }, "service_sync_delay_ms": 1e9,
+            { "mqa_tick_ms": 0, "upnp_offline_ms": 1500, "tailscale_watchdog": { "rebindMs": 5000, "restartMs": 10000 }, "service_sync_delay_ms": 1e9,
               "service_watch_ms": 1e9, "mass_removal": 2, "local_devices": { "platform": "linux", "devices": [{ "id": "LOCAL_x", "kind": "local" }], "hidden": 0, "off": false }, "music_dir": "/over" }
             """;
         JsonAssert.Same(Over(over), await Config(new() { ["MUSIC_DIR"] = "/under", ["MANDARIN_CONFIG"] = JsonNode.Parse(over)!.ToJsonString() }));

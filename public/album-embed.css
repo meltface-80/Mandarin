@@ -4,7 +4,7 @@
    Copyright (c) 2026 Lewis Menzies (Music Duck / MusicD). Released under the MIT License. See the LICENSE file. */
 .embed-album body { background: var(--bg); }
 .embed-album .app, .embed-album #menu-overlay, .embed-album #mini-transport, .embed-album #touch-nav, .embed-album #offline-sign,
-.embed-album #label-merge-bar, .embed-album #album-action-bar { display: none; }
+.embed-album #select-bar, .embed-album #album-action-bar { display: none; }
 .embed-album #album-modal { padding: 0; }
 .embed-album #album-modal .modal-backdrop { display: none; }
 .embed-album #album-modal .modal-panel { width: 100%; max-width: none; height: 100%; max-height: none; border-radius: 0; box-shadow: none; animation: none; }

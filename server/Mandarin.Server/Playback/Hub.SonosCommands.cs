@@ -21,7 +21,7 @@ internal sealed partial class Hub
         if (g == null) return;
         await Task.Delay(250);
         // Never beside a poll of the same room (Hub.Sonos.cs reading): two reads from one state both took the track
-        // for a new one, its play and scrobble made twice. One running already reads the result; else the next poll.
+        // for a new one, its play made twice. One running already reads the result; else the next poll.
         var id = g.Value.Coordinator.Uid;
         lock (Gate) if (!reading.Add(id)) return;
         try { await PollGroup(g.Value); } catch (UPnPError) { /* the next poll */ }

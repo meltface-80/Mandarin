@@ -177,8 +177,8 @@ internal sealed partial class Taste(string? deezerBase, Action<string> log)
     /* { enabled, hour, auto_add, service_ready }, as kept (enabled and hour as they were saved). */
     public static (object? Enabled, object? Hour) SmartSettings()
     {
-        var on = Labels.Setting("smartPicksEnabled");
-        var hour = Labels.Setting("smartPicksHour");
+        var on = SavedSettings.Setting("smartPicksEnabled");
+        var hour = SavedSettings.Setting("smartPicksHour");
         return (on is Undef ? true : on, hour is Undef ? 4.0 : hour);
     }
 

@@ -52,7 +52,6 @@ import com.musicd.server.client.Credit
 import com.musicd.server.client.Mqa
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.musicd.server.client.NowAlbum
 import androidx.compose.ui.platform.LocalContext
@@ -85,7 +84,7 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
     // A command to the room; the answer it waits on shows what it did.
     fun act(block: (ServerClient) -> Unit) {
         val c = client() ?: return
-        scope.launch(Dispatchers.IO) { runCatching { block(c) } }
+        scope.sendTap(context, c, block)
     }
 
     val white = paletteColor(Palette.MODAL_TEXT)
@@ -197,7 +196,7 @@ internal fun NowPlayingScreen(zoneId: String, client: () -> ServerClient?, onBac
                         }
                     }
                     Row(Modifier.fillMaxWidth().padding(top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        PlayOnMenu(zoneId, client, ::act, onRoom)
+                        PlayOnMenu(room.id, client, ::act, onRoom)   // the room followed: away, this phone's (item 487)
                         Spacer(Modifier.weight(1f))
                         VolumeMenu(v.volume, v.muted, volumeOpen, { volumeOpen = it })
                     }

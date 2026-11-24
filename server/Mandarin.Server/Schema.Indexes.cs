@@ -9,6 +9,8 @@
 //   - album_splits and album_joins (bug list item 424, Scan/Scanner.Split.cs): Edit album's hand splits (each
 //     track's part, by its path) and Join back's joins (a folder's tracks the album of that key), kept to by every
 //     scan, kept in backups and carried over with what you did.
+//   - album_merges (bug list item 512, AlbumMerge.cs): the albums merged into one from the library's selection menu,
+//     each album's key, the one it is in, the disc it starts after; the one's own row its title.
 namespace Mandarin.Server;
 
 internal static partial class Schema
@@ -22,5 +24,6 @@ CREATE INDEX IF NOT EXISTS plays_album_ts ON plays(album_id, ts);
 
 CREATE TABLE IF NOT EXISTS album_splits (path TEXT PRIMARY KEY, part TEXT NOT NULL, made_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS album_joins (dir TEXT PRIMARY KEY, key TEXT NOT NULL, made_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS album_merges (key TEXT PRIMARY KEY, into_key TEXT NOT NULL, disc INTEGER NOT NULL, title TEXT, dirs TEXT, made_at INTEGER NOT NULL);
 """;
 }

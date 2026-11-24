@@ -47,12 +47,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Contract
+import com.musicd.server.client.DefaultService
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
 import com.musicd.server.client.ServiceAccount
 import com.musicd.server.client.ServiceSettings
+import com.musicd.server.client.SettingsKept
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.text.DateFormat
 import java.util.Date
@@ -69,19 +73,59 @@ import java.util.Date
  */
 
 
-/** Settings' Services ([onBack]: back to Settings, [onOpen]: a service's own page): Qobuz, Tidal and iBroadcast, a row each (items 443, 449). */
+/**
+ * Settings' Services ([onBack]: back to Settings, [onOpen]: a service's own page): Qobuz, Tidal and iBroadcast, a row
+ * each (items 443, 449); under them the default service with its ⓘ (item 522, [DefaultServiceBlock]).
+ */
 @Composable
-internal fun SettingsServices(onBack: () -> Unit, onOpen: (String) -> Unit) {
-    SettingsFrame {
-        SettingsHead(Modifier.parity("settings-services.back", Contract.label("settings-services.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
-            "Services", Modifier.parity("settings-services.heading"))
-        Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            val qobuz = com.musicd.server.client.SettingsRow("qobuz", "Qobuz")
-            SettingsNavRow(qobuz, Modifier.parity("settings-services.qobuz", Contract.label("settings-services.qobuz")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(qobuz.pane) })
-            val tidal = com.musicd.server.client.SettingsRow("tidal", "Tidal")
-            SettingsNavRow(tidal, Modifier.parity("settings-services.tidal", Contract.label("settings-services.tidal")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(tidal.pane) })
-            val ib = com.musicd.server.client.SettingsRow("ibroadcast", "iBroadcast")
-            SettingsNavRow(ib, Modifier.parity("settings-services.ibroadcast", Contract.label("settings-services.ibroadcast")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(ib.pane) })
+internal fun SettingsServices(client: () -> ServerClient?, onBack: () -> Unit, onOpen: (String) -> Unit) {
+    var info by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(info) { val t = info ?: return@LaunchedEffect; delay(minOf(25_000L, 4_000L + t.split(Regex("\\s+")).size * 220L)); info = null }
+    Box(Modifier.fillMaxSize()) {
+        SettingsFrame {
+            SettingsHead(Modifier.parity("settings-services.back", Contract.label("settings-services.back")).clip(CircleShape).clickable(onClick = onBack), R.drawable.np_back,
+                "Services", Modifier.parity("settings-services.heading"))
+            Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                val qobuz = com.musicd.server.client.SettingsRow("qobuz", "Qobuz")
+                SettingsNavRow(qobuz, Modifier.parity("settings-services.qobuz", Contract.label("settings-services.qobuz")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(qobuz.pane) })
+                val tidal = com.musicd.server.client.SettingsRow("tidal", "Tidal")
+                SettingsNavRow(tidal, Modifier.parity("settings-services.tidal", Contract.label("settings-services.tidal")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(tidal.pane) })
+                val ib = com.musicd.server.client.SettingsRow("ibroadcast", "iBroadcast")
+                SettingsNavRow(ib, Modifier.parity("settings-services.ibroadcast", Contract.label("settings-services.ibroadcast")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(ib.pane) })
+            }
+            SettingsDivider(18, 18)
+            DefaultServiceBlock(client) { info = it }
+        }
+        info?.let { InfoTip(it, Modifier.parity("settings-services.default-info")) }
+    }
+}
+
+/**
+ * The default service (item 522; settings-default-service.js): the service whose albums an artist's page shows after the
+ * library's, None or one the server offers (one not signed in saying so), read as Services opens; a choice saved, or what
+ * went wrong said and the server's read again.
+ */
+@Composable
+private fun DefaultServiceBlock(client: () -> ServerClient?, info: (String) -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var d by remember { mutableStateOf(SettingsKept.last(DefaultService.PATH) { DefaultService.parse(it) } ?: DefaultService.parse(JSONObject())) }
+    suspend fun load() { val c = client() ?: return; withContext(Dispatchers.IO) { runCatching { c.defaultService() }.getOrNull() }?.let { d = it } }
+    LaunchedEffect(Unit) { load() }
+    fun save(service: String) {
+        val c = client() ?: return
+        d = d.copy(service = service)
+        scope.launch {
+            withContext(Dispatchers.IO) { runCatching { c.saveDefaultService(service) } }
+                .onSuccess { d = it }.onFailure { setupToast(context, com.musicd.server.client.Failure.said(it, "Couldn't save")); load() }
+        }
+    }
+    val name = "Default service"
+    Block {
+        SetupRow(name, Modifier.parity("settings-services.default-name"), Modifier.parity("settings-services.default-info", Contract.label("settings-services.default-info", 0, name)).clickable { info(DefaultService.INFO) }) {
+            SelectBox(choiceWords(d.choices, d.service), d.choices, null, Modifier.parity("settings-services.default", Contract.label("settings-services.default")).clickable {
+                pickChoice(context, d.choices, d.service) { v -> save(v) }
+            })
         }
     }
 }
