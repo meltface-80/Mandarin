@@ -206,6 +206,8 @@ internal static partial class Jobs
             Covers.DrawAhead();
             // The albums with no cover of their own not looked at yet, a cover looked for (Extras/AutoCovers.cs).
             AutoCovers.Current?.Kick();
+            // Qobuz's and Tidal's covers not in the data folder (a backup put back), fetched again (item 530, Services/CoverMend.cs).
+            Services.CoverMend.Sweep();
         }
         catch (Exception e) { Server.Log($"[jobs] after the scan: {e.GetType().Name}: {e.Message}"); }
     }

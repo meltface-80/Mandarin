@@ -34,7 +34,7 @@
  * it (MANDARIN_FRONT=1, while index.js was still there); every run since starts
  * the program alone and holds it to the recording. The data folder, the fakes'
  * ports and times written as the test ran are said by name or in days from
- * now; a cover's hash is held to its rule (md5 of its address). The
+ * now; a cover's hash is held to its rule (md5 of its picture since item 530; of its address before). The
  * recording was made while the import still brought the service's playlists
  * in; the Node server's side is read without them (unlisted, below).
  */
@@ -191,7 +191,7 @@ test("Qobuz's and Tidal's import and watch, made by the C# server as the Node se
     const now = (v) => typeof v === "number" && v >= t0 && v <= t1 ? "now" : v;
     const albums = typed("albums", "key LIKE ? ORDER BY key", s + ":%").map(a => {
       assert.equal(a["added_at:type"], "integer");
-      if (a.art_path) assert.equal(a.art_hash, md5(fs.readFileSync(a.art_path + ".url", "utf8")), a.key + ": its cover's hash, of its address");
+      if (a.art_path) assert.equal(a.art_hash, md5(fs.readFileSync(a.art_path)), a.key + ": its cover's hash, of its picture (item 530)");
       assert.ok(a.updated_at >= t0 && a.updated_at <= t1 && a.added_at >= t0, `${a.key}: written by the run`);
       return Object.assign(strip(a, ["id", "added_at", "updated_at"]), { tracks: typed("tracks", "album_id = ? ORDER BY path", a.id).map(tr => strip(tr, ["id", "album_id"])) });
     });

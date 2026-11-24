@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed - Qobuz and Tidal covers missing after a backup was put back on a new install: a backup doesn't carry the covers Mandarin keeps of them, and each album showed a drawn cover until it was next read from its service, a week or more, and kept the drawn one after that. A cover not in Mandarin's data folder is now fetched again, at the next start and whenever it is asked for
+
 ## v1.3.6
 
 One library from everywhere your music is: an album you have in several places shows once with its versions, an artist's page shows their whole discography from your default service, and iBroadcast albums get their folders' covers and booklets and can be merged or deleted. Spotify is gone.
