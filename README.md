@@ -7,7 +7,7 @@
 
 </div>
 
-# Mandarin — v1.3.6
+# Mandarin — v1.3.7
 
 <a href="https://buymeacoffee.com/musicd_projects"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="48"></a>
 
@@ -29,13 +29,14 @@ a Linux computer or a Raspberry Pi with a USB DAC into a room Mandarin plays to.
 Every feature and how to use it, the guides to install, set up and troubleshoot, and the downloads, in nine
 languages: **[meltface-80.github.io/Mandarin](https://meltface-80.github.io/Mandarin/)**.
 
-**New in v1.3.6** (Mandarin OS 0.1.15; Mandarin Bridge v0.3.21):
-* **An album you have in several places shows once**: your files', Qobuz's, Tidal's and iBroadcast's copies are its
-  versions, each saying where it is from, the one from your **default service** (Settings → Services) the main one.
-* **An artist's whole discography**: their page lists your default service's albums of theirs you don't have yet.
-* **Merge albums** and **Delete from iBroadcast**, from the selection menu (deleting is asked twice).
-* **iBroadcast albums you uploaded show their folder's cover and booklets**, kept in Mandarin and in backups.
-* **Spotify, Last.fm and record labels are gone**; Mandarin carries its own AcoustID and FanArt.tv keys.
+**New in v1.3.7** (Mandarin OS 0.1.16; Mandarin Bridge v0.3.21):
+* **Android Auto shows Random albums and Smart Picks as soon as the car connects**, now first in its top row:
+  Random albums, Smart Picks, Downloaded albums.
+* **The app's Home rows hold still** as you scroll one sideways, and sit closer together.
+* **Qobuz and Tidal covers come back** after a backup is put back on a new install.
+* **Mandarin OS 0.1.16 updates start on the new version**; the app's Settings no longer opens with its heading too low.
+* **iBroadcast is gone**: it was experimental and wasn't working as required, so it has been fully removed rather
+  than patched further.
 
 [What's new](https://meltface-80.github.io/Mandarin/whats-new.html) on the site, and every change in the [changelog](CHANGELOG.md).
 
@@ -45,12 +46,12 @@ The newest of each, straight to your device.
 
 | What | Version | Download |
 | --- | --- | --- |
-| **Mandarin OS**, the system Mandarin installs with (a 64-bit Intel or AMD PC with UEFI) | 0.1.15 | [mandarin-os-0.1.15-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.15/mandarin-os-0.1.15-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.15-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.15/mandarin-os-0.1.15-x64.img) for a phone; see [Install](#install) below |
-| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.6 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
+| **Mandarin OS**, the system Mandarin installs with (a 64-bit Intel or AMD PC with UEFI) | 0.1.16 | [mandarin-os-0.1.16-x64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.16/mandarin-os-0.1.16-x64.img.xz) for balenaEtcher or dd · [mandarin-os-0.1.16-x64.img](https://github.com/meltface-80/Mandarin/releases/download/mandarin-os-v0.1.16/mandarin-os-0.1.16-x64.img) for a phone; see [Install](#install) below |
+| **Mandarin Remote**, the Android app (Android 8.0 or newer) | v1.3.7 | [mandarin-android.apk](https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk) |
 | **Mandarin Bridge** for Android (a FiiO R7, say) | v0.3.21 | [mandarin-bridge.apk](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.21/mandarin-bridge.apk) |
 | **Mandarin Bridge** for Raspberry Pi (3, 4, 5, Zero 2 W) | v0.3.21 | [mandarin-bridge-pi-arm64.img.xz](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.21/mandarin-bridge-pi-arm64.img.xz) |
 | **Mandarin Bridge** for Linux (64-bit Debian, Ubuntu, Raspberry Pi OS) | v0.3.21 | `curl -fsSL https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.21/install.sh \| sudo sh`, or by hand: [x64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.21/mandarin-bridge-linux-x64.tar.gz) · [arm64](https://github.com/meltface-80/Mandarin/releases/download/mandarin-bridge-v0.3.21/mandarin-bridge-linux-arm64.tar.gz) |
-| The server program on its own, what Mandarin on Mandarin OS fetches in Settings → Updates (no need to download it) | v1.3.6 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
+| The server program on its own, what Mandarin on Mandarin OS fetches in Settings → Updates (no need to download it) | v1.3.7 | [linux-x64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-x64.gz) · [linux-arm64](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server-linux-arm64.gz) · [sums](https://github.com/meltface-80/Mandarin/releases/latest/download/mandarin-server.sha256) |
 | **How Mandarin finds and names your music**, a guide in plain words | | [PDF](docs/Mandarin-music-scanning-guide.pdf) |
 
 On an iPhone or iPad there is nothing to download: open `http://<box address>:3500` in Safari and tap **Share → Add
@@ -66,11 +67,11 @@ Mandarin installs with Mandarin OS, on an always-on computer of its own on the s
 A lightweight system made only to run Mandarin, with its own web page, the system page, to look after everything
 ([Mandarin OS, step by step](https://meltface-80.github.io/Mandarin/mandarin-os.html)):
 
-1. **Download the image:** `mandarin-os-0.1.15-x64.img.xz` (or the plain `.img` for a phone), from [Downloads](#downloads).
+1. **Download the image:** `mandarin-os-0.1.16-x64.img.xz` (or the plain `.img` for a phone), from [Downloads](#downloads).
 2. **Write it to a USB stick** of 4 GB or more ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#usb)):
-   * **balenaEtcher**: flash `mandarin-os-0.1.15-x64.img.xz` as it is ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#etcher)).
-   * **A Linux terminal:** `xz -dc mandarin-os-0.1.15-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress`, with `sdX` the stick ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#dd)).
-   * **An Android phone, with EtchDroid:** write the plain `mandarin-os-0.1.15-x64.img` ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#android)).
+   * **balenaEtcher**: flash `mandarin-os-0.1.16-x64.img.xz` as it is ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#etcher)).
+   * **A Linux terminal:** `xz -dc mandarin-os-0.1.16-x64.img.xz | sudo dd of=/dev/sdX bs=4M conv=fsync status=progress`, with `sdX` the stick ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#dd)).
+   * **An Android phone, with EtchDroid:** write the plain `mandarin-os-0.1.16-x64.img` ([how](https://meltface-80.github.io/Mandarin/mandarin-os.html#android)).
 3. **Start the computer from the stick**, with Secure Boot off, and **answer the installer's questions**: its disk,
    the shared folder's user and password, the network, and whether to install Mandarin Bridge for a DAC plugged into
    it ([Install it](https://meltface-80.github.io/Mandarin/mandarin-os.html#install)).
