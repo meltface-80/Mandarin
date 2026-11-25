@@ -279,8 +279,9 @@ restart() {
       oslog INFO "[update] Debian's packages are being updated: starting again on Mandarin OS $V once they are"; }
     sleep "${MANDARIN_OS_APT_WAIT:-30}"; done
   step restarting 100 "Starting again on Mandarin OS $V"
-  oslog INFO "[update] starting again on Mandarin OS $V"
+  oslog INFO "[update] starting again on Mandarin OS $V (a cold reset)"
   sync
+  cold_reset
   systemctl reboot
   exit 0
 }

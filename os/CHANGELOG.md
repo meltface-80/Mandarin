@@ -1,5 +1,9 @@
 # Mandarin OS changelog
 
+## v0.1.16
+
+- Fixed - An update to a new Mandarin OS could restart the box on the version it was running, again and again, with the new version never tried (item 532). On some computers the firmware, restarted warm, starts what it started before and doesn't take the new version written beside it; shut down and started, it does. The update's restart is now a cold reset, the firmware's own, as a shut down and start is. And where the computer still starts the version it was running, Mandarin OS says so on the system page (the new version written and ready; Update and restart, or shut the box down fully and start it) instead of looking as if nothing happened, and the next restart is a cold one too. A box on an earlier version updates with its own older updater: if it comes back on the same version, shut it down fully and start it
+
 ## v0.1.15
 
 - Removed - Spotify Connect (item 525): Mandarin no longer has Spotify, so the box no longer carries PulseAudio and libatomic for Spotify's Soloist, and the firewall no longer lets the Spotify app reach Soloist's port (0.1.13, 0.1.14).

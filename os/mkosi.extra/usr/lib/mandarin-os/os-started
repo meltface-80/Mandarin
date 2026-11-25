@@ -42,6 +42,13 @@ boot() {
   elif [ -n "$to" ] && [ "$to" != "$VER" ] && [ -n "${efi:-}" ] && ! entries "$efi" | awk -v v="$to" '$2 == v && $3 != 0 { f = 1 } END { exit !f }'; then
     rm -f "$PENDING"
     oslog WARN "[update] Mandarin OS $to was being written when the computer stopped: not started, $VER runs on"
+  # Written, its entry there with tries left, and the computer started this version again all the same (item 532): the
+  # restart didn't reach it (the owner's box, restarted warm, did so four times; started from cold it took the new one).
+  # Said for the system page and the log; the update stays noted, and the next restart is a cold reset.
+  elif [ -n "$to" ] && [ "$to" != "$VER" ] && [ ! -e "$TRYING" ]; then
+    result notstarted "$(jq -r '.from // empty' "$PENDING" 2>/dev/null)" "$to"
+    cold_reset
+    oslog WARN "[update] Mandarin OS $to is written and ready, but the computer started $VER again: Update and restart, or shut it down fully and start it, and Mandarin OS $to starts"
   fi
   return 0
 }

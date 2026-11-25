@@ -123,7 +123,9 @@
     const u = o.update || {}, last = u.last || {}, busy = BUSY.includes(u.state);
     const was = last.result === "failed" && last.to !== o.version
       ? "The last update, to Mandarin OS " + esc(last.to) + ", didn't start: the box went back to " + esc(o.version) + " by itself (" + esc(last.at) + "). Nothing was lost."
-      : last.result === "updated" && last.to === o.version ? "Updated from Mandarin OS " + esc(last.from) + " (" + esc(last.at) + ")." : "";
+      : last.result === "updated" && last.to === o.version ? "Updated from Mandarin OS " + esc(last.from) + " (" + esc(last.at) + ")."
+      // Written and ready, but the computer started this version again (item 532, os-started).
+      : last.result === "notstarted" && last.to !== o.version ? "Mandarin OS " + esc(last.to) + " is written and ready, but the computer started " + esc(o.version) + " again (" + esc(last.at) + "). Update and restart, or shut the box down fully and start it, and it starts Mandarin OS " + esc(last.to) + "." : "";
     const now = busy ? esc(u.said || "Updating") + "…" + (u.progress != null ? bar(u.progress) : "")
       : u.state === "failed" ? "The update didn't go through: " + esc(u.error) + ". This version runs on as before."
       : u.state === "waiting" ? esc(u.said) + "."

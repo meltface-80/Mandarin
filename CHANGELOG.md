@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - Mandarin OS 0.1.16: an update to a new Mandarin OS no longer restarts the box on the version it was running. Some computers, restarted warm, start what they started before; the update's restart is now a cold reset, as a shut down and start is, and if the box still comes back on the old version the system page says so and what to do
 - Removed - iBroadcast. It was experimental and wasn't working as it needed to, so it has been fully removed rather than patched again with more fixes trying to make it work as intended. Gone with it: signing in to iBroadcast, its albums in the library, playing them, uploading to iBroadcast and its schedule and bandwidth, its folders' covers and booklets, Delete from iBroadcast, its pages in Settings → Services, its part of backups, and all of it in the app. What it left goes at the next start: its albums in your library (with their hearts, Listen later, edits, matches and merges), its settings and sign-in, and the covers and booklets Mandarin kept of it in its data folder. Merge albums is for your own files' albums now
 - Fixed - Qobuz and Tidal covers missing after a backup was put back on a new install: a backup doesn't carry the covers Mandarin keeps of them, and each album showed a drawn cover until it was next read from its service, a week or more, and kept the drawn one after that. A cover not in Mandarin's data folder is now fetched again, at the next start and whenever it is asked for
 

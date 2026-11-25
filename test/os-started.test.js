@@ -19,6 +19,24 @@ const { makeBox, skip } = require("./os-update-box");
 
 const TRYING = "sys/firmware/efi/efivars/LoaderBootCountPath-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f";
 
+test("os-started boot: a version written but not started by the restart said, kept noted, the next restart a cold one (item 532)", { skip, timeout: 60000 }, async () => {
+  const box = makeBox();
+  try {
+    // 0.1.5 written on vda3 with its three tries, and the computer started 0.1.4 again, not being tried: the owner's box
+    // after each warm restart.
+    fs.renameSync(path.join(box.root, "efi/loader/entries/mandarin-os_0.1.3.conf"), path.join(box.root, "efi/loader/entries/mandarin-os_0.1.5+3.conf"));
+    box.put("data/MandarinOS/update-pending.json", JSON.stringify({ from: "0.1.4", to: "0.1.5", at: "2026-11-24 22:49 UTC", mandarin: true }));
+    const r = await box.started("boot");
+    assert.equal(r.status, 0, r.stderr);
+    const last = box.json("data/MandarinOS/update-last.json");
+    assert.deepEqual([last.result, last.from, last.to], ["notstarted", "0.1.4", "0.1.5"]);
+    assert.ok(box.exists("data/MandarinOS/update-pending.json"), "still noted: the next start that reaches it tries it");
+    assert.deepEqual(box.entries(), ["mandarin-os_0.1.4.conf", "mandarin-os_0.1.5+3.conf"], "its entry kept");
+    assert.deepEqual([box.read("sys/kernel/reboot/type"), box.read("sys/kernel/reboot/mode")], ["efi\n", "cold\n"], "the next restart a cold one");
+    assert.match(box.oslog(), /WARN \[update\] Mandarin OS 0\.1\.5 is written and ready, but the computer started 0\.1\.4 again/);
+  } finally { box.cleanup(); }
+});
+
 test("os-started boot: a version that didn't start in its three tries said, and taken off the EFI partition", { skip, timeout: 60000 }, async () => {
   const box = makeBox();
   try {
