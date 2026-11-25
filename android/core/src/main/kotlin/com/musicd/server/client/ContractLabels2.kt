@@ -169,6 +169,7 @@ internal object ContractLabels2 {
         "album.version-make-main" to listOf("Make this the main version"),
         "album.version-main" to listOf("Make this the main version", "Saving…", "The main version", "Couldn't save that — try again"),
         "album.favourite" to listOf("Add to favourites", "Remove from favourites"),
+        "album.service-add" to listOf("Add to {service} favourites"),
         "album.play-now" to listOf("Play Now"),
         "album.queue" to listOf("Queue"),
         "album.more" to listOf("More actions"),

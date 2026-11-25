@@ -5,7 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,48 +21,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
-import com.musicd.server.client.AlbumExtras
 import com.musicd.server.client.Contract
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
-import com.musicd.server.client.albumLength
 import org.json.JSONObject
 
-/* An album's page (AlbumScreen.kt), its head's lines and its ⋯ menu, split from it (bug list item 108). */
-
-/** The release date and the score after it; nothing until the extras come. */
-@Composable
-internal fun DateLine(extras: AlbumExtras?, onPage: (String, String?) -> Unit) {
-    val e = extras ?: return
-    val date = e.date()
-    if (date.isEmpty() && e.scoreText == null) return
-    Row(Modifier.parity("album.date").padding(top = 3.dp)) {
-        val dim = MaterialTheme.colorScheme.onSurfaceVariant
-        Text(date, color = dim, fontSize = 14.sp, lineHeight = 19.sp)
-        e.scoreText?.let { Text(" · $it" + if (e.bestNewMusic) " BNM" else "", color = dim, fontSize = 14.sp, lineHeight = 19.sp) }
-    }
-}
-
-/** The rate as the page's chip (hi-res in brass, with a brass edge) and the album's length. */
-@Composable
-internal fun FactsLine(a: Album) {
-    val length = albumLength(a.tracks)
-    Row(Modifier.parity("album.facts").padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        a.album.quality?.let {
-            val c = if (a.album.hires) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
-            val edge = if (a.album.hires) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-            Text(it, Modifier.border(1.dp, edge, RoundedCornerShape(6.dp)).padding(horizontal = 7.dp, vertical = 1.dp), color = c, fontSize = 12.sp, lineHeight = 16.sp)
-        }
-        if (length.isNotEmpty()) Text((if (a.album.quality != null) " · " else "") + length, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, lineHeight = 19.sp)
-    }
-}
+/* An album's page (AlbumScreen.kt), its ⋯ menu, split from it (bug list item 108); its head's lines are AlbumPhone.kt's (item 539). */
 
 /**
  * ⋯: what the server offers beyond Play Now and Queue (Play Next, Shuffle,
