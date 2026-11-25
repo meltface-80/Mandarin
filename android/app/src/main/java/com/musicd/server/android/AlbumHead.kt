@@ -58,7 +58,8 @@ import com.musicd.server.client.Palette
 @Composable
 internal fun ComposerLines(a: Album, onPage: (String, String?) -> Unit) {
     val dim = MaterialTheme.colorScheme.onSurfaceVariant
-    Row {
+    // Centred under the title, as the artists are (item 539).
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
         a.composers.forEachIndexed { i, name ->
             if (i > 0) Text(" · ", Modifier.parity("album.composer"), color = dim, fontSize = 15.sp)
             Text(name, Modifier.parity("album.composer", Contract.label("album.composer", 0, name)).clickable { onPage("artist", name) },
@@ -66,7 +67,8 @@ internal fun ComposerLines(a: Album, onPage: (String, String?) -> Unit) {
         }
     }
     val who = a.performers + listOfNotNull(a.conductor?.let { "$it, conductor" })
-    Text(who.ifEmpty { listOf(a.album.subtitle) }.joinToString(" · "), Modifier.parity("album.performers").padding(top = 2.dp), color = dim, fontSize = 14.sp)
+    Text(who.ifEmpty { listOf(a.album.subtitle) }.joinToString(" · "), Modifier.parity("album.performers").fillMaxWidth().padding(top = 2.dp), color = dim, fontSize = 14.sp,
+        textAlign = TextAlign.Center)
 }
 
 /**

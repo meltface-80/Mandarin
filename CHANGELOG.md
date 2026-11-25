@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Changed - An album's page is even, on the page and in the app, on a phone and in the wide view: the title and artists centred under the cover, and the row the heart, Play Now, Queue and ⋯, with the heart and ⋯ at its two ends. A Qobuz or Tidal album not in your favourites there has a + in the heart's place: a tap adds it to your favourites there and the heart takes its place (hollow, red once liked in Mandarin). ⋯ keeps Add to and Remove from your Qobuz or Tidal favourites
 - Fixed - The web page on an older iPad (iOS 16): the side menu, Search, Artists, the mini player and Now playing, Random Album, and every album's page ("Cannot access uninitialized variable") did nothing. One line of the page, run as it started, is one old Safari gets wrong; it threw, and everything of the page after it was never set up. It is written the way every browser takes now, and a check keeps the page free of it. The page's errors in the log now say what they were on Safari too, not only where
 - Fixed - Random albums is one set: Home's row shows the first albums of the Random albums screen, in the same order, on the page, in the app and in Android Auto. It changes only when you tap Refresh on the Random albums screen (Home then shows the new set), after 24 hours, or every ten minutes while Android Auto is in use; never on its own when you go back to Home. Home's row holds as many albums as the screen shows on a phone (24)
 

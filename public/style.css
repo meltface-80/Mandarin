@@ -5394,6 +5394,8 @@ button.cap-chip:active { transform: scale(.96); }
   .modal:not(.np-mode) #modal-title { order: 2; flex-basis: 100%; margin: 10px 0 0; font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1.13; }
   .modal:not(.np-mode) .modal-subtitle { order: 3; flex-basis: 100%; margin-top: 6px; font-size: 17px; }
   .modal:not(.np-mode) .modal-head > :not(#modal-date, .modal-facts, #modal-title, .modal-subtitle) { order: 4; flex-basis: 100%; }
+  /* The title and the artists centred under the sleeve, as everything around them (item 539). */
+  .modal:not(.np-mode) .modal-head { text-align: center; }
   /* Centred, held at the top as the page scrolls, never a bar behind them (items 358, 373), clear of Back at the corner. */
   .modal:not(.np-mode) .album-tabs {
     display: flex; justify-content: center; gap: 18px; position: sticky; top: 0; z-index: 2; margin-top: 18px;
@@ -6087,6 +6089,9 @@ html.native-over.native-over-settings #settings-overlay:not(.hidden) { visibilit
 .modal.album-wide .aw-left .modal-art { width: 100%; max-width: 440px; margin: 0 auto 18px; }
 .modal.album-wide .aw-left .modal-art img { width: 100%; height: auto; }
 .modal.album-wide .aw-left .modal-head { padding: 0 0 6px; }
+/* Centred under the sleeve, as a phone's (item 539): the title, the artists, the lines under them. */
+.modal.album-wide:not(.np-mode) .aw-left .modal-head { align-items: center; text-align: center; }
+.modal.album-wide:not(.np-mode) .aw-left .modal-facts { justify-content: center; }
 .modal.album-wide .aw-left > * + * { margin-top: 14px; }
 .modal.album-wide .aw-left > .modal-art + .modal-head { margin-top: 0; }
 .modal.album-wide .aw-mid > .bio-section + .bio-section { margin-top: 28px; }

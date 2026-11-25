@@ -1095,7 +1095,7 @@
     },
     "album": {
       "page": "an album's page: the album view (#album-modal, not Now playing), opened from a row of albums, a phone held upright; under its tracks its credits (who played, sang, wrote and made it, each opening their page), then the review and the rows of albums",
-      "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumPhone.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHeadParts.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumCreditList.kt", "android/app/src/main/java/com/musicd/server/android/GenreChips.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWide.kt"],
+      "native": ["android/app/src/main/java/com/musicd/server/android/AlbumScreen.kt", "android/app/src/main/java/com/musicd/server/android/AlbumPhone.kt", "android/app/src/main/java/com/musicd/server/android/AlbumTracks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumAbout.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHead.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHeadParts.kt", "android/app/src/main/java/com/musicd/server/android/AlbumSelect.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWorks.kt", "android/app/src/main/java/com/musicd/server/android/AlbumCreditList.kt", "android/app/src/main/java/com/musicd/server/android/GenreChips.kt", "android/app/src/main/java/com/musicd/server/android/AlbumWide.kt", "android/app/src/main/java/com/musicd/server/android/AlbumHeartButton.kt"],
       "preview": false,
       "items": {
         "back": { "kind": "action", "label": ["Back", "Close"] },
@@ -1125,7 +1125,8 @@
         "version-make-main": { "kind": "action", "label": "Make this the main version", "in": "version-more", "when": "a version that isn't the main" },
         "version-main": { "kind": "action", "label": ["Make this the main version", "Saving…", "The main version", "Couldn't save that — try again"], "in": "more", "when": "a version that isn't the main, shown" },
         "notice": { "kind": "shows", "when": "loading, or nothing can be played" },
-        "favourite": { "kind": "action", "label": ["Add to favourites", "Remove from favourites"] },
+        "favourite": { "kind": "action", "label": ["Add to favourites", "Remove from favourites"], "when": "first on the row, before Play Now (item 539); not a streamed album outside your favourites there" },
+        "service-add": { "kind": "action", "label": "Add to {service} favourites", "when": "a Qobuz or Tidal album not in your favourites there, signed in: a + in the heart's place, the heart once added (item 539)" },
         "play-now": { "kind": "action", "label": "Play Now" },
         "queue": { "kind": "action", "label": "Queue" },
         "more": { "kind": "action", "label": "More actions" },

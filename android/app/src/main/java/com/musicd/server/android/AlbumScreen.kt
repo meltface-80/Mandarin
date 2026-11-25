@@ -5,12 +5,9 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -25,14 +22,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,16 +44,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
 import com.musicd.server.client.AlbumCredits
@@ -233,54 +225,34 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                 }
             }
             // The head and its buttons, and the tracks: the one column's, or the left and right columns' on a tablet held sideways.
-            fun LazyListScope.sleeveItems(a: Album) {
-                item {
-                    // The sleeve, and its head beside it, a line each, at its foot.
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                        val sleeve = RoundedCornerShape(8.dp)
-                        Box(Modifier.parity("album.cover").size(160.dp).shadow(16.dp, sleeve).clip(sleeve).background(MaterialTheme.colorScheme.surfaceVariant)
-                            .border(1.dp, paletteColor(Palette.COVER_RING), sleeve)) {
-                            cover?.let { Image(it, contentDescription = a.album.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
-                            SourceBadge(a.album.source, Modifier.align(Alignment.BottomStart))
-                            if (booklets.isNotEmpty()) BookletButton(booklets, disc, Modifier.align(Alignment.BottomEnd)) { onBooklet(offset, it) }
-                        }
-                        Column(Modifier.weight(1f)) {
-                            // The page's head: the title 24px bold in 1.15 (Type.kt), the artists 15 and the lines under them 14, each at its own line.
-                            Text(a.album.title, Modifier.parity("album.title").padding(bottom = 6.dp).lineBox(24.sp, 27.6.sp), fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 27.6.sp,
-                                letterSpacing = (-0.02).em, color = white, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                            // A classical album: its composers and who performs it, in the artists' place (item 49).
-                            if (a.composers.isNotEmpty()) ComposerLines(a, onPage)
-                            else Row {
-                                (a.artists.ifEmpty { listOf(a.album.subtitle) }).forEachIndexed { i, name ->
-                                    if (i > 0) Text(" · ", Modifier.parity("album.artist"), color = dim, fontSize = 15.sp, lineHeight = 21.sp)
-                                    Text(name, Modifier.parity("album.artist", Contract.label("album.artist", 0, name)).clickable { onPage("artist", if (i == 0) ArtistAct.of(name, a.album.artistId) else name) },
-                                        color = MaterialTheme.colorScheme.secondary, fontSize = 15.sp, lineHeight = 21.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
-                            }
-                            DateLine(extras, onPage)
-                            FactsLine(a)
-                            HeadNotes(a) { discs -> onStepTo(discs.items[discs.index].offset, zone, discs) }
-                        }
-                    }
+            // A streamed album's favourite on its service, from + or ⋯: said, kept; removed, the album leaves the library and its page closes.
+            fun setService(a: Album, on: Boolean) {
+                val c = client() ?: return
+                scope.launch {
+                    val (said, ok) = withContext(Dispatchers.IO) { setServiceFavourite(c, a, on) } ?: return@launch
+                    toast(said)
+                    if (ok) serviceFav = on
+                    if (ok && !on) onPage("library-changed", offset.toString())
                 }
-                // Its genres (item 139), a row under the sleeve, as the page's #modal-genres: the head stays at the sleeve's foot.
-                if (a.genres.isNotEmpty()) item { GenreChips(a.genres, "album", center = false, modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) { onPage("genre", it) } }
+            }
+            fun LazyListScope.sleeveItems(a: Album) {
+                // Centred under the sleeve, as a phone's (item 539: even on a tablet too), About's genres and score under it.
+                item { BoxWithConstraints { PhoneHead(a, cover, minOf(maxWidth, 300.dp), extras, onPage, badges = {
+                    SourceBadge(a.album.source, Modifier.align(Alignment.BottomStart))
+                    if (booklets.isNotEmpty()) BookletButton(booklets, disc, Modifier.align(Alignment.BottomEnd)) { onBooklet(offset, it) }
+                }) { discs -> onStepTo(discs.items[discs.index].offset, zone, discs) } } }
+                aboutHead(a, extras, onPage)
             }
             fun LazyListScope.actionItem(a: Album) {
                 item {
-                    // Play Now and Queue in brass, the heart and ⋯ (item 349's order), 42 tall, rings as outlined buttons (bug list item 54).
+                    // The heart (or a streamed album's +), Play Now and Queue in brass, and ⋯ (item 539: even, ring to ring), 42 tall (item 54).
                     Row(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        val stadium = RoundedCornerShape(999.dp)
+                        AlbumHeartButton(a.album.source, serviceFav, favourite, onLike = { favourite = !favourite; val on = favourite; mark { it.favourite(shown, on) } }, onAdd = { setService(a, true) })
                         val pill = ButtonDefaults.buttonColors(containerColor = brass, contentColor = MaterialTheme.colorScheme.onPrimary)
                         Button(onClick = { if (phone != null) playPhone(-1, "play_now") else play("") { it.playAlbum(shown, a.album.title, a.album.subtitle, zone, "play_now") } }, enabled = !starting, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
                             modifier = Modifier.parity("album.play-now", Contract.label("album.play-now")).weight(1f).height(42.dp)) { Text(Contract.label("album.play-now"), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
                         Button(onClick = { if (phone != null) playPhone(-1, "queue") else play("Queued") { it.playAlbum(shown, a.album.title, a.album.subtitle, zone, "queue") } }, enabled = !starting, colors = pill, contentPadding = PaddingValues(horizontal = 8.dp),
                             modifier = Modifier.parity("album.queue", Contract.label("album.queue")).weight(1f).height(42.dp)) { Text(Contract.label("album.queue"), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold, maxLines = 1) }
-                        OutlinedIconButton(onClick = { favourite = !favourite; val on = favourite; mark { it.favourite(shown, on) } }, shape = stadium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                            colors = IconButtonDefaults.outlinedIconButtonColors(contentColor = if (favourite) paletteColor(Palette.HEART) else dim),
-                            modifier = Modifier.parity("album.favourite", Contract.label("album.favourite", if (favourite) 1 else 0)).size(40.dp, 42.dp)) {
-                            Icon(painterResource(if (favourite) R.drawable.np_heart_on else R.drawable.np_heart), contentDescription = null, modifier = Modifier.size(22.dp))
-                        }
                         val dlState = download.optString("state", "none")
                         val dlLabel = downloadWords(download, phone == null && (a.album.source == null || a.album.source == "local"))
                         val bridge = (context as? Activity)?.let { DownloadsBridge(it) }
@@ -292,16 +264,7 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                                 val b = bridge ?: return@MoreMenu
                                 when (dlState) { "done" -> b.remove(shown.toInt()); "downloading", "queued", "waiting" -> b.open(); else -> b.download(shown.toInt(), a.album.title, a.album.subtitle) }
                             },
-                            serviceFavourite = serviceFav, onServiceFavourite = { on ->
-                                val c = client() ?: return@MoreMenu
-                                scope.launch {
-                                    val (said, ok) = withContext(Dispatchers.IO) { setServiceFavourite(c, a, on) } ?: return@launch
-                                    toast(said)
-                                    if (ok) serviceFav = on
-                                    // Removed, the album is no longer in the library: its page closes (the walls read it afresh as they open).
-                                    if (ok && !on) onPage("library-changed", offset.toString())
-                                }
-                            })
+                            serviceFavourite = serviceFav, onServiceFavourite = { on -> setService(a, on) })
                     }
                 }
             }
