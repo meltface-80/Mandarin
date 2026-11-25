@@ -232,6 +232,8 @@ internal fun AlbumScreen(offset: Long, zoneId: String, lit: String, client: () -
                     val (said, ok) = withContext(Dispatchers.IO) { setServiceFavourite(c, a, on) } ?: return@launch
                     toast(said)
                     if (ok) serviceFav = on
+                    // Added: the note under the artists says so from now (item 540), as the + and ⋯ do.
+                    if (ok && on) album = album?.let { al -> al.copy(serviceWhy = al.serviceWhy?.added(System.currentTimeMillis())) }
                     if (ok && !on) onPage("library-changed", offset.toString())
                 }
             }

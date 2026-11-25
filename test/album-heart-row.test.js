@@ -3,7 +3,8 @@
  * An album's page, even (item 539), at a phone's size and in the wide view: the title and the artists centred under the
  * sleeve; the row the heart, Play Now, Queue and ⋯, in that order, the heart and ⋯ the same size at its two ends. A Qobuz
  * album not among your Qobuz favourites has a + in the heart's place: a tap adds it there and the heart takes its place,
- * and ⋯ then says Remove from Qobuz favourites. (Qobuz's side is stood in for in the page: its album page's answer, and
+ * and ⋯ then says Remove from Qobuz favourites, and the note under the artists that it is a favourite (item 540: it went
+ * on saying "Played from Qobuz — not in your favourites"). (Qobuz's side is stood in for in the page: its album page's answer, and
  * its favourite.) Skipped where no Chromium or Chrome is found.
  */
 const ports = require("./ports");
@@ -25,7 +26,7 @@ const STUB = `(() => { const real = window.fetch.bind(window);
     const r = await real(u, o);
     if (!window.__asQobuz || !/\\/api\\/album\\?/.test(s)) return r;
     const j = await r.clone().json();
-    if (j && j.album) Object.assign(j.album, { source: "qobuz", service_id: "q-1", service_favourite: false });
+    if (j && j.album) Object.assign(j.album, { source: "qobuz", service_id: "q-1", service_favourite: false, service_why: { name: "Qobuz", kept: false } });
     return new Response(JSON.stringify(j), { status: r.status, headers: { "Content-Type": "application/json" } }); }; })();`;
 
 const DRIVER = (album, qobuz) => `(async () => {
@@ -47,10 +48,12 @@ const DRIVER = (album, qobuz) => `(async () => {
   if (${qobuz}) {
     const add = acts.querySelector('[data-parity="album.service-add"]');
     out.addLabel = add && add.getAttribute("aria-label");
+    out.noteBefore = (document.getElementById("modal-why-note") || {}).textContent;
     add.click();
     await until(() => acts.querySelector('[data-parity="album.favourite"]'));
     out.after = row();
     out.added = window.__added.slice();
+    out.noteAfter = (document.getElementById("modal-why-note") || {}).textContent;
     acts.querySelector('[data-parity="album.more"]').click();
     const item = await until(() => acts.querySelector('[data-parity="album.service-favourite"]'));
     out.menu = item && item.textContent;
@@ -87,6 +90,8 @@ test("an album's page, even: title and artists centred, the heart first and ⋯ 
         assert.equal(q.addLabel, "Add to Qobuz favourites");
         assert.deepEqual(q.added, ["q-1"], at + ": added to the Qobuz favourites");
         assert.deepEqual(q.after, ORDER, at + ": the heart in the +'s place");
+        assert.equal(q.noteBefore, "Played from Qobuz — not in your favourites", at);
+        assert.match(q.noteAfter || "", /^In your library as a Qobuz favourite since /, at + ": the note says it is one now");
         assert.equal(q.menu, "Remove from Qobuz favourites", at + ": ⋯ says it is one now");
       } finally { await b.close(); }
     }
