@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - Android Auto shows Random albums and Smart Picks as soon as the car connects. They were asked of your server only as you opened one, and away from home the phone's way to it was often not up yet, so they stayed empty until you opened the app on the phone. The phone now keeps the last of each, with their covers, shows them at once, brings its way to the server up before asking, and reads them again behind what the car shows (every ten minutes), the car told when they change. The car's top row is now Random albums, Smart Picks, then Downloaded albums
 - Fixed - Qobuz and Tidal covers fetched again after a restore: the drawn stand-ins under an album's old cover were sometimes left behind on the disk, when the fetching began before the server had set up its covers folder
 - Fixed - The app's Settings now and then opened with its heading a band lower than it should be, until the app was closed. After the keyboard came or went (or the bars slid in), the app's screens were told the status bar's size a second time and Settings left room for it twice; the app now keeps those to the one place that leaves the room
 - Fixed - Mandarin OS 0.1.16: an update to a new Mandarin OS no longer restarts the box on the version it was running. Some computers, restarted warm, start what they started before; the update's restart is now a cold reset, as a shut down and start is, and if the box still comes back on the old version the system page says so and what to do
