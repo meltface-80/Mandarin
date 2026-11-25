@@ -1,18 +1,16 @@
 // AlbumMergeRoutes.cs — albums merged into one from the library's selection menu, and taken apart again (bug list
-// item 512; the order and the name AlbumMerge.cs's, the merge Scan/Scanner.Merge.cs's for your own files and
-// Services/IBroadcast/IBroadcastMerges.cs's for iBroadcast's):
+// item 512; the order and the name AlbumMerge.cs's, the merge Scan/Scanner.Merge.cs's):
 //
-//   POST /api/albums/merge { offsets }   the albums (two or more, all your files' or all iBroadcast's, in the order
+//   POST /api/albums/merge { offsets }   the albums (two or more of your own files, in the order
 //                                        chosen) one album: the first disc's (by the number each title ends on, else
 //                                        the order chosen) keeps its place, the others' tracks its later discs, the
 //                                        one called by what their titles share. { ok, offset, title, order }
 //   POST /api/albums/unmerge { offset }  a merged album's albums each their own again. { ok, albums }
 //
-// Kept in the database (album_merges), so every scan and every reading of iBroadcast after keeps to it, and in
+// Kept in the database (album_merges), so every scan after keeps to it, and in
 // backups. A merged album says so in every list ("merged": true), for Unmerge. Each waits for no scan to be under way.
 using System.Runtime.CompilerServices;
 using System.Text.Json.Nodes;
-using Mandarin.Server.Services.IBroadcast;
 
 namespace Mandarin.Server;
 
@@ -66,25 +64,19 @@ internal static partial class Library
         var albums = offsets.Select(s.Find).ToList();
         if (albums.Any(x => x == null)) return await NoAlbum(ctx);
         if (albums.Count < 2) return await JsError(ctx, 400, "Choose two albums or more to merge");
-        var source = albums[0]!.Service;
-        if (source is not (null or "ibroadcast")) return await JsError(ctx, 400, "Only albums of your own files or of iBroadcast can be merged");
-        if (albums.Any(x => x!.Service != source)) return await JsError(ctx, 400, "Albums of your own files and of iBroadcast can't be merged into one");
+        if (albums.Any(x => x!.Service != null)) return await JsError(ctx, 400, "Only albums of your own files can be merged");
         var order = AlbumMerge.Order([.. albums.Select(x => x!.Title)]).Select(i => albums[i]!).ToList();
         var title = AlbumMerge.TitleOf([.. order.Select(x => x.Title)]);
         var keep = order[0];
-        if (source == null)
+        double? kept = null;
+        if (!Scans.WhileNoScan(() =>
         {
-            double? kept = null;
-            if (!Scans.WhileNoScan(() =>
-            {
-                using var db = Scans.OpenDb();
-                kept = Scans.Scanner(db).Merge([.. order.Select(x => (double)x.Id)], title);
-            })) return await JsError(ctx, 409, ScanUnderWay);
-            if (kept == null) return await NoAlbum(ctx);
-        }
-        else IBroadcastMerges.Merge([.. order.Select(x => (x.Id, x.Key))], title);
+            using var db = Scans.OpenDb();
+            kept = Scans.Scanner(db).Merge([.. order.Select(x => (double)x.Id)], title);
+        })) return await JsError(ctx, 409, ScanUnderWay);
+        if (kept == null) return await NoAlbum(ctx);
         if (title != keep.Title) MergeTitle(keep.Key, title, null);
-        Server.Log($"[library] merged {order.Count} albums into \"{title}\" ({(source ?? "files")}): {string.Join(", ", order.Select(x => "\"" + x.Title + "\""))}");
+        Server.Log($"[library] merged {order.Count} albums into \"{title}\" (files): {string.Join(", ", order.Select(x => "\"" + x.Title + "\""))}");
         await Tell(new JsonObject { ["edits"] = true });
         var count = await Scans.Changed();
         return await Send(ctx, new JsonObject
@@ -100,27 +92,15 @@ internal static partial class Library
         if (b == null || s.Find(JsNumber(b["offset"])) is not { } al) return await NoAlbum(ctx);
         if (!IsMerged(s, al.Key)) return await JsError(ctx, 400, "This album isn't a merge of albums");
         var was = MergedTitle(al.Key);
-        JsonArray albums;
-        if (al.Service == null)
+        List<double>? now = null;
+        if (!Scans.WhileNoScan(() =>
         {
-            List<double>? now = null;
-            if (!Scans.WhileNoScan(() =>
-            {
-                using var db = Scans.OpenDb();
-                now = Scans.Scanner(db).Unmerge(al.Id);
-            })) return await JsError(ctx, 409, ScanUnderWay);
-            albums = Ids(now ?? [al.Id]);
-        }
-        else
-        {
-            IBroadcastMerges.Unmerge(al.Key);
-            if (Jobs.IBroadcastLibrary is { } lib)
-                try { await lib.Read(true); }
-                catch (Services.ServiceError e) { Server.Log("[ibroadcast] the library couldn't be read after an unmerge: " + e.Message); }
-            albums = Ids([al.Id]);
-        }
+            using var db = Scans.OpenDb();
+            now = Scans.Scanner(db).Unmerge(al.Id);
+        })) return await JsError(ctx, 409, ScanUnderWay);
+        var albums = Ids(now ?? [al.Id]);
         MergeTitle(al.Key, null, was);
-        Server.Log($"[library] unmerged \"{al.Title}\" ({al.Service ?? "files"})");
+        Server.Log($"[library] unmerged \"{al.Title}\" (files)");
         await Tell(new JsonObject { ["edits"] = true });
         var count = await Scans.Changed();
         return await Send(ctx, new JsonObject { ["ok"] = true, ["albums"] = albums, ["count"] = count });

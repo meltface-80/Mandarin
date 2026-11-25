@@ -47,7 +47,7 @@ internal sealed partial class AutoCovers
         /* Whether [al] can't be looked at for its folder being out of reach: one found before, passed over quietly. */
         public bool Away(Album al)
         {
-            if (string.IsNullOrEmpty(al.Dir) || al.Dir.Contains("://", StringComparison.Ordinal)) return false;   // a streamed album's: no folder to be away
+            if (string.IsNullOrEmpty(al.Dir)) return false;
             if (known.Any(f => NodePath.IsInside(al.Dir, f))) return true;
             if (Missing(al.Dir, folders) is not { } m) return false;
             found[m] = found.GetValueOrDefault(m) + 1;

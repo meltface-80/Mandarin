@@ -14,7 +14,7 @@
 // LOCAL_AUDIO (0: no sound devices on this computer), UPDATE_REPO,
 // UPDATE_API, UPDATE_CHECK (false: never by itself). PORT and
 // DATA_DIR are Program.cs's. The tests' stand-ins, which index.js took as
-// createServer's overrides: QOBUZ_URL, TIDAL_URL, TIDAL_AUTH_URL, IBROADCAST_URL,
+// createServer's overrides: QOBUZ_URL, TIDAL_URL, TIDAL_AUTH_URL,
 // TIDAL_IMAGES_URL, and MANDARIN_CONFIG, a JSON object laid over the whole
 // (logo_pause_ms, upnp_offline_ms, tailscale_watchdog, service_sync_delay_ms,
 // service_watch_ms, local_devices, mass_removal…).
@@ -56,7 +56,7 @@ internal static class Config
             ["sonos_include"] = Strings(List(env("INCLUDE_ZONES"))), ["sonos_exclude"] = Strings(List(env("EXCLUDE_ZONES"))),
             ["upnp_hosts"] = Strings(List(env("UPNP_HOSTS"))), ["upnp_multicast"] = env("UPNP_DISCOVERY") != "0", ["upnp_offline_ms"] = null,
             ["local_audio"] = env("LOCAL_AUDIO") != "0", ["local_devices"] = null,
-            ["qobuz_url"] = S("QOBUZ_URL"), ["tidal_url"] = S("TIDAL_URL"), ["tidal_images_url"] = S("TIDAL_IMAGES_URL"), ["tidal_auth_url"] = S("TIDAL_AUTH_URL"), ["ibroadcast_url"] = S("IBROADCAST_URL"),
+            ["qobuz_url"] = S("QOBUZ_URL"), ["tidal_url"] = S("TIDAL_URL"), ["tidal_images_url"] = S("TIDAL_IMAGES_URL"), ["tidal_auth_url"] = S("TIDAL_AUTH_URL"),
             ["service_sync_delay_ms"] = null, ["service_watch_ms"] = null,
             ["art_hosts"] = Strings(List(env("ART_HOSTS"))),
             ["trusted_proxies"] = Strings(List(env("TRUSTED_PROXIES"))),   // the proxies whose word on who asked is believed (item 362: Caller.Proxies.cs)   // the hosts on this network a picture may come from (item 353: Covers.Reach.cs)

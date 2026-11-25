@@ -160,13 +160,6 @@ class ServerClient(
     /** A merged album's albums each their own again (item 512). */
     fun unmergeAlbum(offset: Long): JSONObject = post("/api/albums/unmerge", JSONObject().put("offset", offset))
 
-    /**
-     * iBroadcast's albums deleted at iBroadcast (item 527): { ok, albums, tracks, emptied, note? }. A minute allowed: the
-     * server asks iBroadcast and then reads its library again.
-     */
-    fun deleteFromIBroadcast(offsets: List<Long>): JSONObject =
-        post("/api/ibroadcast/delete-albums", JSONObject().put("offsets", org.json.JSONArray().also { a -> offsets.forEach { a.put(it) } }), 60_000)
-
     fun listenLater(offsets: List<Long>, on: Boolean) { post("/api/listen-later", JSONObject().put("offsets", org.json.JSONArray().also { a -> offsets.forEach { a.put(it) } }).put("on", on)) }
 
     /**

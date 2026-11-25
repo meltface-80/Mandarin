@@ -11,7 +11,7 @@ class BackupSettingsTest {
     private val date = { ms: Long -> "D$ms" }
 
     @Test fun `the parts, a size, and the whole database with its size`() {
-        assertEquals(listOf("settings", "devices", "collection", "keys", "database", "ibroadcast", "page", "app"), BackupSettings.backupParts(true))
+        assertEquals(listOf("settings", "devices", "collection", "keys", "database", "page", "app"), BackupSettings.backupParts(true))
         assertEquals(listOf("settings", "keys"), BackupSettings.serverParts(listOf("settings", "page", "keys", "app")))
         assertEquals("The whole database (197 KB)", BackupSettings.partName("database", 197_000))
         assertEquals("Players", BackupSettings.partName("devices", 5))

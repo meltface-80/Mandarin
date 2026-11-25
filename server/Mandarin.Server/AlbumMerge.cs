@@ -4,7 +4,7 @@
 // the number its title ends on (Volume, Vol., Disc, CD, Part, Book… then a figure, a Roman numeral or the word, or a
 // figure or Roman numeral alone at the end), the albums that name none after those that do, in the order chosen. The
 // one album is called by what the titles share without their numbers ("At The "Golden Circle" Stockholm"), else by its
-// first disc's title. Kept and applied by AlbumMergeRoutes.cs, Scan/Scanner.Merge.cs and IBroadcastMerges.cs.
+// first disc's title. Kept and applied by AlbumMergeRoutes.cs and Scan/Scanner.Merge.cs.
 using System.Globalization;
 using System.Text.RegularExpressions;
 

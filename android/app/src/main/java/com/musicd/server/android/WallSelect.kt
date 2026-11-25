@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -35,10 +34,8 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.AlbumSummary
 import com.musicd.server.client.Contract
-import com.musicd.server.client.IBroadcastDelete
 import com.musicd.server.client.Palette
 import com.musicd.server.client.ServerClient
-import java.util.concurrent.Future
 
 /*
  * Albums selected on a wall (bug list item 52; the page's album-grid.js and
@@ -46,8 +43,7 @@ import java.util.concurrent.Future
  * the first pick, and the bar along the foot says "Tap albums to select"
  * until one is; then the ⋯ with the count, top right, opens what to do with
  * them: play now, play next, add to the end of the queue, Listen later,
- * Merge albums (two or more; item 512), Unmerge (a merged one), Delete from iBroadcast (every one
- * iBroadcast's, asked twice; item 527), or clear. The Library wall, the walls
+ * Merge albums (two or more; item 512), Unmerge (a merged one), or clear. The Library wall, the walls
  * Home links to and an artist's page select alike, so each carries the
  * three screens' keys.
  */
@@ -67,14 +63,13 @@ internal fun SelectBar(onCancel: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-/** What a selection's act needs no room for: Listen later, Merge albums, Unmerge, Delete from iBroadcast. */
-internal val NoRoomActs = setOf("later", "merge", "unmerge", "ibdelete")
+/** What a selection's act needs no room for: Listen later, Merge albums, Unmerge. */
+internal val NoRoomActs = setOf("later", "merge", "unmerge")
 
-/** The ⋯ with the count, and its menu; [n] albums picked ([picks]: which); [onAct]: play_now, play_next, queue, later, merge, unmerge, ibdelete, clear. */
+/** The ⋯ with the count, and its menu; [n] albums picked ([picks]: which); [onAct]: play_now, play_next, queue, later, merge, unmerge, clear. */
 @Composable
 internal fun AlbumSelectMenu(n: Int, onAct: (String) -> Unit, modifier: Modifier = Modifier, picks: List<AlbumSummary> = emptyList()) {
     var open by remember { mutableStateOf(false) }
-    var asking by remember { mutableStateOf(false) }
     val plural = if (n == 1) "" else "s"
     Box(modifier) {
         Row(Modifier.parity("library.select-menu wall.select-menu artist.select-menu", Contract.label("library.select-menu", if (n == 1) 1 else 0, n.toString())).height(40.dp).clip(RoundedCornerShape(999.dp))
@@ -95,17 +90,14 @@ internal fun AlbumSelectMenu(n: Int, onAct: (String) -> Unit, modifier: Modifier
                 modifier = Modifier.parity("library.select-queue wall.select-queue artist.select-queue", Contract.label("library.select-queue")))
             DropdownMenuItem(text = { Text(Contract.label("library.select-later"), fontSize = 15.sp) }, onClick = { open = false; onAct("later") },
                 modifier = Modifier.parity("library.select-later wall.select-later artist.select-later", Contract.label("library.select-later")))
-            // Merge albums: two or more of the server's; Unmerge: one merged (item 512, the server's AlbumMergeRoutes.cs).
-            if (picks.size >= 2 && picks.all { it.offset >= 0 }) DropdownMenuItem(text = { Text(Contract.label("library.select-merge"), fontSize = 15.sp) }, onClick = { open = false; onAct("merge") },
+            // Merge albums: two or more of the server's, your own files' alone (item 531); Unmerge: one merged (item 512, the server's AlbumMergeRoutes.cs).
+            if (picks.size >= 2 && picks.all { it.offset >= 0 && (it.source == null || it.source == "local") }) DropdownMenuItem(text = { Text(Contract.label("library.select-merge"), fontSize = 15.sp) }, onClick = { open = false; onAct("merge") },
                 modifier = Modifier.parity("library.select-merge wall.select-merge artist.select-merge", Contract.label("library.select-merge")))
             if (picks.size == 1 && picks[0].merged) DropdownMenuItem(text = { Text(Contract.label("library.select-unmerge"), fontSize = 15.sp) }, onClick = { open = false; onAct("unmerge") },
                 modifier = Modifier.parity("library.select-unmerge wall.select-unmerge artist.select-unmerge", Contract.label("library.select-unmerge")))
-            if (IBroadcastDelete.offered(picks)) DropdownMenuItem(text = { Text(Contract.label("library.select-ib-delete"), fontSize = 15.sp) }, onClick = { open = false; asking = true },
-                modifier = Modifier.parity("library.select-ib-delete wall.select-ib-delete artist.select-ib-delete", Contract.label("library.select-ib-delete")))
             DropdownMenuItem(text = { Text(Contract.label("library.select-clear"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp) }, onClick = { open = false; onAct("clear") },
                 modifier = Modifier.parity("library.select-clear wall.select-clear artist.select-clear", Contract.label("library.select-clear")))
         }
-        if (asking) IBroadcastDeleteAsk(n) { yes -> asking = false; onAct(if (yes) "ibdelete" else "clear") }
     }
 }
 
@@ -116,7 +108,6 @@ internal fun AlbumSelectMenu(n: Int, onAct: (String) -> Unit, modifier: Modifier
 internal fun selectAct(c: ServerClient, picks: List<AlbumSummary>, zoneId: String, zoneName: String?, act: String): String {
     if (act == "merge") { val j = c.mergeAlbums(picks.map { it.offset }); return "Merged ${picks.size} albums into “${j.optString("title")}”" }
     if (act == "unmerge") { c.unmergeAlbum(picks[0].offset); return "“${picks[0].title}” unmerged" }
-    if (act == "ibdelete") return IBroadcastDelete.said(c.deleteFromIBroadcast(picks.map { it.offset }))
     if (act == "later") { c.listenLater(picks.map { it.offset }, true); return if (picks.size == 1) "Put aside to listen later" else "${picks.size} albums put aside to listen later" }
     val j = c.playMulti(picks, zoneId, act)
     val verb = when (act) { "play_now" -> "Playing"; "shuffle" -> "Shuffling"; "play_next" -> "Playing next:"; else -> "Queued" }
@@ -124,25 +115,3 @@ internal fun selectAct(c: ServerClient, picks: List<AlbumSummary>, zoneId: Strin
     val failed = j.optInt("failed", 0)
     return "$verb $queued album" + (if (queued == 1) "" else "s") + (if (failed > 0) " (Sonos refused $failed)" else "") + " → " + (zoneName ?: "the room")
 }
-
-/*
- * Delete from iBroadcast (bug list item 527; the page's album-ib-delete.js): asked twice with the app's yes-or-no sheet,
- * what it does and then "Are you sure?". No to either (or a tap outside) lets the selection go, the library as it was;
- * Yes to both is the menu's "ibdelete", made by the wall's act (selectAct), the walls read again once the server's
- * albums move, as Merge albums' are.
- */
-
-/** The two questions for [n] albums, one after the other; [onDone] true once both are answered Yes, false at the first No. */
-@Composable
-internal fun IBroadcastDeleteAsk(n: Int, onDone: (Boolean) -> Unit) {
-    var sure by remember { mutableStateOf(false) }
-    key(sure) {
-        ConfirmDialog(if (sure) IBroadcastDelete.SURE else IBroadcastDelete.warning(n)) { yes -> if (yes && !sure) { sure = true } else onDone(yes) }
-    }
-}
-
-/**
- * A selection's [act] made on the lane of changes, in the order asked (item 85); Delete from iBroadcast, a minute allowed
- * as iBroadcast is asked and read again, beside it, so it never holds the changes after it (item 390).
- */
-internal fun <T> selectWrite(act: String, call: () -> T): Future<T> = if (act == "ibdelete") ServerWrites.aside(call) else ServerWrites.write(call)

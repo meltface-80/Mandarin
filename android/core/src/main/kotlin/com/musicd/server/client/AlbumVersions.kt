@@ -8,7 +8,7 @@ import org.json.JSONObject
  * ([label]: "2015 Remaster · 24/96", "Original · 16/44.1"), whether it is the main one (the one the lists show) and
  * whether it is the one open ([current]). Since item 349 a row of its own on the album's Versions tab: its edition alone
  * ([edition]: "2015 Remaster", "Original", "12 tracks"), its tracks, length and year. Since item 523 an album held in
- * several places (your files, Qobuz, Tidal, iBroadcast) has them as its versions, each saying where it is from ([from]),
+ * several places (your files, Qobuz, Tidal) has them as its versions, each saying where it is from ([from]),
  * where they come from more than one.
  */
 data class AlbumVersion(val album: AlbumSummary, val label: String, val main: Boolean, val current: Boolean,

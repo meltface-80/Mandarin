@@ -205,7 +205,7 @@ internal sealed partial class AutoCovers(CoverCatalogues ask, int gapMs, Action<
     private static bool Wanted(Album al, Dictionary<string, AutoCoverStore.Row> rows, Dictionary<long, string> marks, long now, bool wide, out string mark)
     {
         mark = marks.TryGetValue(al.Id, out var m) ? m : "";
-        if (al.Transient || al.Service is not (null or "ibroadcast") || al.CustomArt || mark.Length == 0 || !al.ImageKey.StartsWith("al-", StringComparison.Ordinal)) return false;
+        if (al.Transient || al.Service != null || al.CustomArt || mark.Length == 0 || !al.ImageKey.StartsWith("al-", StringComparison.Ordinal)) return false;
         if (!rows.TryGetValue(al.Key, out var row)) return true;
         if (row.Status == "owner") return false;
         if (row.Tracks != mark) return true;

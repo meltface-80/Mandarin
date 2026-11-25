@@ -18,8 +18,8 @@ internal sealed partial class Identifier
         JsObj input;
         MatchRow? prev;
         using (var c = Db.Open()) { input = Input(c, al); prev = Row(c, al.Key); }
-        // Unidentified already, iTunes not asked yet: only iTunes is asked; not for an album chosen to play (item 459), matched by sound.
-        var only = ITunesOnly(prev) && !PlayedNow;
+        // Unidentified already, iTunes not asked yet: only iTunes is asked.
+        var only = ITunesOnly(prev);
         var verdict = only ? null : (await Resolve(input)).Verdict;
         // Still unsure: matched by sound, before iTunes (item 414c, Identifier.Sound.cs); stopped, looked at again when it may.
         try { if (verdict != null) verdict = await OrBySound(al, input, verdict); }

@@ -31,8 +31,6 @@ internal static partial class PlaybackRoutes
                     return await Send(req.Ctx, new JsonObject { ["ok"] = true, ["action"] = "radio", ["offset"] = offset });
                 }
                 await Items.PlayAlbum(hub, id, offset, kind);
-                // Chosen to play: an iBroadcast album the scan left unsure matched by sound now (item 459).
-                Identify.Identifier.Chosen(s, offset);
                 return await Send(req.Ctx, new JsonObject { ["ok"] = true, ["action"] = kind, ["offset"] = offset });
             }
             case "/api/play-track":
@@ -52,7 +50,6 @@ internal static partial class PlaybackRoutes
                 if (Items.NormaliseKind(kind) == "play_now" && !(b["only"] is JsonValue ov && ov.TryGetValue<bool>(out var only) && only))
                     await Items.PlayTracks(hub, id, tracks, "play_now", index);
                 else await Items.PlayTracks(hub, id, [t], Items.NormaliseKind(kind));
-                Identify.Identifier.Chosen(s, offset);
                 return await Send(req.Ctx, new JsonObject { ["ok"] = true, ["action"] = kind, ["invoked"] = kind, ["track"] = t.Title });
             }
             case "/api/play-multi":

@@ -1,22 +1,20 @@
-/* Merge albums (bug list item 512): two albums or more picked on a wall, of your own files or all of iBroadcast's, made
+/* Merge albums (bug list item 512): two albums or more of your own files picked on a wall, made
  * one from the select menu: the server puts the first volume or disc first, whichever was picked first (each title's
  * number: "Volume One", "Disc 2", "Motion II"), and calls it by what the titles share. A merged album picked alone
- * offers Unmerge, each album its own again. Kept by the server (AlbumMergeRoutes.cs), so a scan or a reading of
- * iBroadcast keeps to it. */
+ * offers Unmerge, each album its own again. Kept by the server (AlbumMergeRoutes.cs), so a scan keeps to it. */
 
 // The menu's Merge albums and Unmerge, in it only where they can be done (before Clear selection).
 const MERGE_ITEMS = {
   merge: { label: "Merge albums", parity: "library.select-merge wall.select-merge artist.select-merge" },
   unmerge: { label: "Unmerge", parity: "library.select-unmerge wall.select-unmerge artist.select-unmerge" },
-  // iBroadcast's albums deleted at iBroadcast, asked twice (item 527, album-ib-delete.js).
-  ibdelete: { label: "Delete from iBroadcast", parity: "library.select-ib-delete wall.select-ib-delete artist.select-ib-delete" },
 };
 function mergeMenuShown(kind, n) {
   if (!selMenu) return;
   const server = kind === "albums" ? albumSelected.filter(a => !isPhoneAlbum(a)) : [];
-  const want = { merge: kind === "albums" && n >= 2 && server.length === n,
-    unmerge: kind === "albums" && n === 1 && server.length === 1 && !!server[0].merged,
-    ibdelete: kind === "albums" && n >= 1 && server.length === n && server.every(a => a.source === "ibroadcast") };
+  // Your own files' albums alone: a streamed album isn't merged.
+  const own = server.every(a => !a.source || a.source === "local");
+  const want = { merge: kind === "albums" && n >= 2 && server.length === n && own,
+    unmerge: kind === "albums" && n === 1 && server.length === 1 && !!server[0].merged };
   for (const act of Object.keys(MERGE_ITEMS)) {
     const had = selMenu.querySelector('[data-sel-act="' + act + '"]');
     if (!want[act]) { if (had) had.remove(); continue; }
