@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.3.6, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.3.7, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -74,14 +74,14 @@ FEATURES = [
      "and type. Signed in "
      "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, "
      "from the Library wall's filter too; tap a cover for the album's page, an artist for their page."),
-    ("album", "💿", "Album pages", True,
+    ("album", "💿", "Album pages", False,
      "Tracks and year, write-ups from Wikipedia and Qobuz, Pitchfork's score, and every version of the album "
-     "(a remaster, a copy on Qobuz, Tidal or iBroadcast) as one album.",
+     "(a remaster, a copy on Qobuz or Tidal) as one album.",
      "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, "
      "Listen later, Share card, Make this the main version, Edit album and (in the Android app) Download. "
      "On a phone, **Tracks**, **Credits**, **About** and **Versions** are tabs, held at the top as the page "
      "scrolls; Versions lists each version with its edition, rate and year, and where it is from (*Your files*, "
-     "*Qobuz*, *Tidal* or *iBroadcast*) when it is in more than one place, a tap showing it in place. Versions "
+     "*Qobuz* or *Tidal*) when it is in more than one place, a tap showing it in place. Versions "
      "are told by MusicBrainz's release group, else one act and title with its version words off; an album you "
      "have in several places is one album, its copies its versions. A list shows the main one with *2 versions* "
      "under it: the one you chose (**Make this the main version**), else your default service's, else the best. "
@@ -92,7 +92,7 @@ FEATURES = [
      "three columns, in the browser and in the Android app on a tablet: the cover, its credits and more "
      "by the artist on the left; About this album and about its artist in the middle, with **Read more**; "
      "the tracks on the right."),
-    ("more", "🧭", "More by, and similar", True,
+    ("more", "🧭", "More by, and similar", False,
      "Under an album's review: the artist's other albums, the albums they appear on, and similar artists "
      "and similar albums from your own library.",
      "Open any album: nothing to set up. Similar artists and albums are the acts Deezer lists as related, "
@@ -106,7 +106,7 @@ FEATURES = [
      "acts of the same name (Airbag from Norway, Airbag from Argentina) are told apart by the MusicBrainz "
      "artist ID in their files' tags (as Picard writes it), else by Mandarin's own MusicBrainz matches "
      "(**Settings → Library Scanner**), each with its own page, picture and a word to tell them apart."),
-    ("artist", "🧑‍🎤", "Artist pages", True,
+    ("artist", "🧑‍🎤", "Artist pages", False,
      "In tabs, as an album's page: Overview (their albums, similar artists and albums), Discography (your "
      "default service's too) and About (biography, members, bands). One artist however a sleeve credits them.",
      "Tap an artist's name on an album's page, on the Artists wall or in Search. Their picture, genres, "
@@ -138,12 +138,12 @@ FEATURES = [
      "by sound** looks the album up by its tracks' fingerprints on AcoustID. **Version** shows the matched "
      "pressing's details, each yours to change, with **Put back**. **Folders and copies** splits an album whose copies "
      "were merged (**Split by folder**, **Split…**, **Join back**). What you change is kept in Mandarin's database, "
-     "through rescans and in backups. An iBroadcast album is edited the same way, in Mandarin only."),
-    ("merge", "🧩", "Merge albums", True,
+     "through rescans and in backups."),
+    ("merge", "🧩", "Merge albums", False,
      "Albums that are one set (Volume One and Two, Disc 1 and Disc 2) made one album of several discs, "
      "the first disc first. Unmerge parts them again.",
      "Hold an album on a wall to select it, tap the others, then **⋯ → Merge albums**: two or more of your own "
-     "files' albums, or all iBroadcast's, not the two mixed. The first volume or disc comes first, whichever "
+     "files' albums. The first volume or disc comes first, whichever "
      "you picked first, and the album is called by what the titles share. A merged album selected alone offers "
      "**⋯ → Unmerge**. Kept in Mandarin's database, through rescans and in backups; your files are not changed."),
     ("auto-covers", "🖼️", "Covers found automatically", False,
@@ -178,9 +178,9 @@ FEATURES = [
      "All of each file's tags are read into the server's database, including MusicBrainz IDs, "
      "barcode, catalogue number, ISRC and ReplayGain, and used to identify albums.",
      "Nothing to set up: tags are read with every scan."),
-    ("scanner", "🔎", "Library Scanner", True,
+    ("scanner", "🔎", "Library Scanner", False,
      "One switch, Album Scanner, names albums from their files' identifiers, MusicBrainz, their sound (AcoustID) and "
-     "Apple's iTunes catalogue, measures ReplayGain and finds missing covers, while nothing plays. iBroadcast albums too.",
+     "Apple's iTunes catalogue, measures ReplayGain and finds missing covers, while nothing plays.",
      "Open **Settings → Library Scanner** and switch **Album Scanner** on; off, none of it is done. **Progress** counts the "
      "albums with every step done and says what it is doing now. Matches of 85% or better are applied; the rest wait in "
      "**Unidentified** (and **To confirm**) for you to place by hand; a copy that is every track of a bigger pressing is "
@@ -305,11 +305,13 @@ FEATURES = [
      "in **Settings → Setup → Wall Display**; off, it is off entirely. Tap the screen for its "
      "controls; **Shelf ›** opens Shelf."),
     # ---- The Android app
-    ("android", "📱", "The Android app", False,
+    ("android", "📱", "The Android app", True,
      "Mandarin's interface drawn natively by the app, which finds the server home or away and asks again when it's "
      "back; lock-screen controls, volume keys, a widget, Android Auto, its updates.",
      "Download it from [Downloads](#downloads) and install it (Android 8.0 or newer). Enter the port; it "
-     "finds the server on your Wi-Fi."),
+     "finds the server on your Wi-Fi. In **Android Auto**, Random albums, Smart Picks and Downloaded albums are "
+     "there as soon as the car connects, at home or away: the phone keeps the last of each and reads them again "
+     "every ten minutes."),
     ("phone", "🎧", "This phone", False,
      "The phone is a player of its own: speaker, headphones or Bluetooth, with queue, history and "
      "radio. At home, your other devices can play to it while the app runs.",
@@ -356,7 +358,7 @@ FEATURES = [
      "Albums kept on the phone as the original files or Opus 256, played without the server. "
      "Smart Picks, the Album of the day and new albums can download by themselves.",
      "On an album, **⋯ → Download to this phone**. Quality, the download folder, Wi-Fi only and automatic "
-     "downloads are in **Settings → Setup → Downloads** in the app. iBroadcast albums download the same way."),
+     "downloads are in **Settings → Setup → Downloads** in the app."),
     ("onphone", "📂", "Music on this phone", False,
      "A folder of music already on the phone, watched for changes, on Home with Focus and Sort "
      "and on artists' pages, played like the library. The server never sees it.",
@@ -396,9 +398,9 @@ FEATURES = [
      "start it again.",
      "Open the side menu (☰) and tap the **power button** in its top-right corner, then **Restart** or **Shut down**. "
      "On Mandarin OS the computer shuts down too; its power button starts it all again."),
-    ("backup", "💾", "Backup and restore", True,
-     "Back up settings, players, collection, sign-ins, iBroadcast covers and "
-     "booklets and the whole database, at home or away: to the server, or from the app to a file.",
+    ("backup", "💾", "Backup and restore", False,
+     "Back up settings, players, collection, sign-ins "
+     "and the whole database, at home or away: to the server, or from the app to a file.",
      "Open **Settings → Backup & restore**, tick what to include, then **Back up to the server** (or, "
      "in the app, **Back up to a file on this phone**). To restore, pick a backup (or the file), tick "
      "the parts and tap **Restore**. Mandarin keeps a backup of how things were first, then restarts.\n\n"
@@ -408,8 +410,7 @@ FEATURES = [
      "them. Type a **passphrase** (8 characters or more) before backing up and they are sealed "
      "(AES-256-GCM; v0.9.0): restoring them asks for it, and nothing opens them without it. Everything "
      "else in a sealed backup restores without it. A backup never holds your password or other devices' "
-     "sign-ins. **iBroadcast covers and booklets** holds the covers and booklets Mandarin keeps of the albums you "
-     "uploaded to iBroadcast, which may be on drives disconnected since.\n\n"
+     "sign-ins.\n\n"
      "**Restoring on another computer.** When none of a backup's music folders is on this computer, this "
      "computer's are kept, and the next scan finds the albums' files here (the same files: the same size, "
      "date and name), with their edits, favourites and plays. **Before a restore.** The copy of the "
@@ -429,35 +430,13 @@ FEATURES = [
      "Then **☰ → Tidal** to search and play; **+** on a cover adds an album to your Tidal favourites "
      "(a **✓** once added) and so to the library, as does **⋯ → Add to Tidal favourites** on its page. "
      "Details under [Tidal](#tidal)."),
-    ("default-service", "🎯", "Default service", True,
+    ("default-service", "🎯", "Default service", False,
      "Qobuz or Tidal as your default service: an artist's page lists its albums of theirs you don't have, and "
      "its copy of an album is the main version.",
      "**Settings → Services → Default service**, under the services: **None**, **Qobuz** or **Tidal** (signed in). "
      "An artist's **Discography** then goes on under **More on Qobuz** (or Tidal), an edition you have left out; a "
      "tap opens the album in that service's browser. Read from the service when you first open an artist, then "
      "kept for a day. Changing it makes the albums' versions again. Details under [Default service](#default-service)."),
-    ("ibroadcast", "📻", "iBroadcast", True,
-     "Sign in to your iBroadcast account: your iBroadcast albums become albums here, with your folders' covers and "
-     "booklets, and play in every room, on every Bridge and on the phone.",
-     "**Settings → Services → iBroadcast → Sign in on iBroadcast**: open the link, approve Mandarin there with the code "
-     "shown, come back. Your iBroadcast albums join the library, on the walls, in search and in Smart Picks; **Update "
-     "library now** reads it again. On an iBroadcast album, **⋯ → Download to this phone** keeps it on the phone and "
-     "**⋯ → Edit album** changes it in Mandarin only. The Album Scanner identifies them by their details, and by their "
-     "sound when you choose one to play. An album you uploaded with Mandarin shows its folder's cover and booklets "
-     "(PDFs), kept in Mandarin, so they show with the drive away; one with no picture is drawn a cover. Select "
-     "iBroadcast albums on a wall for **⋯ → Merge albums**, or **⋯ → Delete from iBroadcast**: asked twice, it "
-     "deletes them from your iBroadcast account and from Mandarin. Details under [iBroadcast](#ibroadcast)."),
-    ("ibroadcast-upload", "⬆️", "Upload to iBroadcast", False,
-     "Your library uploaded to your iBroadcast account, each file as it is and nothing sent twice: now, or each day "
-     "on a schedule, within the upload speed you allow.",
-     "**Settings → Services → iBroadcast → Upload**: choose **Upload from** (All drives, or any of your drives, "
-     "several at once) and **Files at once**, then **Upload now**; it shows what it is sending, its speed and the "
-     "time left, and **Stop upload** stops it. **Upload bandwidth** limits how much of your internet upload it uses: "
-     "enter your upload speed and choose 25, 50, 75 or 100 % of it. **Upload while music plays at home** and **away "
-     "from home** let it go on while you listen, with their own files at once. **Upload on a schedule** uploads each "
-     "day between the times you set, never in the Library Scanner's hours. DSD, and files over iBroadcast's 1.5 GB, "
-     "are sent as FLAC; a file iBroadcast won't keep is listed with its reason. An upload under way carries on after "
-     "the server restarts."),
     ("export", "📤", "Export library", False,
      "Your library as a CSV file, an album and its tracks a row each, for Mandarin Migration to add to a Qobuz account.",
      "Open **☰ → Export library**, above Settings, and save the file."),
@@ -499,7 +478,7 @@ PAGES = {"downloads": "downloads.html", "logs": "logs.html", "mandarin-os": "man
          "away-from-home-tailscale": "away.html", "sq-tool": "sq-tool.html", "mandarin-bridge": "bridges.html",
          "upsampling-and-output": "upsampling.html", "signal-path": "signal-path.html", "your-account": "account.html",
          "qobuz": "services.html#qobuz", "tidal": "services.html#tidal",
-         "ibroadcast": "services.html#ibroadcast", "default-service": "services.html#default-service",
+         "default-service": "services.html#default-service",
          "sound-devices-on-the-server": "how-it-works.html#sound-devices"}
 
 

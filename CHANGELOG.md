@@ -1,14 +1,17 @@
 # Changelog
 
-## Unreleased
+## v1.3.7
 
-- Fixed - The app's Home rows no longer move as you scroll one sideways. A row was as tall as its tallest album on screen, so scrolling onto an album with a two-line title and "2 versions" under it pushed every row below it down, and back up again. Each row now keeps room for four lines of words under its covers (the most an album has), and the rows, and Random Album and today's album above them, sit closer together
-- Fixed - Android Auto shows Random albums and Smart Picks as soon as the car connects. They were asked of your server only as you opened one, and away from home the phone's way to it was often not up yet, so they stayed empty until you opened the app on the phone. The phone now keeps the last of each, with their covers, shows them at once, brings its way to the server up before asking, and reads them again behind what the car shows (every ten minutes), the car told when they change. The car's top row is now Random albums, Smart Picks, then Downloaded albums
-- Fixed - Qobuz and Tidal covers fetched again after a restore: the drawn stand-ins under an album's old cover were sometimes left behind on the disk, when the fetching began before the server had set up its covers folder
-- Fixed - The app's Settings now and then opened with its heading a band lower than it should be, until the app was closed. After the keyboard came or went (or the bars slid in), the app's screens were told the status bar's size a second time and Settings left room for it twice; the app now keeps those to the one place that leaves the room
-- Fixed - Mandarin OS 0.1.16: an update to a new Mandarin OS no longer restarts the box on the version it was running. Some computers, restarted warm, start what they started before; the update's restart is now a cold reset, as a shut down and start is, and if the box still comes back on the old version the system page says so and what to do
-- Removed - iBroadcast. It was experimental and wasn't working as it needed to, so it has been fully removed rather than patched again with more fixes trying to make it work as intended. Gone with it: signing in to iBroadcast, its albums in the library, playing them, uploading to iBroadcast and its schedule and bandwidth, its folders' covers and booklets, Delete from iBroadcast, its pages in Settings → Services, its part of backups, and all of it in the app. What it left goes at the next start: its albums in your library (with their hearts, Listen later, edits, matches and merges), its settings and sign-in, and the covers and booklets Mandarin kept of it in its data folder. Merge albums is for your own files' albums now
-- Fixed - Qobuz and Tidal covers missing after a backup was put back on a new install: a backup doesn't carry the covers Mandarin keeps of them, and each album showed a drawn cover until it was next read from its service, a week or more, and kept the drawn one after that. A cover not in Mandarin's data folder is now fetched again, at the next start and whenever it is asked for
+Fixes for Android Auto, the app, Qobuz covers and Mandarin OS updates; iBroadcast removed.
+
+- Changed - Android Auto's top row: Random albums, Smart Picks, Downloaded albums
+- Changed - The app's Home rows sit closer together
+- Removed - iBroadcast: experimental and not working as required, so fully removed rather than patched
+- Fixed - Android Auto shows Random albums and Smart Picks as soon as the car connects
+- Fixed - The app's Home rows no longer shift as you scroll one sideways
+- Fixed - The app's Settings no longer opens with its heading too low
+- Fixed - Qobuz and Tidal covers come back after restoring a backup on a new install
+- Fixed - Mandarin OS 0.1.16 starts the new version after an update
 
 ## v1.3.6
 
