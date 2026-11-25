@@ -34,7 +34,9 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -62,7 +64,7 @@ import com.musicd.server.client.WallPrefs
 /** The album [a] as a tile of the grid: its cover [coverPx] wide, its text at [prefs]' size; [selected] with the ring and tick; [badge] ★ Today on today's album, [dl] a download's state. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun AlbumTile(a: AlbumSummary, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, selected: Boolean = false, onLongPress: () -> Unit = {}, badge: String? = null, dl: String? = null, onOpen: () -> Unit) {
+internal fun AlbumTile(a: AlbumSummary, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, selected: Boolean = false, onLongPress: () -> Unit = {}, badge: String? = null, dl: String? = null, fourLines: Boolean = false, onOpen: () -> Unit) {
     val cover = rememberTileCover(a.imageKey, coverPx, client)
     Column(Modifier.parity("library.album wall.album artist.album home.album search.album", Contract.label("library.album", if (a.subtitle.isEmpty()) 1 else 0, a.title.ifEmpty { "Untitled" }, a.subtitle))
         .fillMaxWidth().combinedClickable(onLongClick = onLongPress, onClick = onOpen)) {
@@ -71,13 +73,29 @@ internal fun AlbumTile(a: AlbumSummary, prefs: WallPrefs, coverPx: Int, client: 
         // cover, the title 12px at 600 in two lines of 1.25, a 1 gap, the artist 10.5px in one line of 1.3; each in its line box (Type.kt).
         val title = (12 * prefs.text).sp; val titleLine = (15 * prefs.text).sp
         val artist = (10.5 * prefs.text).sp; val artistLine = (13.65 * prefs.text).sp
-        Text(a.title.ifEmpty { "Untitled" }, Modifier.parity("library.album-title wall.album-title artist.album-title home.album-title search.album-title").padding(top = 11.dp).lineBox(title, titleLine), color = MaterialTheme.colorScheme.onSurface,
-            fontSize = title, lineHeight = titleLine, fontWeight = FontWeight.W600, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        if (a.subtitle.isNotEmpty()) Text(a.subtitle, Modifier.parity("library.album-artist wall.album-artist artist.album-artist home.album-artist search.album-artist").padding(top = 1.dp).lineBox(artist, artistLine), color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = artist, lineHeight = artistLine, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        // One of several versions of its album (item 345): how many, faint under the artist.
-        com.musicd.server.client.AlbumVersion.mark(a)?.let { Text(it, Modifier.parity("library.album-versions wall.album-versions artist.album-versions home.album-versions search.album-versions").padding(top = 1.dp).lineBox(artist, artistLine),
-            color = paletteColor(Palette.TEXT_FAINT), fontSize = artist, lineHeight = artistLine, maxLines = 1) }
+        // On Home's rows ([fourLines], item 536): room kept for the most words a tile has, so a row is one height whichever tiles are on screen.
+        Box {
+            if (fourLines) FourLines(title, titleLine, artist, artistLine)
+            Column {
+                Text(a.title.ifEmpty { "Untitled" }, Modifier.parity("library.album-title wall.album-title artist.album-title home.album-title search.album-title").padding(top = 11.dp).lineBox(title, titleLine), color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = title, lineHeight = titleLine, fontWeight = FontWeight.W600, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                if (a.subtitle.isNotEmpty()) Text(a.subtitle, Modifier.parity("library.album-artist wall.album-artist artist.album-artist home.album-artist search.album-artist").padding(top = 1.dp).lineBox(artist, artistLine), color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = artist, lineHeight = artistLine, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // One of several versions of its album (item 345): how many, faint under the artist.
+                com.musicd.server.client.AlbumVersion.mark(a)?.let { Text(it, Modifier.parity("library.album-versions wall.album-versions artist.album-versions home.album-versions search.album-versions").padding(top = 1.dp).lineBox(artist, artistLine),
+                    color = paletteColor(Palette.TEXT_FAINT), fontSize = artist, lineHeight = artistLine, maxLines = 1) }
+            }
+        }
+    }
+}
+
+/** The room a tile's words take at most, as its own are drawn (a title of two lines, the artist, its versions): unseen and unspoken, behind them. */
+@Composable
+private fun FourLines(title: TextUnit, titleLine: TextUnit, artist: TextUnit, artistLine: TextUnit) {
+    Column(Modifier.alpha(0f).clearAndSetSemantics {}) {
+        Text("M\nM", Modifier.padding(top = 11.dp).lineBox(title, titleLine), fontSize = title, lineHeight = titleLine, fontWeight = FontWeight.W600, maxLines = 2)
+        Text("M", Modifier.padding(top = 1.dp).lineBox(artist, artistLine), fontSize = artist, lineHeight = artistLine, maxLines = 1)
+        Text("M", Modifier.padding(top = 1.dp).lineBox(artist, artistLine), fontSize = artist, lineHeight = artistLine, maxLines = 1)
     }
 }
 
