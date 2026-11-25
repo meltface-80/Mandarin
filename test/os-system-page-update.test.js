@@ -80,6 +80,10 @@ test("the system page's Mandarin OS update in a browser: offered, asked for with
     put(box, "/data/MandarinOS/update-last.json", { result: "failed", from: "0.1.0", to: "0.1.5", at: "2026-11-13 03:10 UTC" });
     await page.eval(`document.dispatchEvent(new Event("visibilitychange"))`);
     assert.ok(await wait(`/didn't start: the box went back to 0\\.1\\.0 by itself/.test(document.getElementById("os-update").innerText)`), await text());
+    // Written and ready, but the computer started 0.1.0 again (item 532): said, with what starts it.
+    put(box, "/data/MandarinOS/update-last.json", { result: "notstarted", from: "0.1.0", to: "0.1.5", at: "2026-11-24 22:49 UTC" });
+    await page.eval(`document.dispatchEvent(new Event("visibilitychange"))`);
+    assert.ok(await wait(`/0\\.1\\.5 is written and ready, but the computer started 0\\.1\\.0 again[\\s\\S]*shut the box down fully and start it/.test(document.getElementById("os-update").innerText)`), await text());
     assert.ok(await page.eval(`document.documentElement.scrollWidth <= window.innerWidth`), "no page wider than the phone");
   } finally { await b.close(); await box.stop(); }
 });

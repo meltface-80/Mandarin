@@ -59,8 +59,10 @@ test("os-update: check, then apply into the other partition, the box's own carri
     assert.ok(fs.existsSync(path.join(box.mounted, "etc/systemd/system/multi-user.target.wants/mandarin-bridge.service")), "the Bridge still started");
     assert.equal(n("opt/mandarin/server/bin/mandarin-server.version"), "1.4.0\n", "Mandarin 1.4.0 kept over the image's 1.4.0-t3, a test build before it");
     assert.match(n("etc/passwd"), /systemd-network:x:998/, "the new system's own users, not this one's");
-    // Then the computer started again, the update to come said for its first start.
+    // Then the computer started again, the update to come said for its first start: a cold reset, the firmware's own
+    // (item 532: the owner's box, restarted warm, started the version it ran and never the new one).
     assert.match(calls, /^systemctl reboot$/m);
+    assert.deepEqual([box.read("sys/kernel/reboot/type"), box.read("sys/kernel/reboot/mode")], ["efi\n", "cold\n"], "a cold reset");
     const pending = box.json("data/MandarinOS/update-pending.json");
     assert.deepEqual([pending.from, pending.to, pending.mandarin], ["0.1.4", "0.1.5", false], "Mandarin not answering here: not asked of the new one");
     assert.equal(box.json("run/mandarin-os/os-update.json").state, "restarting");

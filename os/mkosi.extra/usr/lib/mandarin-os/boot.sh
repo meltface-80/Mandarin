@@ -21,6 +21,12 @@ ESP_TYPE=C12A7328-F81F-11D2-BA4B-00A0C93EC93B    # the EFI partition
 TRYING="$R/sys/firmware/efi/efivars/LoaderBootCountPath-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f"
 VER="$(cat "$R/usr/lib/mandarin-os/VERSION" 2>/dev/null)"
 
+# The computer's next restart a cold reset, the firmware's own (item 532), not the warm one Linux makes by default: the
+# owner's box, restarted warm after an update was written, started the version it had been running four times over and
+# never tried the new one; shut down and started, it took the new one at once. The kernel's reboot type and mode, set
+# for this run alone (a start sets them back).
+cold_reset() { echo efi > "$R/sys/kernel/reboot/type" 2>/dev/null; echo cold > "$R/sys/kernel/reboot/mode" 2>/dev/null; return 0; }
+
 # Whether $2 is newer than $1 (sort -V's order: 0.1.10 after 0.1.9).
 newer() { [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n 1)" = "$2" ]; }
 

@@ -84,6 +84,8 @@ function makeBox({ newRoot = {}, version = "0.1.4", mandarin = "1.4.0", from = "
     "var/lib/NetworkManager/secret_key": "nm\n", "usr/lib/mandarin-bridge/mandarin-bridge": "bridge\n",
     "etc/systemd/system/mandarin-bridge.service": "[Service]\n", "var/lib/private/mandarin-bridge/identity.json": "{\"id\":\"the bridge\"}\n",
     "opt/mandarin/server/bin/mandarin-server.version": mandarin + "\n", "opt/mandarin/server/bin/mandarin-server": "mandarin " + mandarin + "\n",
+    // The kernel's reboot type and mode, as Linux has them by default (item 532: an update's restart makes them a cold reset).
+    "sys/kernel/reboot/type": "acpi\n", "sys/kernel/reboot/mode": "warm\n",
     "efi/EFI/mandarin-os/mandarin-os_0.1.4.efi": "0.1.4's kernel\n", "efi/EFI/mandarin-os/mandarin-os_0.1.3.efi": "0.1.3's kernel\n",
     "efi/loader/entries/mandarin-os_0.1.4.conf": `title Mandarin OS 0.1.4\nversion 0.1.4\nefi /EFI/mandarin-os/mandarin-os_0.1.4.efi\noptions root=PARTUUID=${A} rw quiet\n`,
     "efi/loader/entries/mandarin-os_0.1.3.conf": `title Mandarin OS 0.1.3\nversion 0.1.3\nefi /EFI/mandarin-os/mandarin-os_0.1.3.efi\noptions root=PARTUUID=${B.toUpperCase()} rw quiet\n`
