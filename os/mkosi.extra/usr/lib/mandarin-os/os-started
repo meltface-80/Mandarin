@@ -20,8 +20,12 @@ now() { date -u '+%Y-%m-%d %H:%M UTC'; }
 result() { jq -n --arg r "$1" --arg f "$2" --arg t "$3" --arg a "$(now)" '{result: $r, from: $f, to: $t, at: $a}' > "$LAST.new" && mv -f "$LAST.new" "$LAST"; }
 
 boot() {
-  local efi="" f v t u from to
+  local efi="" f v t u from to def
   mountpoint -q "$R/data" || exit 0
+  # A default kept in the computer's firmware (item 532, boot.sh): said at every start, so the log shows why the boot
+  # menu started what it did; the next update lets it go.
+  def="$(loader_var LoaderEntryDefault)"
+  [ -z "$def" ] || oslog WARN "[boot] the boot menu started $(loader_var LoaderEntrySelected); a default is kept in the computer's firmware ($def): the next update lets it go"
   if efi="$(esp "$(disk_of "$(booted)")")"; then
     while read -r f v t u; do
       [ "$t" = 0 ] && [ "$v" != "$VER" ] || continue

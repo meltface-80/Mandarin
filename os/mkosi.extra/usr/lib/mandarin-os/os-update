@@ -278,6 +278,12 @@ restart() {
     [ "$i" = 1 ] && { step waiting 100 "Waiting for the upkeep's updates to finish, then starting again on Mandarin OS $V"
       oslog INFO "[update] Debian's packages are being updated: starting again on Mandarin OS $V once they are"; }
     sleep "${MANDARIN_OS_APT_WAIT:-30}"; done
+  # What the boot menu starts (item 532, boot.sh unpin): a default kept in the computer's firmware naming the version
+  # running had systemd-boot start it at every start and the new version's entry was never tried, the box back as it
+  # was each time. Let go, the newest entry starts; one that can't be let go is said, and nothing is restarted for it.
+  local kept
+  kept="$(unpin)" || failed "the boot menu keeps starting $kept (a default kept in the computer's firmware) and it couldn't be let go: Mandarin OS $V isn't started"
+  [ -z "$kept" ] || oslog INFO "[update] the boot menu's default kept in the computer's firmware ($kept) let go, so that Mandarin OS $V starts"
   step restarting 100 "Starting again on Mandarin OS $V"
   oslog INFO "[update] starting again on Mandarin OS $V"
   sync

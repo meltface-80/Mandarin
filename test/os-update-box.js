@@ -122,6 +122,9 @@ function makeBox({ newRoot = {}, version = "0.1.4", mandarin = "1.4.0", from = "
   shim("mountpoint", `case "$2" in */data) exit 0 ;; *) exit 1 ;; esac`);
   for (const c of ["umount", "e2fsck", "resize2fs", "blockdev", "systemctl"]) shim(c);
   shim("pgrep", "exit 1");   // no apt running on the box
+  // systemd-boot's variables in the firmware (item 532): bootctl set-default "" / set-oneshot "" take them away.
+  const efivars = path.join(root, "sys/firmware/efi/efivars"), guid = "4a67b082-0a4c-41cf-b6c7-440b29bb8c4f";
+  shim("bootctl", `case "$1 $2" in "set-default ") rm -f "${efivars}/LoaderEntryDefault-${guid}" ;; "set-oneshot ") rm -f "${efivars}/LoaderEntryOneShot-${guid}" ;; esac`);
   shim("logger", `printf '%s\\n' "$*" >> "${dir}/oslog"`);
   return {
     dir, root, dev, tmpl, mounted: path.join(root, "run/mandarin-os/update-root"),
@@ -137,6 +140,13 @@ function makeBox({ newRoot = {}, version = "0.1.4", mandarin = "1.4.0", from = "
     exists: (p) => fs.existsSync(path.join(root, p)),
     entries: () => fs.readdirSync(path.join(root, "efi/loader/entries")).sort(),
     put: (p, text) => put(root, p, text),
+    /** systemd-boot's variable [name] (LoaderEntryDefault…) set in the firmware to [entry], as efivarfs shows it; [] reads it. */
+    efivar: (name, entry) => {
+      const f = path.join(root, "sys/firmware/efi/efivars", name + "-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f");
+      if (entry === undefined) return fs.existsSync(f) ? fs.readFileSync(f).subarray(4).toString("utf16le").replace(/\0+$/, "") : null;
+      fs.mkdirSync(path.dirname(f), { recursive: true });
+      fs.writeFileSync(f, Buffer.concat([Buffer.from([7, 0, 0, 0]), Buffer.from(entry + "\0", "utf16le")]));
+    },
     cleanup: () => fs.rmSync(dir, { recursive: true, force: true })
   };
 }

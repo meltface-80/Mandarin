@@ -1,5 +1,9 @@
 # Mandarin OS changelog
 
+## v0.1.16
+
+- Fixed - An update to a new Mandarin OS restarted the box on the version it was running, again and again, with the new version never tried (item 532). The update assumed the boot menu starts the newest version, but the computer's firmware can keep a boot menu default from before (even from before the box was installed, so a reinstall doesn't clear it); one naming the running version's entry had the box start that version every time. Now the update lets go of any default kept in the firmware before it restarts, a fresh install does the same, and the log says at each start when a default is kept and what the boot menu started. A box already stuck on an earlier version updates with its own older updater, so it needs the new version chosen once by hand in the boot menu (hold the space bar as it starts); from then on, updates take care of it
+
 ## v0.1.15
 
 - Removed - Spotify Connect (item 525): Mandarin no longer has Spotify, so the box no longer carries PulseAudio and libatomic for Spotify's Soloist, and the firewall no longer lets the Spotify app reach Soloist's port (0.1.13, 0.1.14).

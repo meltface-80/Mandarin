@@ -21,6 +21,29 @@ ESP_TYPE=C12A7328-F81F-11D2-BA4B-00A0C93EC93B    # the EFI partition
 TRYING="$R/sys/firmware/efi/efivars/LoaderBootCountPath-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f"
 VER="$(cat "$R/usr/lib/mandarin-os/VERSION" 2>/dev/null)"
 
+# systemd-boot's own variables in the firmware (item 532): the entry kept as its menu's default (bootctl set-default,
+# or d pressed in the menu) and the one asked for the next start alone (bootctl set-oneshot). Kept in the computer, not
+# on the disk, so a default set any time before, even before this box was installed, outlives a reinstall: one naming
+# the version running (the owner's box had mandarin-os_0.1.12.conf kept, harmless while it ran other versions) had
+# systemd-boot start that version at every start, and an update's entry was never tried. LOADER_GUID is systemd-boot's.
+LOADER_GUID=4a67b082-0a4c-41cf-b6c7-440b29bb8c4f
+# systemd-boot's variable $1 as text (its four bytes of attributes, then UTF-16): the entry it names; nothing if unset.
+loader_var() { local f="$R/sys/firmware/efi/efivars/$1-$LOADER_GUID"; [ -e "$f" ] && tail -c +5 "$f" 2>/dev/null | tr -d '\0'; return 0; }
+# Any default or one-shot entry kept in the firmware let go, so that the newest entry starts (what Mandarin OS's updates
+# need); the entries let go said, a line. Not let go: the entry still kept said, and 1.
+unpin() {
+  local v d f out=""
+  for v in LoaderEntryDefault LoaderEntryOneShot; do
+    d="$(loader_var "$v")"; [ -n "$d" ] || continue
+    f="$R/sys/firmware/efi/efivars/$v-$LOADER_GUID"
+    bootctl "$([ "$v" = LoaderEntryDefault ] && echo set-default || echo set-oneshot)" "" >/dev/null 2>&1 || { chattr -i "$f" 2>/dev/null; rm -f "$f"; }
+    [ -e "$f" ] && { printf '%s\n' "$d"; return 1; }
+    out="$out${out:+, }$d"
+  done
+  [ -z "$out" ] || printf '%s\n' "$out"
+  return 0
+}
+
 # Whether $2 is newer than $1 (sort -V's order: 0.1.10 after 0.1.9).
 newer() { [ "$1" != "$2" ] && [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n 1)" = "$2" ]; }
 

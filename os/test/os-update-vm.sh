@@ -8,6 +8,8 @@
 #                      (os/test/fake-os-release.js, as the test-os pre-release, 9.9.9 first), and the installed system's
 #                      os-update is told to ask it and take that key by a drop-in written into the test's own copy of
 #                      the installed disk (never the image), and into 9.9.9's system, for its own update to 9.9.10.
+#                      The installed system keeps the boot menu's default as its own entry at every start (item 532),
+#                      as a box's firmware can keep one from before: the update has to let it go for 9.9.9 to start.
 #                      CHANGE, where given, a function that changes 9.9.9's system further (given its mount point).
 #   os_update_test     the box running: Update and restart asked of the system page with the share's password, and
 #                      the box back as 9.9.9 (kept: its entry blessed), the share's password, the shared folder's user's
@@ -59,8 +61,14 @@ os_update_prepare() {
   mkdir -p "$W/root" && mount "$lo" "$W/root" || { losetup -d "$lo"; fail "the installed system's partition didn't mount"; }
   mkdir -p "$W/root/etc/systemd/system/mandarin-os-update@.service.d"
   cp "$W/os-update-test.conf" "$W/root/etc/systemd/system/mandarin-os-update@.service.d/zz-update-test.conf"
+  # The boot menu's default kept in the firmware naming this version's entry (item 532), set at every start of it, as
+  # the owner's box had one kept from before: without the update letting it go, 9.9.9's entry is never tried.
+  printf '[Unit]\nDescription=test: the boot menu default kept as %s\n[Service]\nType=oneshot\nExecStart=/usr/bin/bootctl set-default mandarin-os_%s.conf\n[Install]\nWantedBy=multi-user.target\n' \
+    "$V" "$V" > "$W/root/etc/systemd/system/zz-default-kept-test.service"
+  mkdir -p "$W/root/etc/systemd/system/multi-user.target.wants"
+  ln -sfn ../zz-default-kept-test.service "$W/root/etc/systemd/system/multi-user.target.wants/zz-default-kept-test.service"
   umount "$W/root"; losetup -d "$lo"
-  ok "Mandarin OS 9.9.9 and a broken 9.9.10 made from the image, signed with the test's key, offered by a stand-in GitHub"
+  ok "Mandarin OS 9.9.9 and a broken 9.9.10 made from the image, signed with the test's key, offered by a stand-in GitHub; the boot menu's default kept as $V's"
 }
 
 # What the box's own log says of its updates (and its system page's), to find why.

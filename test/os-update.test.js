@@ -69,6 +69,43 @@ test("os-update: check, then apply into the other partition, the box's own carri
   } finally { box.cleanup(); gh.close(); }
 });
 
+test("os-update: a boot menu default kept in the firmware naming the version running is let go before the restart (item 532)", { skip, timeout: 180000 }, async () => {
+  // The owner's box: systemd-boot's default kept in the computer naming 0.1.12's entry, so every start was 0.1.12's and
+  // 0.1.15's entry was never tried. Here the box runs 0.1.4, with mandarin-os_0.1.4.conf kept as the default.
+  const key = testKey(), rel = releaseFiles("0.1.5", key.privateKey);
+  const gh = await serveReleases({ "test-os": rel.files });
+  const box = makeBox();
+  try {
+    const env = { MANDARIN_OS_UPDATE_API: gh.api, MANDARIN_OS_UPDATE_KEY: key.pub };
+    box.efivar("LoaderEntryDefault", "mandarin-os_0.1.4.conf");
+    box.efivar("LoaderEntryOneShot", "mandarin-os_0.1.4.conf");
+    let r = await box.run("apply", env);
+    assert.equal(r.status, 0, r.stderr + box.oslog());
+    assert.deepEqual([box.efivar("LoaderEntryDefault"), box.efivar("LoaderEntryOneShot")], [null, null], "the newest entry starts");
+    const calls = box.calls();
+    assert.ok(calls.indexOf('bootctl set-default') < calls.indexOf("systemctl reboot"), "let go before the restart: " + calls);
+    assert.match(box.oslog(), /the boot menu's default kept in the computer's firmware \(mandarin-os_0\.1\.4\.conf, mandarin-os_0\.1\.4\.conf\) let go, so that Mandarin OS 0\.1\.5 starts/);
+    // os-started says one at a start, so the log shows why the boot menu started what it did.
+    box.efivar("LoaderEntryDefault", "mandarin-os_0.1.4.conf");
+    box.efivar("LoaderEntrySelected", "mandarin-os_0.1.4.conf");
+    r = await box.started("boot");
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(box.oslog(), /\[boot\] the boot menu started mandarin-os_0\.1\.4\.conf; a default is kept in the computer's firmware \(mandarin-os_0\.1\.4\.conf\)/);
+    // One that can't be let go: said, and the computer not started again into the version it would start anyway.
+    box.shim("bootctl", "exit 1"); box.shim("chattr", "exit 1");
+    box.shim("rm", 'for a; do case "$a" in *efivars*) exit 1 ;; esac; done; exec /bin/rm "$@"');
+    fs.rmSync(path.join(box.root, "data/MandarinOS/update-pending.json"), { force: true });
+    box.put("efi/loader/entries/mandarin-os_0.1.5+3.conf", "");
+    fs.rmSync(path.join(box.root, "efi/loader/entries/mandarin-os_0.1.5+3.conf"));
+    fs.truncateSync(path.join(box.root, "../calls.log"), 0);
+    r = await box.run("apply", env);
+    assert.notEqual(r.status, 0, "not restarted");
+    assert.equal(box.efivar("LoaderEntryDefault"), "mandarin-os_0.1.4.conf");
+    assert.doesNotMatch(box.calls(), /systemctl reboot/);
+    assert.match(box.json("run/mandarin-os/os-update.json").error, /the boot menu keeps starting mandarin-os_0\.1\.4\.conf \(a default kept in the computer's firmware\) and it couldn't be let go/);
+  } finally { box.cleanup(); gh.close(); }
+});
+
 test("os-update: a file not signed with the key, or Mandarin numbered otherwise in the new system: nothing that starts it", { skip, timeout: 180000 }, async () => {
   const key = testKey(), other = testKey();
   const unsigned = await serveReleases({ "test-os": releaseFiles("0.1.5", key.privateKey, { sigKey: other.privateKey }).files });

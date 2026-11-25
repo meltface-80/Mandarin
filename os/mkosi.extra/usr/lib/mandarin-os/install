@@ -116,6 +116,10 @@ if ! { mkdir -p /mnt/esp && mount "$esp" /mnt/esp && uki="$(ls /mnt/esp/EFI/Linu
   [ -n "$answers" ] && { lsblk -o NAME,PARTLABEL,PARTTYPE "$target" > /dev/ttyS0 2>/dev/null; say "INSTALL FAILED"; touch "$DONE"; end poweroff; }
   D --title "It didn't work" --msgbox "Mandarin OS's start couldn't be written to $target's EFI partition. Start the installer again." 8 70; exec "$0"
 fi
+# A default kept in the computer's firmware from before this install (item 532, boot.sh unpin) let go: the box starts its
+# newest Mandarin OS, and its updates' entries are tried.
+if kept="$(unpin)"; then [ -z "$kept" ] || say "the boot menu's default kept in the computer's firmware ($kept) let go"
+else say "the boot menu's default kept in the computer's firmware ($kept) couldn't be let go"; fi
 # The installed system's own mounts, written into it alone: the stick has no data partition and never waits for one
 # (its start was a screen of timeouts when the image carried these).
 mkdir -p /mnt/root && mount "$root" /mnt/root && {
