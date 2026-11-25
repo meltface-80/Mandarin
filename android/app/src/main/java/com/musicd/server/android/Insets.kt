@@ -3,6 +3,7 @@ package com.musicd.server.android
 import android.os.Build
 import android.view.View
 import android.view.WindowInsets
+import android.view.WindowInsetsAnimation
 
 /**
  * Keep content out from under the status and navigation bars.
@@ -16,6 +17,13 @@ import android.view.WindowInsets
  * safe-area insets — and the page, built for the iPhone home-screen app, then
  * leaves the room a second time: a band above the top buttons, the mini
  * player floating, Now playing squeezed.
+ *
+ * Their animations (the keyboard coming and going, the bars sliding in) are
+ * kept here too (item 534). Android hands those to every view inside whatever
+ * this one consumed, so the native screens' Compose took the whole bars from
+ * one; never told otherwise after it (the insets stop here), it kept them, and
+ * Settings, which keeps out from under the bars itself, left the status bar's
+ * room a second time: its heading a band lower, until the app was closed.
  */
 object Insets {
     fun pad(view: View) {
@@ -32,6 +40,11 @@ object Insets {
                 @Suppress("DEPRECATION")
                 insets.consumeSystemWindowInsets()
             }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            view.setWindowInsetsAnimationCallback(object : WindowInsetsAnimation.Callback(DISPATCH_MODE_STOP) {
+                override fun onProgress(insets: WindowInsets, runningAnimations: MutableList<WindowInsetsAnimation>): WindowInsets = insets
+            })
         }
         view.requestApplyInsets()
     }
