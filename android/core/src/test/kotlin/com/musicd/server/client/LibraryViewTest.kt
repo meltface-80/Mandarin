@@ -96,6 +96,9 @@ class LibraryViewTest {
         client.facets(); client.favourites(); client.listenLater(); client.history(60); client.unplayed(6, 96); client.randomAlbums(24); client.artistBio("Artist A", "Album One")
         assertEquals(listOf("/api/library/facets", "/api/favourites", "/api/listen-later", "/api/home/history?count=60", "/api/home/unplayed?months=6&count=96",
             "/api/random-albums?count=24", "/api/artist-bio?artist=Artist%20A&album=Album%20One"), asked)
+        // The random wall's Refresh asks the server for a new set (item 537); any other reading, the one it keeps.
+        asked.clear(); client.randomAlbums(24, refresh = true)
+        assertEquals(listOf("/api/random-albums?count=24&refresh=1"), asked)
         // Who they are: one act of a shared name asked as that act (item 340), a plain name as ever.
         asked.clear()
         runCatching { client.artistAbout(ArtistAct.of("Airbag", 7)) }; runCatching { client.artistAbout("Airbag") }

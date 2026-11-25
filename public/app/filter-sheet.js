@@ -1,6 +1,6 @@
 /* The page's core (app.js until v1.0.5), 30 of 31: the refresh button, and the filter sheet. */
 // ----- Boot -----
-refreshBtn.addEventListener("click", loadRandom);
+refreshBtn.addEventListener("click", () => loadRandom({ refresh: true }));
 
 // ----- Filter sheet (All / Genre / Tag) -----
 (() => {

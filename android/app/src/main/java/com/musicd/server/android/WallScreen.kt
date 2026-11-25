@@ -73,10 +73,11 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
     val randomCount = randomWallCount(prefs)
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     BackHandler { when { focusOpen -> focusOpen = false; sortOpen -> sortOpen = false; selecting -> { selecting = false; picks = emptyList() }; else -> onBack() } }
-    fun load() { scope.launch { wall.load(context, client(), randomCount, filter) } }
+    fun load(refresh: Boolean = false) { scope.launch { wall.load(context, client(), randomCount, filter, refresh) } }
     // Read afresh on every visit (item 157: Favourites and Listen later were read once a run, an error kept till the app
-    // was closed), what was there shown meanwhile; the random walls keep theirs until reshuffled.
-    LaunchedEffect(wall) { if (!wall.loaded || (kind != "random" && kind != "genre")) load() }
+    // was closed), what was there shown meanwhile; Random albums too, the server's one set Home's row is the head of
+    // (item 537); a genre's wall keeps its own until reshuffled.
+    LaunchedEffect(wall) { if (!wall.loaded || kind != "genre") load() }
     AskAgain(wall.failed) { load() }
     fun changeLocal(v: LocalView) { local = v; Store.setLocalView(context, v.toJson()) }
     // The phone's albums as its view has them; every other wall as the server gave it.
@@ -129,7 +130,7 @@ internal fun WallScreen(kind: String, filterQuery: String, prefs: WallPrefs, zon
         // Top right: the ⋯ while albums are picked; Focus and Sort on the phone's wall; the random wall's (and a genre's) reshuffle otherwise (the bar's button).
         if (picks.isNotEmpty()) AlbumSelectMenu(picks.size, ::act, Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp), picks)
         else if (kind == "phone") LibraryPills(local.focusCount, onFocus = { focusOpen = true }, onSort = { sortOpen = true })
-        else if (kind == "random" || kind == "genre") FilledIconButton(onClick = { wall.loaded = false; load() }, enabled = wall.loaded, colors = barDisc(),
+        else if (kind == "random" || kind == "genre") FilledIconButton(onClick = { wall.loaded = false; load(refresh = true) }, enabled = wall.loaded, colors = barDisc(),
             modifier = Modifier.parity("wall.reshuffle", Contract.label("wall.reshuffle")).align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp).size(40.dp)) {
             Icon(painterResource(R.drawable.tn_reshuffle), contentDescription = null, modifier = Modifier.size(20.dp))
         }
@@ -153,7 +154,7 @@ internal class WallKept(val kind: String, val offline: Boolean = false) {
     var banner by mutableStateOf<Pair<String, Boolean>?>(null)
 
     /** The wall's albums: the phone's own from the phone, the rest from [client] ([randomCount] of them for the random wall, narrowed by [filter] for a genre's), and the banner as the page says it. */
-    suspend fun load(context: Context, client: ServerClient?, randomCount: Int, filter: WallFilter?) {
+    suspend fun load(context: Context, client: ServerClient?, randomCount: Int, filter: WallFilter?, refresh: Boolean = false) {
         if (kind == "phone") { HomeKept.loadPhone(context); albums.clear(); albums.addAll(HomeKept.rows["phone"]!!.albums); banner = null; loaded = true; return }
         val c = client ?: return
         if (kind == "downloads") {
@@ -174,10 +175,12 @@ internal class WallKept(val kind: String, val offline: Boolean = false) {
                     u.albums to (if (u.noHistory) "Albums show here once Mandarin has six months of listening behind it$from." else "Nothing here yet — play some music and check back.")
                 }
                 "genre" -> (if (filter != null) lib.randomAlbums(randomCount, filter) else lib.randomAlbums(randomCount)).albums to "No albums were returned. Is your library indexed?"
-                else -> lib.randomAlbums(randomCount).albums to "No albums were returned. Is your library indexed?"
+                else -> lib.randomAlbums(randomCount, refresh).albums to "No albums were returned. Is your library indexed?"
             }
         } }
-        r.onSuccess { (list, empty) -> albums.clear(); albums.addAll(list); banner = if (list.isEmpty()) empty to (kind == "random" || kind == "genre") else null; failed = false }
+        r.onSuccess { (list, empty) -> albums.clear(); albums.addAll(list); banner = if (list.isEmpty()) empty to (kind == "random" || kind == "genre") else null; failed = false
+            // A new set (Refresh) on Home's row at once, as it will read it (item 537).
+            if (refresh && kind == "random" && list.isNotEmpty()) HomeKept.rows["random"]?.let { row -> row.albums.clear(); row.albums.addAll(list.take(HomeKept.RANDOM_ROW)) } }
             .onFailure { e ->
                 // What was there stays (item 157); with nothing, said.
                 if (albums.isEmpty()) banner = (if (e is ServerClient.ServerException && e.status == 503) (e.message?.takeIf { !it.startsWith("HTTP") } ?: "Reading your music library…") else "Couldn’t load: " + com.musicd.server.client.Failure.said(e, "no answer")) to true

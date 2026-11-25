@@ -50,6 +50,8 @@ internal class DownloadTile(val id: Int, val state: String, val done: Int, val t
 }
 
 internal object HomeKept {
+    /** Home's Random albums row: as many as a phone's random wall shows ([randomWallCount]), so the row is the wall's head (item 537). */
+    const val RANDOM_ROW = 24
     /** The Not played row is kept five minutes once it has answered, as the page's (rowsTtlFresh). */
     private const val TTL_MS = 5 * 60 * 1000L
     /** The rows in the page's own order (HOME_ROWS), the app's two first. */
@@ -117,8 +119,9 @@ internal object HomeKept {
                 unplayedLoaded = hidingRow("unplayed", lib) { it.unplayed(6, 30).albums }
                 if (!unplayedLoaded) rowsAt = 0   // asked again on the next visit, as the page's
             }
-            // Random albums turns over on every visit (the page's isFresh: false): a new handful each time.
-            scope.launch { plainRow("random", lib) { it.randomAlbums(30).albums } }
+            // Random albums read on every visit: the server's one set (item 537), the first of the random wall's in its order,
+            // as many as a phone's wall shows; new only on the wall's Refresh (or Android Auto's), or after a day.
+            scope.launch { plainRow("random", lib) { it.randomAlbums(RANDOM_ROW).albums } }
             scope.launch { hidingRow("later", lib) { it.listenLater(30).albums } }
             scope.launch { hidingRow("favourites", lib) { it.favourites(30).albums } }
             scope.launch { hidingRow("history", lib) { it.history(30).albums } }
