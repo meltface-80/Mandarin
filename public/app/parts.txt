@@ -29,7 +29,6 @@ app/album-tiles.js
 app/album-tile-press.js
 app/album-grid.js
 app/album-merge.js
-app/album-ib-delete.js
 app/album-modal.js
 app/album-open.js
 app/queue.js
@@ -72,8 +71,6 @@ app/updater.js
 app/settings.js
 app/settings-services.js
 app/settings-default-service.js
-app/settings-ibroadcast-bandwidth.js
-app/settings-ibroadcast.js
 app/settings-views.js
 app/settings-home.js
 app/service-browser.js

@@ -11,7 +11,7 @@
       "lines": 437
     },
     "android/app/src/main/java/com/musicd/server/android/PhonePlayerService.kt": {
-      "lines": 1440
+      "lines": 1410
     },
     "engine/Mandarin.Audio/Engine.cs": {
       "lines": 456
@@ -77,7 +77,7 @@
       "lines": 545
     },
     "server/Mandarin.Server/Services/Rows.cs": {
-      "lines": 488
+      "lines": 487
     },
     "server/Mandarin.Server/Services/ServiceStreams.cs": {
       "lines": 431

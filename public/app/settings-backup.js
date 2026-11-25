@@ -23,7 +23,7 @@
     "rra-album-view", "rra-filter", "rra-np-reduced"];
   const NAMES = {
     settings: "Settings", devices: "Players", collection: "Your collection", keys: "API keys",
-    database: "The whole database", ibroadcast: "iBroadcast covers and booklets", page: "This device's screen settings", app: "This app's settings"
+    database: "The whole database", page: "This device's screen settings", app: "This app's settings"
   };
   const HINT = {
     settings: "Only the ones you changed",
@@ -31,7 +31,6 @@
     collection: "Favourites, Listen later, album edits",
     keys: "FanArt.tv, AcoustID, the Qobuz and Tidal sign-ins, and the server's Tailscale identity",
     database: "Everything Mandarin knows, play history included",
-    ibroadcast: "Those kept from the folders you uploaded to iBroadcast, which may be disconnected now",
     page: "Text sizes, layout, the chosen room",
     app: "Downloads, USB DAC, this phone's DSP and levelling"
   };
@@ -66,7 +65,7 @@
   }
   const ticked = container => [...container.querySelectorAll("input[data-part]:checked")].map(i => i.dataset.part);
 
-  function backupParts() { return ["settings", "devices", "collection", "keys", "database", "ibroadcast", "page"].concat(APP ? ["app"] : []); }
+  function backupParts() { return ["settings", "devices", "collection", "keys", "database", "page"].concat(APP ? ["app"] : []); }
 
   async function load() {
     try {

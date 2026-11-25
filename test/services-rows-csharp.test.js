@@ -98,7 +98,7 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
   const named = (text) => String(text).split(lib.data).join("<data>").replace(/127\.0\.0\.1:\d+/g, "127.0.0.1:<port>")
     .replace(/"offset":(\d+)/g, (m, id) => `"offset":"<${keyOf(id)}>"`).replace(/\bal-(\d+)-/g, (m, id) => `al-<${keyOf(id)}>-`)
     .replace(/"track_id":(\d+)/g, (m, id) => `"track_id":"<${pathOf(id)}>"`)
-    // A cover's hash is of its address, which has the fake's port in it: held to that rule where the cover is kept, named here.
+    // A cover's hash (its picture's since item 530; its address's, with the fake's port in it, when this was recorded): held to its rule where the cover is kept, named here.
     .replace(/"art_hash":"[0-9a-f]{12}"/g, `"art_hash":"<its address's>"`).replace(/(al-<[^>]+>-)[0-9a-f]{12}/g, "$1<its address's>")
     // A time written as the test ran (a play a day ago, kept since now): said in days from now.
     .replace(/(":)(1\d{12})\b/g, (m, pre, t) => { const d = (Number(t) - Date.now()) / DAY; return Math.abs(d) < 3 ? `${pre}"<now ${Math.round(d)} d>"` : m; });
@@ -210,7 +210,8 @@ test("Qobuz's and Tidal's library rows, written by the C# server as the Node ser
       assert.ok(cover && fs.existsSync(cover), key + ": its cover kept beside the database");
       assert.equal(cover, path.join(lib.data, s, "art", id + ".jpg"));
       const coverBytes = fs.readFileSync(cover), marker = fs.readFileSync(cover + ".url", "utf8");
-      assert.equal(mine.album.art_hash, require("crypto").createHash("md5").update(marker).digest("hex").slice(0, 12), key + ": its hash, of the cover's address");
+      // Its hash its picture's since item 530 (its address's before): a cover fetched again is a new key.
+      assert.equal(mine.album.art_hash, require("crypto").createHash("md5").update(coverBytes).digest("hex").slice(0, 12), key + ": its hash, of the cover's picture");
       const answer = named(c.text);
       // The Node server's own, from the same start.
       const want = await rec.want("opened: " + key);

@@ -32,7 +32,7 @@ object BackupSettings {
     /** The parts, by the names the server and the app give them. */
     val NAMES: Map<String, String> = linkedMapOf(
         "settings" to "Settings", "devices" to "Players", "collection" to "Your collection", "keys" to "API keys",
-        "database" to "The whole database", "ibroadcast" to "iBroadcast covers and booklets", "page" to "This device's screen settings", "app" to "This app's settings")
+        "database" to "The whole database", "page" to "This device's screen settings", "app" to "This app's settings")
     /** What each holds, under its name. */
     val HINT: Map<String, String> = mapOf(
         "settings" to "Only the ones you changed",
@@ -40,12 +40,11 @@ object BackupSettings {
         "collection" to "Favourites, Listen later, album edits",
         "keys" to "FanArt.tv, AcoustID, the Qobuz and Tidal sign-ins, and the server's Tailscale identity",
         "database" to "Everything Mandarin knows, play history included",
-        "ibroadcast" to "Those kept from the folders you uploaded to iBroadcast, which may be disconnected now",
         "page" to "Text sizes, layout, the chosen room",
         "app" to "Downloads, USB DAC, this phone's DSP and levelling")
 
     /** What can be backed up from here: the server's parts and this screen's, and the app's in the app ([app]). */
-    fun backupParts(app: Boolean): List<String> = listOf("settings", "devices", "collection", "keys", "database", "ibroadcast", "page") + if (app) listOf("app") else emptyList()
+    fun backupParts(app: Boolean): List<String> = listOf("settings", "devices", "collection", "keys", "database", "page") + if (app) listOf("app") else emptyList()
 
     /** The parts the server makes; this screen's and the app's travel beside them. */
     fun serverParts(parts: List<String>): List<String> = parts.filter { it != "page" && it != "app" }

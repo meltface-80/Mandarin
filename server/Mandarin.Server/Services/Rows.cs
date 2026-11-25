@@ -147,10 +147,9 @@ internal abstract partial class Catalogue
         var u = Js.Str(url);
         var dir = NodePath.Join(DataDir, Id, "art");
         Directory.CreateDirectory(dir);
-        var hash = Convert.ToHexString(Fingerprint.Md5(Encoding.UTF8.GetBytes(u))).ToLowerInvariant()[..12];
-        var file = NodePath.Join(dir, albumId + ".jpg");
+        var file = NodePath.Join(dir, albumId + ".jpg");   // its hash its picture's, not its address's (item 530, CoverMend.cs)
         var marker = file + ".url";
-        try { if (PosixFs.Exists(file) && File.ReadAllText(marker) == u) return (file, hash); }
+        try { if (PosixFs.Exists(file) && File.ReadAllText(marker) == u && CoverMend.Hash(file) is { } kept) return (file, kept); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* fetched */ }
         try
         {
@@ -158,13 +157,13 @@ internal abstract partial class Catalogue
             if (status is < 200 or > 299) throw new JsError("HTTP " + status);
             await File.WriteAllBytesAsync(file, body);
             await File.WriteAllTextAsync(marker, u);
-            return (file, hash);
+            return (file, CoverMend.Hash(body));
         }
         catch (Exception e) when (e is JsError or IOException or UnauthorizedAccessException)
         {
             Server.Log($"[{Id}] cover for {albumId}: {e.Message}");
             var have = PosixFs.Exists(file);
-            return (have ? file : null, have ? hash : null);
+            return (have ? file : null, have ? CoverMend.Hash(file) : null);
         }
     }
 

@@ -69,13 +69,13 @@ import java.util.Date
  * (asked again every two seconds) until it lands. Signed in, the stream quality, the favourites in the library on or off,
  * Update library now, Sign out, and what the library holds of the service, asked again while it is being brought in.
  * Each change is made on the app's lane of changes to what Home shows (ServerWrites, item 85). Services itself is a list:
- * Qobuz, Tidal and iBroadcast a row each, each opening its own page (items 443, 449; iBroadcast's SettingsIBroadcast.kt).
+ * Qobuz and Tidal a row each, each opening its own page (item 449).
  */
 
 
 /**
- * Settings' Services ([onBack]: back to Settings, [onOpen]: a service's own page): Qobuz, Tidal and iBroadcast, a row
- * each (items 443, 449); under them the default service with its ⓘ (item 522, [DefaultServiceBlock]).
+ * Settings' Services ([onBack]: back to Settings, [onOpen]: a service's own page): Qobuz and Tidal, a row
+ * each (item 449); under them the default service with its ⓘ (item 522, [DefaultServiceBlock]).
  */
 @Composable
 internal fun SettingsServices(client: () -> ServerClient?, onBack: () -> Unit, onOpen: (String) -> Unit) {
@@ -90,8 +90,6 @@ internal fun SettingsServices(client: () -> ServerClient?, onBack: () -> Unit, o
                 SettingsNavRow(qobuz, Modifier.parity("settings-services.qobuz", Contract.label("settings-services.qobuz")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(qobuz.pane) })
                 val tidal = com.musicd.server.client.SettingsRow("tidal", "Tidal")
                 SettingsNavRow(tidal, Modifier.parity("settings-services.tidal", Contract.label("settings-services.tidal")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(tidal.pane) })
-                val ib = com.musicd.server.client.SettingsRow("ibroadcast", "iBroadcast")
-                SettingsNavRow(ib, Modifier.parity("settings-services.ibroadcast", Contract.label("settings-services.ibroadcast")).clip(RoundedCornerShape(10.dp)).clickable { onOpen(ib.pane) })
             }
             SettingsDivider(18, 18)
             DefaultServiceBlock(client) { info = it }

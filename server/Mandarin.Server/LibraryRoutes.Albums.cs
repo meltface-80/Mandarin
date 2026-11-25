@@ -311,9 +311,9 @@ internal static partial class Library
     {
         var al = s.Find(Num(Q(ctx, "offset")));
         if (al == null) return await Send(ctx, new JsonObject { ["error"] = "That album is no longer in the library — rescan to refresh" }, 409);
-        // A streamed album's page asks the service too (v0.8.44, ServiceRoutes.cs); iBroadcast's has nothing to ask (item 445).
+        // A streamed album's page asks the service too (v0.8.44, ServiceRoutes.cs).
         Tags.JsObj? service = null;
-        if (al.Service is { } sv && sv != "ibroadcast")
+        if (al.Service != null)
         {
             if (CatalogueOf(al.Service) is not { } svc) return false;
             service = await ServiceFields(svc, al, st);

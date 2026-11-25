@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.3.7
+
+Fixes for Android Auto, the app, Qobuz covers and Mandarin OS updates; iBroadcast removed.
+
+- Changed - Android Auto's top row: Random albums, Smart Picks, Downloaded albums
+- Changed - The app's Home rows sit closer together
+- Removed - iBroadcast: experimental and not working as required, so fully removed rather than patched
+- Fixed - Android Auto shows Random albums and Smart Picks as soon as the car connects
+- Fixed - The app's Home rows no longer shift as you scroll one sideways
+- Fixed - The app's Settings no longer opens with its heading too low
+- Fixed - Qobuz and Tidal covers come back after restoring a backup on a new install
+- Fixed - Mandarin OS 0.1.16 starts the new version after an update
+
 ## v1.3.6
 
 One library from everywhere your music is: an album you have in several places shows once with its versions, an artist's page shows their whole discography from your default service, and iBroadcast albums get their folders' covers and booklets and can be merged or deleted. Spotify is gone.

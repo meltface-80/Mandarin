@@ -55,14 +55,7 @@ function scannerScheduleBlock() {
     '<span class="scan-sub" data-parity="settings-scanner.note">' + (s.on ? "Runs only between these times" : "Off: runs any time, day and night") + "</span></span>" +
     scanSw("data-scan-sched", s.on, "Schedule", "settings-scanner.schedule") + "</div>" +
     (s.on ? '<div class="scan-row scan-times"><span class="scan-sub" data-parity="settings-scanner.name">From</span>' + time("start", "From") +
-      '<span class="scan-sub" data-parity="settings-scanner.name">to</span>' + time("end", "To") + "</div>" : "") +
-    // iBroadcast's upload window beside its hours (item 447): the two can't overlap.
-    (scan.upload_window ? '<div class="scan-row"><span class="scan-sub" data-parity="settings-scanner.note">' + scanEsc(scannerUploadNote(scan.upload_window)) + "</span></div>" : "") + "</div>";
-}
-
-/** iBroadcast's upload window ([w]: { start, end }), as the Library Scanner's schedule says it (item 447). @param {{start: string, end: string}} w */
-function scannerUploadNote(w) {
-  return "iBroadcast uploads run " + w.start + "–" + w.end + ": these hours can't overlap them.";
+      '<span class="scan-sub" data-parity="settings-scanner.name">to</span>' + time("end", "To") + "</div>" : "") + "</div>";
 }
 
 /* Library clean-up (v0.6.23): what could go, counted; only what is pressed goes. */

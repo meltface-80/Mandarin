@@ -202,9 +202,8 @@
         "select-play-next": { "kind": "action", "label": "Play next", "in": "select-menu" },
         "select-queue": { "kind": "action", "label": "Add to end of queue", "in": "select-menu" },
         "select-later": { "kind": "action", "label": "Listen later", "in": "select-menu" },
-        "select-merge": { "kind": "action", "label": "Merge albums", "in": "select-menu", "when": "two albums or more picked, of your own files or all of iBroadcast's (bug list item 512): one album, the first volume or disc first" },
+        "select-merge": { "kind": "action", "label": "Merge albums", "in": "select-menu", "when": "two albums or more of your own files picked (bug list item 512): one album, the first volume or disc first" },
         "select-unmerge": { "kind": "action", "label": "Unmerge", "in": "select-menu", "when": "one album picked that is a merge of albums (item 512)" },
-        "select-ib-delete": { "kind": "action", "label": "Delete from iBroadcast", "in": "select-menu", "when": "every album picked iBroadcast's (item 527): asked twice, what it does then Are you sure?, No to either letting the selection go" },
         "select-clear": { "kind": "action", "label": "Clear selection", "in": "select-menu" }
       }
     },
@@ -233,9 +232,8 @@
         "select-play-next": { "kind": "action", "label": "Play next", "in": "select-menu" },
         "select-queue": { "kind": "action", "label": "Add to end of queue", "in": "select-menu" },
         "select-later": { "kind": "action", "label": "Listen later", "in": "select-menu" },
-        "select-merge": { "kind": "action", "label": "Merge albums", "in": "select-menu", "when": "two albums or more picked, of your own files or all of iBroadcast's (bug list item 512): one album, the first volume or disc first" },
+        "select-merge": { "kind": "action", "label": "Merge albums", "in": "select-menu", "when": "two albums or more of your own files picked (bug list item 512): one album, the first volume or disc first" },
         "select-unmerge": { "kind": "action", "label": "Unmerge", "in": "select-menu", "when": "one album picked that is a merge of albums (item 512)" },
-        "select-ib-delete": { "kind": "action", "label": "Delete from iBroadcast", "in": "select-menu", "when": "every album picked iBroadcast's (item 527): asked twice, what it does then Are you sure?, No to either letting the selection go" },
         "select-clear": { "kind": "action", "label": "Clear selection", "in": "select-menu" }
       }
     },
@@ -288,9 +286,8 @@
         "select-play-next": { "kind": "action", "label": "Play next", "in": "select-menu" },
         "select-queue": { "kind": "action", "label": "Add to end of queue", "in": "select-menu" },
         "select-later": { "kind": "action", "label": "Listen later", "in": "select-menu" },
-        "select-merge": { "kind": "action", "label": "Merge albums", "in": "select-menu", "when": "two albums or more picked, of your own files or all of iBroadcast's (bug list item 512): one album, the first volume or disc first" },
+        "select-merge": { "kind": "action", "label": "Merge albums", "in": "select-menu", "when": "two albums or more of your own files picked (bug list item 512): one album, the first volume or disc first" },
         "select-unmerge": { "kind": "action", "label": "Unmerge", "in": "select-menu", "when": "one album picked that is a merge of albums (item 512)" },
-        "select-ib-delete": { "kind": "action", "label": "Delete from iBroadcast", "in": "select-menu", "when": "every album picked iBroadcast's (item 527): asked twice, what it does then Are you sure?, No to either letting the selection go" },
         "select-clear": { "kind": "action", "label": "Clear selection", "in": "select-menu" }
       }
     },
@@ -754,7 +751,7 @@
       }
     },
     "settings-services": {
-      "page": "Settings' Services: Back, its title; Qobuz, Tidal and iBroadcast, a row each that opens its own page (items 443, 449); under them the default service (item 522) with its ⓘ: None, Qobuz or Tidal (one not signed in says so), whose albums an artist's page shows after the library's",
+      "page": "Settings' Services: Back, its title; Qobuz and Tidal, a row each that opens its own page (item 449); under them the default service (item 522) with its ⓘ: None, Qobuz or Tidal (one not signed in says so), whose albums an artist's page shows after the library's",
       "native": ["android/app/src/main/java/com/musicd/server/android/SettingsServices.kt"],
       "preview": false,
       "items": {
@@ -762,7 +759,6 @@
         "heading": { "kind": "shows" },
         "qobuz": { "kind": "action", "label": "Qobuz" },
         "tidal": { "kind": "action", "label": "Tidal" },
-        "ibroadcast": { "kind": "action", "label": "iBroadcast" },
         "default-name": { "kind": "shows" },
         "default-info": { "kind": "action", "label": "About {setting}" },
         "default": { "kind": "action", "label": "Default service" }
@@ -791,66 +787,6 @@
         "update": { "kind": "action", "label": ["Update library now", "…"], "when": "signed in to the service, with its favourites in the library" },
         "signout": { "kind": "action", "label": "Sign out", "when": "signed in to the service" },
         "import-status": { "kind": "shows", "when": "signed in to the service" }
-      }
-    },
-    "settings-ibroadcast": {
-      "page": "Settings' iBroadcast (item 443), one of Services' pages: Back to Services, its title; the account under its title and ⓘ: signed out, Sign in on iBroadcast (then the link to open, the code to approve Mandarin with there and Cancel, and how the sign-in is going); signed in, who, whether the account is Premium, the formats iBroadcast takes, its albums in the library on or off, Update library now, what the library holds of it (item 444), and Sign out; then Upload (item 446), under its title and ⓘ: how the upload under way is going or what the last one did, Upload now or Stop upload, the files left out or not sent, Upload on a schedule (item 447) with its hours and the Library Scanner's beside them, and (item 451) Upload from (All drives, or any of the drives, several at once: item 472), files at once, and uploading while music plays at home or away from home, each with its own number at once; and (item 479) Upload bandwidth, a row saying the limit that opens its own page",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsIBroadcast.kt"],
-      "preview": false,
-      "items": {
-        "back": { "kind": "action", "label": "Back to Services" },
-        "heading": { "kind": "shows" },
-        "title": { "kind": "shows" },
-        "info": { "kind": "action", "label": "About {setting}", "each": true },
-        "signin": { "kind": "action", "label": "Sign in on iBroadcast", "when": "not signed in, no sign-in under way" },
-        "note": { "kind": "shows", "when": "a sign-in under way" },
-        "link": { "kind": "action", "label": "{link}", "when": "a sign-in under way" },
-        "code": { "kind": "shows", "when": "a sign-in under way" },
-        "cancel": { "kind": "action", "label": "Cancel", "when": "a sign-in under way" },
-        "status": { "kind": "shows", "when": "signed in, or a sign-in under way" },
-        "name": { "kind": "shows", "each": true, "when": "signed in" },
-        "premium": { "kind": "shows", "when": "signed in" },
-        "formats": { "kind": "shows", "when": "signed in" },
-        "import": { "kind": "action", "label": "iBroadcast albums in the library", "when": "signed in" },
-        "update": { "kind": "action", "label": ["Update library now", "…"], "when": "signed in, its albums in the library" },
-        "library-status": { "kind": "shows", "when": "signed in" },
-        "signout": { "kind": "action", "label": "Sign out", "when": "signed in" },
-        "upload-title": { "kind": "shows", "when": "signed in" },
-        "upload-status": { "kind": "shows", "when": "signed in" },
-        "upload-progress": { "kind": "shows", "when": "signed in, an upload under way or done" },
-        "upload": { "kind": "action", "label": "Upload now", "when": "signed in, no upload under way" },
-        "upload-stop": { "kind": "action", "label": "Stop upload", "when": "an upload under way" },
-        "upload-problems": { "kind": "shows", "when": "files left out or not sent" },
-        "schedule": { "kind": "action", "label": "Upload on a schedule", "when": "signed in" },
-        "schedule-note": { "kind": "shows", "when": "signed in" },
-        "start": { "kind": "action", "label": "From", "when": "signed in, the schedule on" },
-        "end": { "kind": "action", "label": "To", "when": "signed in, the schedule on" },
-        "scanner-hours": { "kind": "shows", "when": "signed in" },
-        "from": { "kind": "action", "label": "{source}", "each": true, "when": "signed in" },
-        "from-note": { "kind": "shows", "when": "signed in, nothing chosen to upload from" },
-        "at-once": { "kind": "action", "label": ["1", "2", "3"], "each": true, "when": "signed in" },
-        "home": { "kind": "action", "label": "Upload while music plays at home", "when": "signed in" },
-        "home-at-once": { "kind": "action", "label": ["1", "2", "3"], "each": true, "when": "signed in, uploading while music plays at home" },
-        "away": { "kind": "action", "label": "Upload while music plays away from home", "when": "signed in" },
-        "away-at-once": { "kind": "action", "label": ["1", "2", "3"], "each": true, "when": "signed in, uploading while music plays away from home" },
-        "bandwidth": { "kind": "action", "label": "Upload bandwidth", "when": "signed in" }
-      }
-    },
-    "settings-ibroadcast-bandwidth": {
-      "page": "Settings' Upload bandwidth (item 479), one of iBroadcast's pages: Back to iBroadcast, its title; under its title and ⓘ, the home's upload speed as its internet provider gives it (Mbps, typed), what is said under it (and the fastest an upload has sent from here), the share of it the upload may use (25, 50, 75 or 100 %), what that lets it use and leaves, and No limit where a speed is given",
-      "native": ["android/app/src/main/java/com/musicd/server/android/SettingsIBroadcastBandwidth.kt"],
-      "preview": false,
-      "items": {
-        "back": { "kind": "action", "label": "Back to iBroadcast" },
-        "heading": { "kind": "shows" },
-        "title": { "kind": "shows" },
-        "info": { "kind": "action", "label": "About {setting}" },
-        "name": { "kind": "shows", "each": true },
-        "speed": { "kind": "action", "label": "Your upload speed" },
-        "speed-note": { "kind": "shows" },
-        "share": { "kind": "action", "label": ["25%", "50%", "75%", "100%"], "each": true },
-        "limit": { "kind": "shows" },
-        "clear": { "kind": "action", "label": "No limit", "when": "an upload speed given" }
       }
     },
     "settings-folders": {

@@ -19,9 +19,7 @@ internal static class BackupCommand
             return 0;
         }
         Db.File = file;
-        // Not the iBroadcast covers and booklets (item 511): they stay in the data folder through a reinstall, and a copy of
-        // them in each of the backups kept here could fill the disk.
-        var all = Backup.Parts.Where(p => p != "ibroadcast").ToDictionary(p => p, _ => true);
+        var all = Backup.Parts.ToDictionary(p => p, _ => true);
         try
         {
             var meta = await Backup.Keep(new Backup.Maker(dataDir, version, Path.Combine(dataDir, "tailscale", "tailscaled.state")),

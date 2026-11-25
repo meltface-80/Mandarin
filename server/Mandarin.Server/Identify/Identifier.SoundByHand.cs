@@ -100,15 +100,12 @@ internal sealed partial class Identifier
         if (Fingerprints.Kept(t.Path, t.Size, t.Mtime) is { } kept) return kept.Fingerprint;
         try
         {
-            // An iBroadcast track read from its stream (item 459, Identifier.Played.cs).
-            var fp = await Fingerprints.Make(await SourceOf(t.Path), () => false);
+            var fp = await Fingerprints.Make(t.Path, () => false);
             Fingerprints.Keep(t.Path, t.Size, t.Mtime, fp, fp == null ? "no audio to fingerprint" : null);
             return fp;
         }
         catch (Exception e) when (e is not Fingerprints.Stopped)
         {
-            // Not kept, nor said in ffmpeg's words, for an iBroadcast track (they name its address): asked again next time.
-            if (Services.IBroadcast.IBroadcastDownloads.Is(t.Path)) return null;
             Fingerprints.Keep(t.Path, t.Size, t.Mtime, null, Scan.OfflineDrives.Failure(t.Path, e.Message));
             return null;
         }
@@ -135,7 +132,7 @@ internal sealed partial class Identifier
         var key = AcoustId.Key();
         if (key.Length == 0) { job.Answer = "needs-key"; return; }
         if (Sound is not { } sound || sound.State == "invalid") { job.Answer = "refused"; return; }
-        var tracks = SoundTracks(al, streamed: true);
+        var tracks = SoundTracks(al);
         job.Of = tracks.Count;
         if (tracks.Count == 0) { job.Answer = "no-files"; return; }
         var prints = new List<(SoundTrack T, string Fp)>();

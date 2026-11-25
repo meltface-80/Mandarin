@@ -85,8 +85,6 @@ internal static partial class Backup
         string? dbCopy = null;
         try
         {
-            // The iBroadcast albums' covers and booklets kept here (item 511): their drives may be gone.
-            if (Has("ibroadcast") && IBroadcastPart(by.DataDir, entries) is { } ib) { entries.Add(JsonEntry("ibroadcast.json", ib)); manifestParts.Add("ibroadcast"); }
             if (Has("database"))
             {
                 dbCopy = TmpFile(by.DataDir, ".db");

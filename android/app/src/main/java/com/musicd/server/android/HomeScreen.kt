@@ -49,6 +49,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
+ * The room under each of Home's rows, and under its strip of Random Album and today's album, before the next row's
+ * heading (item 536: 50, the genres' 32; a row now keeps room for four lines of words under its covers, AlbumTile's
+ * fourLines, so it is one height whichever tiles are on screen).
+ */
+private val ROW_GAP = 20.dp
+
+/**
  * Home, natively (stage N5 of old/plan-android-native.md, bug list
  * item 57; a preview: Settings → Setup → UI Settings), drawn as the page's
  * (docs/specs/screens.json, home; style.css in the hifi palette): the
@@ -129,9 +136,9 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
                 Column {
                     LazyRow(Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         if (prefs.random) item("random") { RandomAlbumTile(prefs, spin, ::randomAlbum) }
-                        if (aotd != null) item("aotd") { Box(Modifier.width((144 * prefs.tile).dp)) { AlbumTile(aotd, prefs, coverPx, client, badge = "★ Today") { open(listOf(aotd), 0) } } }
+                        if (aotd != null) item("aotd") { Box(Modifier.width((144 * prefs.tile).dp)) { AlbumTile(aotd, prefs, coverPx, client, badge = "★ Today", fourLines = true) { open(listOf(aotd), 0) } } }
                     }
-                    Spacer(Modifier.height(50.dp))
+                    Spacer(Modifier.height(ROW_GAP))
                 }
             }
             for (row in HomeKept.layout) {
@@ -144,7 +151,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
                             Carousel(HomeKept.picks, key = { it.artist + "|" + it.album }) { _, p ->
                                 PickCardHome(p, prefs, client) { p.inLibrary?.let { open(listOf(it), 0) } ?: onPicks() }
                             }
-                            Spacer(Modifier.height(50.dp))
+                            Spacer(Modifier.height(ROW_GAP))
                         }
                     }
                     "genres" -> item(row.id) {
@@ -152,7 +159,7 @@ internal fun HomeScreen(prefs: WallPrefs, zoneId: String, client: () -> ServerCl
                             SectionTitle(Modifier.parity("home.genres-title"), "Browse by genre", false)
                             if (HomeKept.genres.isEmpty()) HomeKept.genresNote?.let { RowNote(it) }
                             else GenreGrid(HomeKept.genres) { card -> val f = card.filter(); onWall("genre", com.musicd.server.client.WallFilter.routeQuery(f)) }
-                            Spacer(Modifier.height(32.dp))
+                            Spacer(Modifier.height(ROW_GAP))
                         }
                     }
                     else -> {
@@ -218,14 +225,15 @@ private fun SectionTitle(modifier: Modifier, text: String, link: Boolean) {
 
 /**
  * A row's tiles (an album each, with a download's badge on the app's own row alone, [badges]), or its one line where it has
- * none; the page's 18 under the row and 32 under the section. A tile tapped opens with the row as it was drawn ([onOpen]).
+ * none, [ROW_GAP] under it, each tile keeping room for four lines of words (item 536). A tile tapped opens with the row
+ * as it was drawn ([onOpen]).
  */
 @Composable
 private fun AlbumRowItems(row: RowKept, prefs: WallPrefs, coverPx: Int, client: () -> ServerClient?, badges: Boolean = false, onOpen: (List<AlbumSummary>, Int) -> Unit) {
     val albums = row.albums.toList()
     if (albums.isEmpty()) row.note?.let { RowNote(it) }
     else Carousel(albums, key = { it.offset }) { i, a ->
-        Box(Modifier.width((144 * prefs.tile).dp)) { AlbumTile(a, prefs, coverPx, client, dl = if (badges) HomeKept.downloads[a.offset]?.badge else null) { onOpen(albums, i) } }
+        Box(Modifier.width((144 * prefs.tile).dp)) { AlbumTile(a, prefs, coverPx, client, dl = if (badges) HomeKept.downloads[a.offset]?.badge else null, fourLines = true) { onOpen(albums, i) } }
     }
-    Spacer(Modifier.height(50.dp))
+    Spacer(Modifier.height(ROW_GAP))
 }

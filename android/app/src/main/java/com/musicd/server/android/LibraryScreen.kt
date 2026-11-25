@@ -137,7 +137,7 @@ internal fun LibraryScreen(viewQuery: String, prefs: WallPrefs, zoneId: String, 
             else -> {
                 val c = client() ?: return
                 if (what !in NoRoomActs && zone.isEmpty()) { toast("Pick a zone first"); return }
-                val made = selectWrite(what) { selectAct(c, chosen, zone, room.zoneName, what) }   // Listen later before Home reads (item 85)
+                val made = ServerWrites.write { selectAct(c, chosen, zone, room.zoneName, what) }   // Listen later before Home reads (item 85)
                 scope.launch { toast(ServerWrites.await(made).getOrElse { com.musicd.server.client.Failure.said(it, "Couldn't reach the server") }); selecting = false; picks = emptyList() }
             }
         }

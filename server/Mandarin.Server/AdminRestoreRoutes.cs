@@ -98,10 +98,9 @@ internal static partial class Library
     {
         bool Has(string k) => include.TryGetValue(k, out var v) && v;
         var dbFile = TmpFile(".db");
-        var ibFiles = TmpFile(".ib");
         try
         {
-            var (parts, hasDb) = await Task.Run(() => Backup.ReadBackup(file, dbFile, Has("ibroadcast") ? ibFiles : null));
+            var (parts, hasDb) = await Task.Run(() => Backup.ReadBackup(file, dbFile));
             var m = (JsObj)parts["manifest"]!;
             if (TJs.ToNumber(m["format"]) > Backup.Format || Backup.Newer(m["version"], AppVersion))
                 throw new Backup.Refused($"That backup was made by Mandarin v{TJs.Str(m["version"])}; update this server first", 409);
@@ -160,13 +159,6 @@ internal static partial class Library
                     catch (Exception e) { Server.Log($"[backup] tailscale identity: {e.Message}"); }
                 }
             }
-            // The iBroadcast albums' covers and booklets (item 511): back in the data folder, what was decided of each with them.
-            if (Has("ibroadcast") && parts["ibroadcast"] is JsObj ib)
-            {
-                var put = Backup.RestoreIBroadcast(ib, ibFiles, DataDir);
-                Server.Log($"[backup] the iBroadcast albums' covers and booklets: {put} file(s) put back");
-                restored.Add("ibroadcast");
-            }
             var o = new JsObj();
             o["ok"] = true;
             o["restored"] = restored;
@@ -178,11 +170,7 @@ internal static partial class Library
             o["restarting"] = restored.Any(x => !TJs.StrictEq(x, "page") && !TJs.StrictEq(x, "app"));
             return o;
         }
-        finally
-        {
-            Rm(dbFile);
-            try { if (Directory.Exists(ibFiles)) Directory.Delete(ibFiles, recursive: true); } catch (IOException) { /* the next restore's own */ }
-        }
+        finally { Rm(dbFile); }
     }
 
     /* The answer, then (when anything of the server's came back) this server started again, Tailscale with it (Jobs.Setup). */

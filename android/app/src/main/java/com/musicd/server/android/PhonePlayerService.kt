@@ -47,6 +47,7 @@ import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
+import com.musicd.server.client.AutoShelf
 import com.musicd.server.client.CachePlan
 import com.musicd.server.client.Phone
 import com.musicd.server.client.PlayerIdle
@@ -86,8 +87,8 @@ import kotlin.math.roundToInt
  * would rearrange a queue it doesn't know are ignored, and the plays are
  * kept to send once the server is reachable again.
  *
- * In the car, Android Auto browses it (see [Library]): Downloaded albums, and
- * with the server in reach Smart Picks and Random albums. A downloaded album
+ * In the car, Android Auto browses it (see [Library]): Random albums and Smart
+ * Picks (kept, shown at once, AutoShelves.kt), then Downloaded albums. A downloaded album
  * plays from the phone; a server album is played on "This phone" through the
  * server, like everywhere else, so the queue and history stay the server's.
  *
@@ -130,9 +131,6 @@ class PhonePlayerService : MediaLibraryService() {
 
         // Android Auto's tree.
         private const val ROOT = "root"
-        private const val DOWNLOADS = "downloads"
-        private const val PICKS = "picks"
-        private const val RANDOM = "random"
         private const val LOCAL = "dl:"     // a downloaded album: dl:<album id>
         private const val SERVER = "sv:"    // a library album: sv:<album id>
 
@@ -455,7 +453,7 @@ class PhonePlayerService : MediaLibraryService() {
         session = null
         reports.shutdown()
         browse.shutdownNow()
-        covers.shutdownNow()
+        if (shelvesMade.isInitialized()) shelves.close()
         super.onDestroy()
     }
 
@@ -1179,7 +1177,7 @@ class PhonePlayerService : MediaLibraryService() {
         override fun onGetLibraryRoot(
             session: MediaLibrarySession, browser: MediaSession.ControllerInfo, params: LibraryParams?
         ): ListenableFuture<LibraryResult<MediaItem>> =
-            Futures.immediateFuture(LibraryResult.ofItem(folder(ROOT, "Mandarin"), params))
+            Futures.immediateFuture(LibraryResult.ofItem(folder(ROOT, "Mandarin"), params)).also { shelves.warm() }   // read as the car connects (item 533)
 
         override fun onGetChildren(
             session: MediaLibrarySession, browser: MediaSession.ControllerInfo, parentId: String,
@@ -1256,45 +1254,17 @@ class PhonePlayerService : MediaLibraryService() {
         }
     }
 
-    /** One level of the tree. Runs off the main thread (it may ask the server). */
+    /** One level of the tree, Random albums first (item 533, core AutoShelf). Runs off the main thread (it may ask the server). */
     private fun children(parentId: String): List<MediaItem> = when (parentId) {
-        ROOT -> buildList {
-            add(folder(DOWNLOADS, "Downloaded albums"))
-            if (Store.client(this@PhonePlayerService) != null && !Store.offlineMode(this@PhonePlayerService)) {
-                add(folder(PICKS, "Smart Picks"))
-                add(folder(RANDOM, "Random albums"))
-            }
-        }
-        DOWNLOADS -> DownloadStore.albums(this).filter { it.first.state == "done" }.map { (a, dir) ->
+        ROOT -> AutoShelf.root(Store.client(this) != null && !Store.offlineMode(this)).map { (id, title) -> folder(id, title) }
+        AutoShelf.DOWNLOADS -> DownloadStore.albums(this).filter { it.first.state == "done" }.map { (a, dir) ->
             album(LOCAL + a.id, a.title, a.artist, coverBytes(File(dir, "cover.jpg")))
         }
-        PICKS -> serverAlbums("/api/smart-picks", "picks") { o ->
-            Triple(o.optInt("offset"), o.optString("album"), o.optString("artist")) to o.optString("image_key")
-        }
-        RANDOM -> serverAlbums("/api/random-albums?count=20", "albums") { o ->
-            Triple(o.optInt("offset"), o.optString("title"), o.optString("subtitle")) to o.optString("image_key")
-        }
+        AutoShelf.PICKS, AutoShelf.RANDOM -> shelves.children(parentId)   // kept, shown at once; read again behind (AutoShelves.kt)
         else -> emptyList()
     }
-
-    private fun serverAlbums(
-        path: String, key: String, read: (JSONObject) -> Pair<Triple<Int, String, String>, String>
-    ): List<MediaItem> {
-        val client = Store.client(this) ?: return emptyList()
-        val a = client.getJson(path, 10_000).optJSONArray(key) ?: return emptyList()
-        val rows = (0 until a.length()).map { read(a.getJSONObject(it)) }
-        // The covers four at a time, and no more than eight seconds for all of
-        // them (one after another, twenty took the car's menu a long while).
-        val jobs = rows.map { (_, imageKey) ->
-            java.util.concurrent.Callable { if (imageKey.isNotEmpty()) runCatching { client.bytes(client.imageUrl(imageKey, 300)) }.getOrNull() else null }
-        }
-        val got = runCatching { covers.invokeAll(jobs, 8, java.util.concurrent.TimeUnit.SECONDS) }.getOrDefault(emptyList())
-        return rows.mapIndexed { i, (names, _) ->
-            val art = got.getOrNull(i)?.let { f -> if (f.isCancelled) null else runCatching { f.get() }.getOrNull() }
-            album(SERVER + names.first, names.second, names.third, art)
-        }
-    }
-    private val covers = Executors.newFixedThreadPool(4)
+    private val shelvesMade = lazy { AutoShelves(this, { a, art -> album(SERVER + a.offset, a.title, a.artist, art) }) { id -> main.post { session?.notifyChildrenChanged(id, Int.MAX_VALUE, null) } } }
+    private val shelves by shelvesMade
 
     private fun folder(id: String, title: String): MediaItem = MediaItem.Builder()
         .setMediaId(id)

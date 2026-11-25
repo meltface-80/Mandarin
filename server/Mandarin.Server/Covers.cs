@@ -214,11 +214,11 @@ internal static partial class Covers
             {
                 var info = new FileInfo(artPath);
                 if (info.Exists && info.Length <= MaxSource) return await File.ReadAllBytesAsync(artPath);
-                if (info.Exists) return null; if (!Directory.Exists(Path.GetDirectoryName(artPath))) sure = false;   // its folder gone: a drive away, not a cover gone
+                if (info.Exists) return null; if (Mandarin.Server.Services.CoverMend.Asked(al) || !Directory.Exists(Path.GetDirectoryName(artPath))) sure = false;   // its folder gone: a drive away; a streamed album's file gone: fetched again (item 530)
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { /* moved: try embedded */ }
         }
-        foreach (var path in tracks.Where(t => !t.Contains("://", StringComparison.Ordinal)))   // a streamed track has no file to look in: none (item 526)
+        foreach (var path in tracks)
         {
             try
             {
