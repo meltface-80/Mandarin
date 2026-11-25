@@ -3,7 +3,8 @@
  * The page's side of Mandarin's one log (items 389, 425), in a browser:
  *   - an error the page throws and a promise it refuses, caught by no one, are sent to the server and kept in the one
  *     log, <data>/Logs/Mandarin_log.txt, as "[web <the browser's name>]" (app/page-errors.js); the same error over and
- *     over is kept once;
+ *     over is kept once; an error whose stack doesn't say what it was (Safari's: only where, item 538) is kept with its
+ *     name and message before the stack;
  *   - no Logs in Settings → Setup: the log is read where it is kept (on Mandarin OS, the shared folder's Logs).
  */
 const ports = require("./ports");
@@ -23,6 +24,12 @@ const THROW = `(async () => {
   const until = async (f, ms = 20000) => { const t0 = Date.now(); for (;;) { const v = f(); if (v) return v; if (Date.now() - t0 > ms) return null; await sleep(30); } };
   if (!(await until(() => document.querySelector("#home-view .album")))) return "no home";
   for (let i = 0; i < 5; i++) setTimeout(() => { throw new Error("thrown on purpose"); }, 0);
+  // As Safari's: the stack only where it was thrown, its name and message left out.
+  setTimeout(() => {
+    const e = new ReferenceError("Cannot access uninitialized variable.");
+    Object.defineProperty(e, "stack", { value: "paintSize@http://box/app.js:6619:23\\nglobal code@http://box/app.js:6688:12" });
+    throw e;
+  }, 0);
   Promise.reject(new Error("refused on purpose"));
   await sleep(300);
   window.__sendPageErrors();
@@ -60,6 +67,7 @@ test("the page's errors in the one log, and no Logs in Settings", { skip, timeou
       assert.match(web, /UTC {2}ERROR {2}\[web [^\]]*Chrom[^\]]*\] \[page\] Error: thrown on purpose/, web);
       assert.match(web, /\[page\] a promise refused with no one to hear it: Error: refused on purpose/, web);
       assert.equal((web.match(/thrown on purpose/g) || []).length, 1, "the same error kept once: " + web);
+      assert.match(web, /\[page\] ReferenceError: Cannot access uninitialized variable\.\n[^\n]*paintSize@http:\/\/box\/app\.js:6619:23/, "Safari's error with what it was: " + web);
 
       const r = await page.eval(SETUP);
       assert.ok(!r.why, r.why);

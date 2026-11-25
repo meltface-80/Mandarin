@@ -53,6 +53,15 @@ const rules = {
   }
 };
 
+// A function declared inside a block, in a page a browser runs (item 538). Old Safari (iOS 16, an iPad still in use)
+// mishandles one in a top-level block that reads the block's let or const: "Cannot access uninitialized variable",
+// thrown as the page started, and with the page's parts joined into one script, nothing after it ran (the side menu,
+// search, the mini player, Random Album and every album's page). A const holding the function says the same everywhere.
+const browserPages = {
+  files: ["public/**/*.js", "sq-tool/sqtool/web/**/*.js", "os/mkosi.extra/usr/lib/mandarin-os/system-page/*.js"],
+  rules: { "no-inner-declarations": ["error", "functions", { blockScopedFunctions: "disallow" }] }
+};
+
 // The page's script, carved into parts joined into one (docs/specs/page-modules.md): what a part
 // declares at its top, the others read. ESLint reads each part alone, so it is told every part's
 // names; tools/quality/page-names.js holds the join itself (no name twice, none the browser's, each
@@ -74,5 +83,6 @@ module.exports = [
   osPage,
   shared,
   rules,
+  browserPages,
   parts
 ];
