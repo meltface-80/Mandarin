@@ -67,6 +67,7 @@ internal static class CoverMend
         {
             try
             {
+                await ArtFolder();
                 var rows = Rows();
                 var rehashed = await Rehash(rows);
                 var gone = rows.Where(r => !File.Exists(r.Path)).Select(r => r.Key).ToList();
@@ -130,6 +131,7 @@ internal static class CoverMend
         int done = 0, failed = 0, since = 0;
         try
         {
+            await ArtFolder();
             while (Queue.TryDequeue(out var key))
             {
                 Waiting.TryRemove(key, out _);
@@ -156,6 +158,16 @@ internal static class CoverMend
             // Asked for while the last was ending: its turn now.
             if (!Queue.IsEmpty && Interlocked.CompareExchange(ref running, 1, 0) == 0) _ = Task.Run(Work);
         }
+    }
+
+    /*
+     * The drawn covers' folder set (Images.Use) before any is let go (item 535): asked as the server starts (Jobs.cs's
+     * AfterScan), this ran before it was, and the stand-ins drawn under an album's old key were left, the restore test
+     * (test/qobuz-covers-restored.test.js) failing now and then. Waited for as Covers.Ahead waits, a minute at most.
+     */
+    private static async Task ArtFolder()
+    {
+        for (var i = 0; i < 240 && Images.ArtDir.Length == 0; i++) await Task.Delay(250);
     }
 
     private static long? AlbumId(string key)
