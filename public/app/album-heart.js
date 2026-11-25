@@ -34,9 +34,26 @@ function buildAlbumHeart(album, page) {
   return b;
 }
 
-// The album added to its service's favourites (by the + or ⋯'s Add to): the heart in the +'s place, and ⋯ says Remove from.
+// Why a streamed album is in the library (album-detail.js's note): a favourite or a purchase there and since when, or
+// only played; and when it comes out, if not yet.
+function serviceWhyText(w) {
+  const when = w.since ? " since " + new Date(w.since).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
+  let text = w.kept === "purchase" ? "In your library as a " + w.name + " purchase" + when
+    : w.kept ? "In your library as a " + w.name + " favourite" + when
+    : "Played from " + w.name + " — not in your favourites";
+  if (w.releases) text += " · not out until " + formatReleaseDate(w.releases);
+  return text;
+}
+
+// The album added to its service's favourites (by the + or ⋯'s Add to): the heart in the +'s place, ⋯ says Remove from,
+// and the note under the artists says it is a favourite from now (item 540: it went on saying "not in your favourites").
 function serviceFavourited(a) {
   a.service_favourite = true;
+  if (a.service_why && !a.service_why.kept) {
+    a.service_why = Object.assign({}, a.service_why, { kept: "favourite", since: Date.now() });
+    const note = document.getElementById("modal-why-note");
+    if (note) note.textContent = serviceWhyText(a.service_why);
+  }
   const add = modalActs.querySelector('[data-parity="album.service-add"]');
   if (add && albumHeartNow) add.replaceWith(albumHeartNow());
   const item = modalActs.querySelector('[data-parity="album.service-favourite"]');

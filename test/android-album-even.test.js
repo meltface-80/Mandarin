@@ -19,6 +19,8 @@ test("the row: the heart or +, Play Now, Queue, ⋯", () => {
   assert.ok(order.every(i => i > 0), "each on the row: " + order);
   assert.deepEqual([...order].sort((a, b) => a - b), order, "in that order");
   assert.match(s, /onAdd = \{ setService\(a, true\) \}/, "the + adds the album to the service's favourites");
+  // Item 540: added, the note under the artists says so (it went on saying "not in your favourites").
+  assert.match(s, /if \(ok && on\) album = album\?\.let \{ al -> al\.copy\(serviceWhy = al\.serviceWhy\?\.added\(/, "the note follows");
 });
 
 test("the title and the artists centred; a tablet's head the phone's", () => {

@@ -26,4 +26,12 @@ class AlbumHeartTest {
         assertEquals("Tidal", AlbumHeart.serviceName("tidal"))
         assertEquals(null, AlbumHeart.serviceName("local"))
     }
+
+    @Test fun `added to the favourites there, the note says so from now, a purchase stays one`() {
+        // Item 540: the + turned to the heart, but the note went on saying "Played from Qobuz — not in your favourites".
+        val played = ServiceWhy("Qobuz", kept = null, since = null, releases = null)
+        assertEquals(ServiceWhy("Qobuz", kept = "favourite", since = 1234L, releases = null), played.added(1234L))
+        val bought = ServiceWhy("Qobuz", kept = "purchase", since = 99L, releases = null)
+        assertEquals(bought, bought.added(1234L))
+    }
 }
