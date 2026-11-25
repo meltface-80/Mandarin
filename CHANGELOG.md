@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed - Random albums is one set: Home's row shows the first albums of the Random albums screen, in the same order, on the page, in the app and in Android Auto. It changes only when you tap Refresh on the Random albums screen (Home then shows the new set), after 24 hours, or every ten minutes while Android Auto is in use; never on its own when you go back to Home. Home's row holds as many albums as the screen shows on a phone (24)
+
 ## v1.3.7
 
 Fixes for Android Auto, the app, Qobuz covers and Mandarin OS updates; iBroadcast removed.

@@ -232,6 +232,8 @@ internal static partial class Library
         var fvalue = Names.JsTrim(Q(ctx, "filter_value") ?? "");
         bool filtered = ftype.Length > 0 && fvalue.Length > 0 && ftype is "genre" or "tag" or "decade";
         long? seed = Q(ctx, "seed") is { } sq ? PInt(sq) : null;
+        // Unfiltered and with no seed of its own: the one set Home's row, the wall and Android Auto share (item 537).
+        if (seed == null && !filtered) seed = RandomSet.Seed(RandomSet.Asked(Q(ctx, "refresh")));
         List<Album> pool = s.Shown;
         if (filtered)
         {

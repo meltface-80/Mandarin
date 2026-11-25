@@ -52,12 +52,13 @@ internal class AutoShelves(
 
     private fun refresh(shelf: String) {
         if (!reading.add(shelf)) return
-        pool.execute { try { if (read(shelf) != null) changed(shelf) } finally { reading.remove(shelf) } }
+        // Read again behind the car: Random albums a new set (item 537), so it turns over without a tap while driving.
+        pool.execute { try { if (read(shelf, refresh = true) != null) changed(shelf) } finally { reading.remove(shelf) } }
     }
 
     /* The shelf read from the server, kept here and on disk; null where it couldn't be. */
-    private fun read(shelf: String): List<MediaItem>? {
-        val albums = ask(shelf) ?: return null
+    private fun read(shelf: String, refresh: Boolean = false): List<MediaItem>? {
+        val albums = ask(shelf, refresh) ?: return null
         val art = coversOf(albums)
         val items = albums.mapIndexed { i, a -> item(a, art[i]) }
         val now = System.currentTimeMillis()
@@ -67,12 +68,12 @@ internal class AutoShelves(
     }
 
     /* The server asked for [shelf], its way looked at first (away: the phone's own Tailscale up), three tries. */
-    private fun ask(shelf: String): List<AutoShelf.Album>? {
+    private fun ask(shelf: String, refresh: Boolean): List<AutoShelf.Album>? {
         for (attempt in 0 until 3) {
             Away.awaitWay(context)
             if (Store.isAway(context) && Store.viaEngine(context) && !TailscaleEngine.alive()) Away.revive(context, 20_000)
             val client = Store.client(context) ?: return null
-            val got = runCatching { AutoShelf.parse(shelf, client.getJson(AutoShelf.path(shelf), 10_000)) }
+            val got = runCatching { AutoShelf.parse(shelf, client.getJson(AutoShelf.path(shelf, refresh), 10_000)) }
             got.getOrNull()?.let { return it }
             Log.i(TAG, "$shelf for the car: ${got.exceptionOrNull()?.message} (try ${attempt + 1} of 3)")
             Thread.sleep(2_000L * (attempt + 1))
