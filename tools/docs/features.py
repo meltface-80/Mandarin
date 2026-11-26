@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# (id, emoji, title, new in v1.3.7, what it is, how to set it up and use it)
+# (id, emoji, title, new in v1.3.8, what it is, how to set it up and use it)
 FEATURES = [
     # ---- Home and finding music
     ("home", "🏠", "Home", False,
@@ -46,13 +46,14 @@ FEATURES = [
      "Albums you haven't played in six months. The row stays hidden until Mandarin has six months of "
      "your listening.",
      "A Home row; tap its title for all of them. Move or hide it in **Settings → Setup → Home Screen**."),
-    ("library", "📚", "Library", False,
+    ("library", "📚", "Library", True,
      "Every album, sorted by name, artist, release date, date added, plays, last played or random, "
      "and narrowed by genre, decade, format, sample rate, bit depth or first letter.",
      "Tap the **Library** row's title on Home, or **Library** in a phone's or tablet's row. **Sort** and "
      "**Focus** are in the top bar (at the top right on a phone or tablet); Focus also "
      "has *Added in the last* and *Listening* (never played, not in 6 or 12 months). "
-     "**☰ → Random albums** opens a shuffled wall."),
+     "**☰ → Random albums** opens a shuffled wall, the same albums as Home's Random albums row: new only when you "
+     "tap its **Refresh**, after 24 hours, or every ten minutes while Android Auto is in use."),
     ("shelf", "🗄️", "Shelf", False,
      "A record shop's shelf: your albums' spines in a 3D row, narrowed by genre, artist, year, "
      "type, format or favourites, put in order, or spun to land anywhere.",
@@ -74,10 +75,11 @@ FEATURES = [
      "and type. Signed in "
      "to Qobuz or Tidal (Settings → Services), the service's artists and albums follow the library's, "
      "from the Library wall's filter too; tap a cover for the album's page, an artist for their page."),
-    ("album", "💿", "Album pages", False,
+    ("album", "💿", "Album pages", True,
      "Tracks and year, write-ups from Wikipedia and Qobuz, Pitchfork's score, and every version of the album "
      "(a remaster, a copy on Qobuz or Tidal) as one album.",
-     "Tap any album. **Play Now** and **Queue** are on the page; **⋯** has Play Next, Shuffle, Radio, "
+     "Tap any album. Its title and artists are centred; the row under them is the heart, **Play Now**, **Queue** "
+     "and **⋯**, which has Play Next, Shuffle, Radio, "
      "Listen later, Share card, Make this the main version, Edit album and (in the Android app) Download. "
      "On a phone, **Tracks**, **Credits**, **About** and **Versions** are tabs, held at the top as the page "
      "scrolls; Versions lists each version with its edition, rate and year, and where it is from (*Your files*, "
@@ -284,9 +286,10 @@ FEATURES = [
      "you own.",
      "Open **☰ → Pitchfork**."),
     # ---- Your collections
-    ("favourites", "❤️", "Favourites", False,
+    ("favourites", "❤️", "Favourites", True,
      "A heart on every album. Hearted albums gather on a Home row.",
-     "Tap the heart on an album's page. Tap the **Favourites** row's title for all of them."),
+     "Tap the heart, first on the row on an album's page. Tap the **Favourites** row's title for all of them. "
+     "A Qobuz or Tidal album not in your favourites there has a **+** in its place: add it there first."),
     ("later", "🕒", "Listen later", False,
      "Albums put aside to play another time, on a Home row and a screen of their own. Each comes off "
      "by itself once every track has been played.",
@@ -305,7 +308,7 @@ FEATURES = [
      "in **Settings → Setup → Wall Display**; off, it is off entirely. Tap the screen for its "
      "controls; **Shelf ›** opens Shelf."),
     # ---- The Android app
-    ("android", "📱", "The Android app", True,
+    ("android", "📱", "The Android app", False,
      "Mandarin's interface drawn natively by the app, which finds the server home or away and asks again when it's "
      "back; lock-screen controls, volume keys, a widget, Android Auto, its updates.",
      "Download it from [Downloads](#downloads) and install it (Android 8.0 or newer). Enter the port; it "
@@ -416,12 +419,12 @@ FEATURES = [
      "date and name), with their edits, favourites and plays. **Before a restore.** The copy of the "
      "database Mandarin keeps before each restore (and Mandarin OS before it switches builds) is listed "
      "with the backups and restored the same way; it holds the database only, no settings."),
-    ("qobuz", "🎼", "Qobuz", False,
+    ("qobuz", "🎼", "Qobuz", True,
      "Sign in with your Qobuz subscription: your favourites and purchases become albums here, and "
      "the Qobuz browser plays anything in the catalogue, streamed through the server.",
      "**Settings → Services → Qobuz**: sign in. Then **☰ → Qobuz** to search and play; **+** on a cover "
      "adds an album to your Qobuz favourites (a **✓** once added) and so to the library, as does "
-     "**⋯ → Add to Qobuz favourites** on its page. A Qobuz track is upsampled, or made DSD, as your own files are, "
+     "the **+** before **Play Now** on its page, or **⋯ → Add to Qobuz favourites**; once added, the heart takes the +'s place. A Qobuz track is upsampled, or made DSD, as your own files are, "
      "by each device's **Sound** settings. Details under [Qobuz](#qobuz)."),
     ("tidal", "🎵", "Tidal", False,
      "Sign in with your Tidal subscription on tidal.com: your favourite albums become albums here, "
