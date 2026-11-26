@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -100,7 +101,8 @@ internal fun CentredFacts(a: Album, extras: AlbumExtras?) {
 
 /**
  * The head (item 349): the sleeve centred on top ([badges] on it), the date, rate and length centred under it, the title
- * across the page in Young Serif, the artists (a tap: their page) or a classical album's composers, and the notes.
+ * across the page in Young Serif, the artists (a tap: their page) or a classical album's composers, and the notes; all of
+ * it centred (item 539), on a phone and in a tablet's left column alike.
  */
 @Composable
 internal fun PhoneHead(a: Album, cover: ImageBitmap?, width: Dp, extras: AlbumExtras?, onPage: (String, String?) -> Unit,
@@ -109,10 +111,10 @@ internal fun PhoneHead(a: Album, cover: ImageBitmap?, width: Dp, extras: AlbumEx
     Column(Modifier.fillMaxWidth()) {
         CentredCover(cover, a, width, badges)
         CentredFacts(a, extras)
-        Text(a.album.baseTitle ?: a.album.title, Modifier.parity("album.title").padding(top = 10.dp), fontFamily = youngSerif, fontSize = 30.sp, lineHeight = 34.sp,
-            color = paletteColor(Palette.MODAL_TEXT), maxLines = 3, overflow = TextOverflow.Ellipsis)
+        Text(a.album.baseTitle ?: a.album.title, Modifier.parity("album.title").fillMaxWidth().padding(top = 10.dp), fontFamily = youngSerif, fontSize = 30.sp, lineHeight = 34.sp,
+            color = paletteColor(Palette.MODAL_TEXT), maxLines = 3, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
         if (a.composers.isNotEmpty()) ComposerLines(a, onPage)
-        else Row(Modifier.padding(top = 6.dp)) {
+        else Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.Center) {
             (a.artists.ifEmpty { listOf(a.album.subtitle) }).forEachIndexed { i, name ->
                 if (i > 0) Text(" · ", Modifier.parity("album.artist"), color = dim, fontSize = 17.sp)
                 Text(name, Modifier.parity("album.artist", Contract.label("album.artist", 0, name)).clickable { onPage("artist", if (i == 0) ArtistAct.of(name, a.album.artistId) else name) },

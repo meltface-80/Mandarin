@@ -135,7 +135,9 @@ document.addEventListener("keydown", (e) => {
   let dx = 0, dy = 0;
 
   const place = () => { if (panel) panel.style.transform = (dx || dy) ? "translate(" + dx + "px," + dy + "px)" : ""; };
-  function paintSize() {
+  // A const, not a function declared in this block: old Safari (iOS 16) threw "Cannot access uninitialized variable"
+  // from one here as the page started, and nothing of the page after it ran (item 538).
+  const paintSize = () => {
     const on = reduced && !!(large && large.matches) && modal.classList.contains("np-mode");
     if (modal.classList.contains("np-reduced") !== on) modal.classList.toggle("np-reduced", on);
     if (!on) { dx = 0; dy = 0; place(); }
@@ -144,7 +146,7 @@ document.addEventListener("keydown", (e) => {
       sizeBtn.setAttribute("aria-label", on ? "Full size" : "Reduce size");
       sizeBtn.title = on ? "Full size" : "Reduce size";
     }
-  }
+  };
   if (sizeBtn) sizeBtn.addEventListener("click", () => {
     reduced = !modal.classList.contains("np-reduced");
     try { localStorage.setItem(SIZE_KEY, reduced ? "1" : "0"); }

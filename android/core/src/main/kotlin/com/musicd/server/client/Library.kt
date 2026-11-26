@@ -104,6 +104,9 @@ data class ServiceWhy(val name: String, val kept: String?, val since: Long?, val
         return t
     }
 
+    /** As it is once added to your favourites there at [at] (ms; item 540: the + or ⋯'s Add to): a favourite since then; a purchase stays one. */
+    fun added(at: Long): ServiceWhy = if (kept == null) copy(kept = "favourite", since = at) else this
+
     companion object {
         fun parse(j: JSONObject): ServiceWhy {
             val k = j.opt("kept")

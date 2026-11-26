@@ -33,6 +33,12 @@ class AutoShelfTest {
         assertNull(AutoShelf.kept("""{"albums":[]}"""))
     }
 
+    @Test fun `Random albums read again for the car asks the server for a new set, Smart Picks as they are`() {
+        // Item 537: Random albums is one set kept by the server; the car, every ten minutes while in use, asks for a new one.
+        assertEquals("/api/random-albums?count=20&refresh=1", AutoShelf.path(AutoShelf.RANDOM, refresh = true))
+        assertEquals("/api/smart-picks", AutoShelf.path(AutoShelf.PICKS, refresh = true))
+    }
+
     @Test fun `a kept shelf read again once ten minutes old, or when the clock went back`() {
         val at = 1_000_000L
         assertFalse(AutoShelf.due(at, at + AutoShelf.REFRESH_MS))

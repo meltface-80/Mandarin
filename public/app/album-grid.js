@@ -146,12 +146,15 @@ function updateCountReadout(filteredTotal, hide) {
   }
 }
 
-async function loadRandom() {
+// The wall's Refresh asks the server for a new set (refresh: true); any other load reads the one kept, the set Home's
+// row shows the head of (item 537). A new set is shown on Home's row at once.
+async function loadRandom(opts) {
+  const refresh = !!(opts && opts.refresh === true);
   refreshBtn.disabled = true;
   albumCount = computeAlbumCount();
   renderSkeletons(albumCount);
   try {
-    const r = await fetch(`/api/random-albums?count=${albumCount}${filterQS()}`);
+    const r = await fetch(`/api/random-albums?count=${albumCount}${filterQS()}${refresh ? "&refresh=1" : ""}`);
     if (r.status === 503) {
       const j = await r.json().catch(() => ({}));
       setBanner(j.error || "Reading your music library…", true);
@@ -164,6 +167,7 @@ async function loadRandom() {
     const j = await r.json();
     renderAlbums(j.albums || []);
     updateCountReadout(j.filtered ? j.total : null);
+    if (refresh && !j.filtered && typeof loadHomeRandom === "function") loadHomeRandom();
   } catch (e) {
     setBanner(`Couldn't load albums: ${e.message}`, true);
     grid.innerHTML = "";

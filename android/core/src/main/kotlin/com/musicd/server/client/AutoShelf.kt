@@ -25,8 +25,12 @@ object AutoShelf {
     fun root(server: Boolean): List<Pair<String, String>> =
         (if (server) listOf(RANDOM to "Random albums", PICKS to "Smart Picks") else emptyList()) + (DOWNLOADS to "Downloaded albums")
 
-    /** Where the server answers [shelf]. */
-    fun path(shelf: String): String = if (shelf == RANDOM) "/api/random-albums?count=20" else "/api/smart-picks"
+    /**
+     * Where the server answers [shelf]. Random albums is the one set the server keeps (item 537): read again for the car
+     * ([refresh]: every [REFRESH_MS] while in use), it asks for a new one, so driving needs no tap.
+     */
+    fun path(shelf: String, refresh: Boolean = false): String =
+        if (shelf == RANDOM) "/api/random-albums?count=20" + (if (refresh) "&refresh=1" else "") else "/api/smart-picks"
 
     /** [shelf]'s albums in the server's answer [j] (Smart Picks: picks, album, artist; Random albums: albums, title, subtitle). */
     fun parse(shelf: String, j: JSONObject): List<Album> {

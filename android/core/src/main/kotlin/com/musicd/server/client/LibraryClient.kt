@@ -62,8 +62,12 @@ class LibraryClient(private val get: (String) -> JSONObject) {
     fun listenLater(count: Int? = null): AlbumRow = AlbumRow.parse(get("/api/listen-later" + (count?.let { "?count=$it" } ?: "")))
     fun history(count: Int): AlbumRow = AlbumRow.parse(get("/api/home/history?count=$count"))
     fun unplayed(months: Int, count: Int): Unplayed = Unplayed.parse(get("/api/home/unplayed?months=$months&count=$count"))
-    /** Random albums, [count] of them (the random wall; asked again to reshuffle). */
-    fun randomAlbums(count: Int): AlbumRow = AlbumRow.parse(get("/api/random-albums?count=$count"))
+    /**
+     * Random albums, [count] of them: the one set the server keeps (item 537), Home's row the head of the wall's, the same
+     * until [refresh] (the wall's Refresh) asks for a new one, or it is a day old.
+     */
+    fun randomAlbums(count: Int, refresh: Boolean = false): AlbumRow =
+        AlbumRow.parse(get("/api/random-albums?count=$count" + (if (refresh) "&refresh=1" else "")))
 
     /** An artist's biography, one of their albums naming them ([album]); null when there is none. */
     fun artistBio(artist: String, album: String): ArtistBio? = ArtistBio.parse(get("/api/artist-bio?artist=" + enc(artist) + "&album=" + enc(album)))

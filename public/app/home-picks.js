@@ -144,21 +144,23 @@ function serviceMenuItem(page) {
   const a = page && page.album;
   const name = a && SOURCE_LABEL[a.source];
   if (!a || !a.source || a.source === "local" || !a.service_id || typeof a.service_favourite !== "boolean") return [];
-  let on = a.service_favourite;
-  const label = () => on ? "Remove from " + name + " favourites" : "Add to " + name + " favourites";
+  // Read from the album each time: the + before Play Now adds it too (album-heart.js, item 539).
+  const label = () => a.service_favourite ? "Remove from " + name + " favourites" : "Add to " + name + " favourites";
   return [{ label: label(), key: "album.service-favourite", onClick: async (b) => {
     b.disabled = true;
     try {
+      const on = a.service_favourite;
       const r = await fetch("/api/" + a.source + "/" + (on ? "unfavorite" : "favorite"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ album_id: a.service_id }) });
       const s = await r.json().catch(() => ({}));
       if (!r.ok || s.error) throw new Error(s.error || "Couldn't change it");
-      on = !on; a.service_favourite = on; b.textContent = label();
-      showToast(on ? "Added to your " + name + " favourites" : "Removed from your " + name + " favourites");
+      a.service_favourite = !on; b.textContent = label();
+      if (!on) serviceFavourited(a);   // the + gives way to the heart
+      showToast(!on ? "Added to your " + name + " favourites" : "Removed from your " + name + " favourites");
       // Off the walls at once (v0.7.3): removed, the album is no longer in
       // the library, so its page closes and the wall under it is redrawn
       // without it; added, the walls take it in.
-      if (!on) closeModal();
-      if (window.__libraryChanged) window.__libraryChanged(on ? {} : { gone: a.offset });
+      if (on) closeModal();
+      if (window.__libraryChanged) window.__libraryChanged(!on ? {} : { gone: a.offset });
     } catch (e) { showToast(e.message, "error"); }
     finally { b.disabled = false; }
   } }];

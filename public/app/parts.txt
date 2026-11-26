@@ -17,6 +17,7 @@ app/home-layout.js
 app/home-render.js
 app/home-rows.js
 app/home-picks.js
+app/album-heart.js
 app/walls.js
 app/library-view-sync.js
 app/library-window.js

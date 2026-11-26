@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.3.8
+
+An even album page with a + to add Qobuz and Tidal albums, one Random albums set, and the page fixed on older iPads.
+
+- Changed - An album's page is even: title and artists centred; the heart, Play Now, Queue and ⋯ on one row
+- Changed - A Qobuz or Tidal album not in your favourites there has a + in the heart's place to add it
+- Fixed - Random albums is one set: Home's row matches the Random albums screen, new only on Refresh, after 24 hours, or every ten minutes in Android Auto
+- Fixed - The web page works on older iPads (iOS 16): the menu, Search, Artists, the mini player, Random Album and album pages
+- Fixed - An album added to your Qobuz or Tidal favourites says so under the artist at once
+
 ## v1.3.7
 
 Fixes for Android Auto, the app, Qobuz covers and Mandarin OS updates; iBroadcast removed.

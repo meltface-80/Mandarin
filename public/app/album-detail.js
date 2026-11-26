@@ -119,12 +119,7 @@ async function fetchAlbumDetail(album, opts) {
       }
       const anchor = document.getElementById("modal-names-note") || headEnd;
       anchor.parentNode.insertBefore(why, anchor.nextSibling);
-      const when = w.since ? " since " + new Date(w.since).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
-      let text = w.kept === "purchase" ? "In your library as a " + w.name + " purchase" + when
-        : w.kept ? "In your library as a " + w.name + " favourite" + when
-        : "Played from " + w.name + " — not in your favourites";
-      if (w.releases) text += " · not out until " + formatReleaseDate(w.releases);
-      why.textContent = text;
+      why.textContent = serviceWhyText(w);
     } else if (why) why.remove();
   }
 
@@ -190,6 +185,9 @@ async function fetchAlbumDetail(album, opts) {
   const ROW_ACTIONS = 2;
   modalActs.innerHTML = "";
   const available = order.filter(k => map.has(k));
+  // The heart first, before Play Now (item 539: the row even, ring to ring with ⋯ at its end); a streamed album not in
+  // your favourites there, a + in its place (album-heart.js).
+  if (available.length) modalActs.appendChild(buildAlbumHeart(album, j));
   let first = true;
   for (const k of available.slice(0, ROW_ACTIONS)) {
     const btn = document.createElement("button");
@@ -201,8 +199,6 @@ async function fetchAlbumDetail(album, opts) {
     modalActs.appendChild(btn);
     first = false;
   }
-  // The heart after Play Now and Queue (item 349), the same size as the ⋯ button after it.
-  modalActs.appendChild(buildFavButton(album, j.album, "album.favourite"));
   const overflow = available.slice(ROW_ACTIONS);
   if (overflow.length) {
     const more = buildOverflowMenu(

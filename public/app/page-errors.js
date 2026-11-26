@@ -26,7 +26,13 @@
     queue.push({ level: "ERROR", text: text + " (at " + location.pathname + location.hash + ")" });
     if (!timer) timer = setTimeout(send, 3000);
   };
-  const what = (e) => e && e.stack ? String(e.stack) : String(e && e.message ? e.message : e);
+  // Chrome's stack opens with the error's name and message; Safari's is only where it was thrown (item 538: an iPad's
+  // "Cannot access uninitialized variable" came into the log as a place alone), so it is said before the stack there.
+  const what = (e) => {
+    if (!e || !e.stack) return String(e && e.message ? e.message : e);
+    const stack = String(e.stack);
+    return e.message && stack.indexOf(String(e.message)) < 0 ? (e.name || "Error") + ": " + e.message + "\n" + stack : stack;
+  };
   window.addEventListener("error", (ev) => {
     if (!ev) return;
     // A picture or a script that didn't load is the network's, said where it is shown; only the page's own errors here.

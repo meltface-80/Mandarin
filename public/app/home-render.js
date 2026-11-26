@@ -129,11 +129,12 @@ if (topbarBack)    topbarBack.addEventListener("click", () => {
   if (window.__artistViewActive && window.__artistViewActive()) return;
   showHome();
 });
-if (topbarRefresh) topbarRefresh.addEventListener("click", () => loadRandom());
+if (topbarRefresh) topbarRefresh.addEventListener("click", () => loadRandom({ refresh: true }));
 
 // Home's "Not played" row is reused within this TTL instead of being rebuilt
-// on every visit — see showHome. Random albums turns over on every visit
-// (its isFresh is always false): a new handful each time you come back.
+// on every visit — see showHome. Random albums is read on every visit (its
+// isFresh is always false): the server's one set, the same until the wall's
+// Refresh or 24 hours (item 537).
 const HOME_ROWS_TTL_MS = 5 * 60 * 1000;
 let homeRowsLoadedAt = 0;
 
@@ -328,7 +329,9 @@ async function loadHomeUnplayed() {
   }
 }
 
-// Random-albums row (reuses /api/random-albums, no filter → full library).
+// Random-albums row (reuses /api/random-albums, no filter → full library): the server's one set (item 537), the
+// first albums of the Random albums wall in its order, as many as a phone's wall shows; new only on the wall's
+// Refresh, or after 24 hours.
 // Reloaded when the Home rows go stale (see showHome's TTL); tapping the
 // header opens the full random wall (same as the hamburger "Random albums").
 // One renderer for the plain album carousels (Random, Library) — same tiles,
@@ -351,7 +354,7 @@ async function loadHomeRandom() {
   if (!homeRandom) return;
   if (!rowHasContent(homeRandom)) homeRandom.innerHTML = emptyRow("Loading…");
   try {
-    const r = await fetch("/api/random-albums?count=30");
+    const r = await fetch("/api/random-albums?count=" + PHONE_WALL_COUNT);
     if (r.status === 503) {
       if (!rowHasContent(homeRandom)) homeRandom.innerHTML = emptyRow("Reading your music library…");
       homeRowsLoadedAt = 0;   // retry on the next Home visit
