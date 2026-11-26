@@ -1,8 +1,8 @@
 {
-  "version": "1.3.7",
-  "code": 386,
+  "version": "1.3.8",
+  "code": 387,
   "url": "https://github.com/meltface-80/Mandarin/raw/main/dist/mandarin-android.apk",
-  "sha256": "9113b9048e1abcf53ee9057dcd5651d648b8d3ca22413ed280701c11831f18bd",
-  "file": "Mandarin-Android-1.3.7.apk",
-  "notes": "• Changed - Android Auto's top row: Random albums, Smart Picks, Downloaded albums\n• Changed - The app's Home rows sit closer together\n• Removed - iBroadcast: experimental and not working as required, so fully removed rather than patched\n• Fixed - Android Auto shows Random albums and Smart Picks as soon as the car connects\n• Fixed - The app's Home rows no longer shift as you scroll one sideways\n• Fixed - The app's Settings no longer opens with its heading too low\n• Fixed - Qobuz and Tidal covers come back after restoring a backup on a new install\n• Fixed - Mandarin OS 0.1.16 starts the new version after an update"
+  "sha256": "aa386e52faf41e61e2c4f3df632a9c7727d0fa413f7f24c814c5d31462c0c004",
+  "file": "Mandarin-Android-1.3.8.apk",
+  "notes": "• Changed - An album's page is even: title and artists centred; the heart, Play Now, Queue and ⋯ on one row\n• Changed - A Qobuz or Tidal album not in your favourites there has a + in the heart's place to add it\n• Fixed - Random albums is one set: Home's row matches the Random albums screen, new only on Refresh, after 24 hours, or every ten minutes in Android Auto\n• Fixed - The web page works on older iPads (iOS 16): the menu, Search, Artists, the mini player, Random Album and album pages\n• Fixed - An album added to your Qobuz or Tidal favourites says so under the artist at once"
 }
