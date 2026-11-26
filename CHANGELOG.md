@@ -1,11 +1,14 @@
 # Changelog
 
-## Unreleased
+## v1.3.8
 
-- Fixed - A Qobuz or Tidal album added to your favourites from its page (the + or ⋯) says so under the artist at once: it went on saying "Played from Qobuz — not in your favourites" until the page was opened again
-- Changed - An album's page is even, on the page and in the app, on a phone and in the wide view: the title and artists centred under the cover, and the row the heart, Play Now, Queue and ⋯, with the heart and ⋯ at its two ends. A Qobuz or Tidal album not in your favourites there has a + in the heart's place: a tap adds it to your favourites there and the heart takes its place (hollow, red once liked in Mandarin). ⋯ keeps Add to and Remove from your Qobuz or Tidal favourites
-- Fixed - The web page on an older iPad (iOS 16): the side menu, Search, Artists, the mini player and Now playing, Random Album, and every album's page ("Cannot access uninitialized variable") did nothing. One line of the page, run as it started, is one old Safari gets wrong; it threw, and everything of the page after it was never set up. It is written the way every browser takes now, and a check keeps the page free of it. The page's errors in the log now say what they were on Safari too, not only where
-- Fixed - Random albums is one set: Home's row shows the first albums of the Random albums screen, in the same order, on the page, in the app and in Android Auto. It changes only when you tap Refresh on the Random albums screen (Home then shows the new set), after 24 hours, or every ten minutes while Android Auto is in use; never on its own when you go back to Home. Home's row holds as many albums as the screen shows on a phone (24)
+An even album page with a + to add Qobuz and Tidal albums, one Random albums set, and the page fixed on older iPads.
+
+- Changed - An album's page is even: title and artists centred; the heart, Play Now, Queue and ⋯ on one row
+- Changed - A Qobuz or Tidal album not in your favourites there has a + in the heart's place to add it
+- Fixed - Random albums is one set: Home's row matches the Random albums screen, new only on Refresh, after 24 hours, or every ten minutes in Android Auto
+- Fixed - The web page works on older iPads (iOS 16): the menu, Search, Artists, the mini player, Random Album and album pages
+- Fixed - An album added to your Qobuz or Tidal favourites says so under the artist at once
 
 ## v1.3.7
 
