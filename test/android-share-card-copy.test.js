@@ -43,3 +43,15 @@ test("the contract: Copy image the app's too, Share… the page's alone", () => 
   assert.equal(contract.share.only, "page");
   assert.ok(contract.share.why);
 });
+
+test("the card's Mandarin logo is the app's own, so it is drawn with the server off (item 542)", () => {
+  const sheet = read("ShareSheet.kt");
+  const load = sheet.slice(sheet.indexOf("suspend fun load()"), sheet.indexOf("private suspend fun paint("));
+  // Not fetched from the server (offline there is none): the app's copy of the page's duck tile.
+  assert.doesNotMatch(load, /icons\/duck-tile\.png/);
+  assert.match(load, /BitmapFactory\.decodeResource\(context\.resources, R\.drawable\.share_logo\)/);
+  const res = "android/app/src/main/res/drawable-nodpi/share_logo.png";
+  assert.ok(fs.existsSync(path.join(__dirname, "..", res)), res);
+  // The very picture the page's card draws, so the two cards match.
+  assert.deepStrictEqual(fs.readFileSync(path.join(__dirname, "..", res)), fs.readFileSync(path.join(__dirname, "..", "public/icons/duck-tile.png")));
+});
