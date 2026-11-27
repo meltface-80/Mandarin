@@ -184,7 +184,8 @@ internal class ShareState(private val title: String, private val artist: String,
                 // One of the phone's own albums has its cover on the phone; the server, which has never seen it, has none (item 197).
                 val cover = async { imageKey?.let { k -> if (ShareCard.phoneCover(k)) LocalMusic.load(context).let { Covers.phone(context, k, 800)?.asAndroidBitmap() }
                     else runCatching { c.bytes(c.imageUrl(k, 800)).let { BitmapFactory.decodeByteArray(it, 0, it.size) } }.getOrNull() } }
-                val logo = async { runCatching { c.bytes(c.address.baseUrl + "/icons/duck-tile.png").let { BitmapFactory.decodeByteArray(it, 0, it.size) } }.getOrNull() }
+                // The app's own copy of the page's duck tile: the server's is none to have offline (item 542).
+                val logo = async { runCatching { BitmapFactory.decodeResource(context.resources, R.drawable.share_logo) }.getOrNull() }
                 val first = (runCatching { lib.shareCard(title, artist, true) }.getOrNull() ?: CardFields.NONE).orRelease(release)
                 paint(painter, first, cover.await(), logo.await())
                 val later = full.await()?.orRelease(release) ?: return@withContext
