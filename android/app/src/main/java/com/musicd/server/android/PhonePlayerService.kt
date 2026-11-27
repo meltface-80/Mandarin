@@ -1357,7 +1357,7 @@ class PhonePlayerService : MediaLibraryService() {
     class OfflineItem(val trackId: Long?, val albumId: Int, val title: String, val artist: String,
                       val album: String, val imageKey: String?, val duration: Double,
                       /** The phone's own music: its album's key (LocalMusic). */
-                      val albumKey: String? = null)
+                      val albumKey: String? = null, val albumTrack: Int = -1)
 
     class OfflineState(val state: String, val index: Int, val position: Double, val duration: Double,
                        val shuffle: Boolean, val loop: String, val volume: Int, val muted: Boolean,
@@ -1379,7 +1379,7 @@ class PhonePlayerService : MediaLibraryService() {
                 m.mediaId.toLongOrNull(), x?.getInt(EXTRA_ALBUM, -1) ?: -1,
                 md.title?.toString() ?: "", md.artist?.toString() ?: "", md.albumTitle?.toString() ?: "",
                 x?.getString("image_key"), x?.getDouble("duration", 0.0) ?: 0.0,
-                x?.getString("album_key")
+                x?.getString("album_key"), x?.getInt("album_track", -1) ?: -1
             )
         }
         val state = when {

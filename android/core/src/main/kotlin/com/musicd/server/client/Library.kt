@@ -210,7 +210,9 @@ data class Album(
     val conductor: String? = null,
     val performers: List<String> = emptyList(),
     /** Its album's versions, the main first, this one among them (item 345); empty where it is the only one. */
-    val versions: List<AlbumVersion> = emptyList()
+    val versions: List<AlbumVersion> = emptyList(),
+    /** Its release date where its page carries one ("2011-09-30"): the phone's own album's, from its tags (item 541). */
+    val releaseDate: String? = null
 ) {
     /** Set out as works: at least one of them named (an album with none is the plain list). */
     val classical: Boolean get() = works.any { it.title != null }
@@ -233,7 +235,8 @@ data class Album(
                 composers = a.optJSONArray("composers").strings(),
                 conductor = a.str("conductor"),
                 performers = a.optJSONArray("performers").strings(),
-                versions = AlbumVersion.list(j.optJSONArray("versions"))
+                versions = AlbumVersion.list(j.optJSONArray("versions")),
+                releaseDate = a.str("release_date")
             )
         }
     }

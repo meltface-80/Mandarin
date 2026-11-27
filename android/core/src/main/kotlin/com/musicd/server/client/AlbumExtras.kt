@@ -73,6 +73,10 @@ object ReleaseDate {
     }
 }
 
+/** The album page's date: its extras' where they have one, else its own page's (the phone's own album's tags, item 541). */
+fun albumDate(extras: AlbumExtras?, album: Album, locale: Locale = Locale.getDefault()): String =
+    extras?.date(locale).orEmpty().ifEmpty { ReleaseDate.format(album.releaseDate, locale) }
+
 /** An album's length as its page writes it: 47:01, or 1:02:15 past the hour. */
 fun albumLength(tracks: List<Track>): String {
     val secs = tracks.sumOf { it.length }

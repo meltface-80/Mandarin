@@ -9,9 +9,12 @@ import org.json.JSONObject
  * the play and transport requests sent to its player. The library it plays from is the phone's ([PhoneShelf]).
  */
 
-/** A track on the phone's player: its album (a download's id, or the phone's own album's [albumKey]) and what it is. */
+/**
+ * A track on the phone's player: its album (a download's id, or the phone's own album's [albumKey]) and what it is; one of
+ * the phone's own, its place on its album ([albumTrack], from 0), which the album page knows it by (item 541).
+ */
 data class DeckItem(val trackId: Long?, val albumId: Int, val title: String, val artist: String, val album: String,
-                    val imageKey: String?, val duration: Double, val albumKey: String? = null)
+                    val imageKey: String?, val duration: Double, val albumKey: String? = null, val albumTrack: Int = -1)
 
 /** The phone's player as it is: [format] its track's (for the badge), [dsp] at work, [usb] the DAC's "rate/bits" through the USB driver. */
 data class DeckState(val state: String, val index: Int, val position: Double, val duration: Double, val shuffle: Boolean, val loop: String,
@@ -172,7 +175,7 @@ class PhoneRoom(private val zoneId: String, private val deck: Deck, private val 
             .put("image_key", cur.imageKey ?: (if (cur.albumId >= 0) "al-${cur.albumId}" else JSONObject.NULL))
             .put("length", (if (st.duration > 0) st.duration else cur.duration).toInt())
             .put("seek_position", st.position.toInt())
-            .put("track_id", cur.trackId ?: JSONObject.NULL)
+            .put("track_id", cur.trackId ?: (if (cur.albumKey != null && cur.albumTrack >= 0) -(cur.albumTrack + 1L) else JSONObject.NULL))
             .put("album_offset", if (cur.albumKey != null) "phone:${cur.albumKey}" else if (cur.albumId >= 0) cur.albumId else JSONObject.NULL)
             .put("format", PhoneFormat.badge(st.format, st.dsp, st.usb))
         val count = st?.items?.size ?: 0

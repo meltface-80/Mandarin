@@ -3,7 +3,6 @@ package com.musicd.server.android
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.util.Log
@@ -56,13 +55,13 @@ object LocalMusic {
         /** The album's tags from this file (kept in the index, so a re-read of an unchanged file costs nothing). */
         val album: String = "", val albumArtist: String = "", val year: Int? = null, val tagged: Boolean = false,
         /** Its tags couldn't be read: tried again on Rescan (not on every read of the folder). */
-        val failed: Boolean = false
+        val failed: Boolean = false, val date: String = ""
     )
 
     class Album(
         val key: String, val title: String, val artist: String, val year: Int?,
         val art: String?,   // file name under local-art/, or null
-        val tracks: List<Track>
+        val tracks: List<Track>, val date: String = ""   // its release date from the tags (core's TagDate, item 541)
     )
 
     @Volatile var albums: List<Album> = emptyList(); private set
@@ -218,9 +217,9 @@ object LocalMusic {
             for (t in al.tracks) ts.put(JSONObject().put("uri", t.uri).put("name", t.name).put("title", t.title).put("artist", t.artist)
                 .put("disc", t.disc).put("no", t.no).put("duration", t.duration).put("ext", t.ext).put("size", t.size).put("mtime", t.mtime)
                 .put("rate", t.rate).put("bits", t.bits)
-                .put("album", t.album).put("album_artist", t.albumArtist).put("year", t.year ?: JSONObject.NULL).put("tagged", t.tagged).put("failed", t.failed))
+                .put("album", t.album).put("album_artist", t.albumArtist).put("year", t.year ?: JSONObject.NULL).put("tagged", t.tagged).put("failed", t.failed).put("date", t.date))
             a.put(JSONObject().put("key", al.key).put("title", al.title).put("artist", al.artist).put("year", al.year ?: JSONObject.NULL)
-                .put("art", al.art ?: JSONObject.NULL).put("tracks", ts))
+                .put("art", al.art ?: JSONObject.NULL).put("tracks", ts).put("date", al.date))
         }
         runCatching { indexFile(c).writeText(JSONObject().put("scanned_at", scannedAt).put("albums", a).toString()) }
     }
@@ -229,13 +228,12 @@ object LocalMusic {
         val o = a.getJSONObject(i)
         val ts = o.optJSONArray("tracks") ?: JSONArray()
         Album(o.getString("key"), o.optString("title"), o.optString("artist"), if (o.isNull("year")) null else o.optInt("year"),
-            if (o.isNull("art")) null else o.optString("art"),
-            (0 until ts.length()).map { k ->
+            if (o.isNull("art")) null else o.optString("art"), date = o.optString("date"), tracks = (0 until ts.length()).map { k ->
                 val t = ts.getJSONObject(k)
                 Track(t.getString("uri"), t.optString("name"), t.optString("title"), t.optString("artist"), t.optInt("disc", 1), t.optInt("no", 0),
                     t.optDouble("duration", 0.0), t.optString("ext"), t.optLong("size"), t.optLong("mtime"), t.optInt("rate"), t.optInt("bits"),
-                    t.optString("album"), t.optString("album_artist"), if (t.isNull("year")) null else t.optInt("year"), t.optBoolean("tagged", false),
-                    t.optBoolean("failed", false))
+                    t.optString("album"), t.optString("album_artist"), if (t.isNull("year")) null else t.optInt("year"), t.optBoolean("tagged", false) && t.has("date"),   // read before item 541 (no date): once more
+                    t.optBoolean("failed", false), t.optString("date"))
             })
     }
 
@@ -322,32 +320,10 @@ object LocalMusic {
                 val uri = DocumentsContract.buildDocumentUriUsingTree(tree, id)
                 val old = known[uri.toString()]
                 val same = old != null && old.size == size && old.mtime == mtime && old.tagged
-                val t = if (same && !(retry && old!!.failed)) old!! else read(c, uri, name, ext, size, mtime)
+                val t = if (same && !(retry && old!!.failed)) old!! else LocalTags.read(c, uri, name, ext, size, mtime)
                 out += t to docId
             }
         }
-    }
-
-    /** One file's tags. */
-    private fun read(c: Context, uri: Uri, name: String, ext: String, size: Long, mtime: Long): Track {
-        val r = MediaMetadataRetriever()
-        try {
-            r.setDataSource(c, uri)
-            val get = { k: Int -> r.extractMetadata(k)?.trim()?.takeIf { it.isNotEmpty() } }
-            val num = { s: String? -> s?.substringBefore('/')?.trim()?.toIntOrNull() ?: 0 }
-            val title = get(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: name.substringBeforeLast('.')
-            val artist = get(MediaMetadataRetriever.METADATA_KEY_ARTIST) ?: get(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST) ?: ""
-            val duration = (get(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000.0
-            val rate = if (Build.VERSION.SDK_INT >= 31) get(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE)?.toIntOrNull() ?: 0 else 0
-            val bits = if (Build.VERSION.SDK_INT >= 31) get(MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE)?.toIntOrNull() ?: 0 else 0
-            val year = (get(MediaMetadataRetriever.METADATA_KEY_YEAR) ?: get(MediaMetadataRetriever.METADATA_KEY_DATE))
-                ?.let { Regex("\\d{4}").find(it)?.value?.toIntOrNull() }
-            return Track(uri.toString(), name, title, artist, num(get(MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER)).coerceAtLeast(1),
-                num(get(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)), duration, ext, size, mtime, rate, bits,
-                get(MediaMetadataRetriever.METADATA_KEY_ALBUM) ?: "", get(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST) ?: "", year, true)
-        } catch (e: Exception) {
-            return Track(uri.toString(), name, name.substringBeforeLast('.'), "", 1, 0, 0.0, ext, size, mtime, 0, 0, "", "", null, true, failed = true)
-        } finally { runCatching { r.release() } }
     }
 
     /** The album each track belongs to (album artist and album, from the tags), with its cover. */
@@ -357,7 +333,7 @@ object LocalMusic {
         val byKey = LinkedHashMap<String, MutableList<Pair<Track, String>>>()
         val tagsOf = HashMap<String, TagsHolder>()
         // The album's tags travel with the track (read once, kept in the index); an untagged one is its folder's.
-        val held = found.map { (t, folderId) -> tagsOf.getOrPut(t.uri) { TagsHolder(t.album.ifEmpty { PhoneAlbumKeys.albumFolder(folderId).substringAfterLast('/').substringAfterLast(':') }, t.albumArtist, t.year) } }
+        val held = found.map { (t, folderId) -> tagsOf.getOrPut(t.uri) { TagsHolder(t.album.ifEmpty { PhoneAlbumKeys.albumFolder(folderId).substringAfterLast('/').substringAfterLast(':') }, t.albumArtist, t.year, t.date) } }
         // A folder is an album (item 279): the same tags in two folders are two albums.
         val keys = PhoneAlbumKeys.keys(found.mapIndexed { i, (t, folderId) -> PhoneAlbumKeys.Entry(held[i].albumArtist.ifEmpty { t.artist }, held[i].album, folderId) })
         found.forEachIndexed { i, tf -> byKey.getOrPut(keys[i]) { ArrayList() } += tf }
@@ -372,13 +348,13 @@ object LocalMusic {
             val artist = tags.albumArtist.ifEmpty { if (artists.size == 1) artists[0] else if (artists.size > 1) "Various Artists" else "" }
             val artName = cover(c, key, first, list.first().second, covers, artDir)
             artName?.let { keep += it }
-            out += Album(key, tags.album.ifEmpty { "Unknown album" }, artist, tags.year, artName, tracks)
+            out += Album(key, tags.album.ifEmpty { "Unknown album" }, artist, tags.year, artName, tracks, tags.date)
         }
         artDir.listFiles()?.forEach { if (it.name !in keep) it.delete() }
         return out.sortedBy { it.title.lowercase() }
     }
 
-    private class TagsHolder(val album: String, val albumArtist: String, val year: Int?)
+    private class TagsHolder(val album: String, val albumArtist: String, val year: Int?, val date: String)
 
     private fun keyOf(artist: String, album: String): String = PhoneAlbumKeys.hash(artist.lowercase().trim(), album.lowercase().trim())
 
@@ -414,7 +390,7 @@ object LocalMusic {
     fun mediaItems(c: Context, key: String): List<MediaItem> {
         val a = album(key) ?: return emptyList()
         val art = art(c, key)?.let { Uri.fromFile(it) }
-        return a.tracks.map { t ->
+        return a.tracks.mapIndexed { i, t ->
             MediaItem.Builder()
                 .setUri(Uri.parse(t.uri))
                 .setMediaId("phone:" + t.uri)
@@ -423,7 +399,7 @@ object LocalMusic {
                     .apply { art?.let { setArtworkUri(it) } }
                     .setExtras(Bundle().apply {
                         putInt(PhonePlayerService.EXTRA_ALBUM, -1)
-                        putString("album_key", a.key)
+                        putString("album_key", a.key); putInt("album_track", i)   // its place, as the album page numbers it (item 541)
                         putString("image_key", if (a.art != null) "phone-${a.key}" else null)
                         putDouble("duration", t.duration)
                         putString("ext", t.ext)

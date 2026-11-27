@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.musicd.server.client.Album
 import com.musicd.server.client.AlbumExtras
+import com.musicd.server.client.albumDate
 import com.musicd.server.client.AlbumVersion
 import com.musicd.server.client.ArtistAct
 import com.musicd.server.client.NavList
@@ -81,7 +82,7 @@ internal val ALBUM_TABS = listOf("tracks", "credits", "about", "versions")
 @Composable
 internal fun CentredFacts(a: Album, extras: AlbumExtras?) {
     val dim = MaterialTheme.colorScheme.onSurfaceVariant
-    val date = extras?.date().orEmpty()
+    val date = albumDate(extras, a)
     val length = albumLength(a.tracks)
     Row(Modifier.parity("album.facts").fillMaxWidth().padding(top = 18.dp), horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically) {

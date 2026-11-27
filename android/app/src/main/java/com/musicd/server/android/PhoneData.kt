@@ -32,5 +32,5 @@ internal object PhoneData {
 
     /** One of the phone's own albums, as core reads it. */
     fun phone(a: LocalMusic.Album) = PhoneAlbum(a.key, a.title, a.artist, a.year, a.art != null,
-        a.tracks.map { PhoneTrack(it.title, it.artist, it.duration, it.ext, it.rate, it.bits) })
+        a.tracks.map { PhoneTrack(it.title, it.artist, it.duration, it.ext, it.rate, it.bits) }, a.date)
 }
