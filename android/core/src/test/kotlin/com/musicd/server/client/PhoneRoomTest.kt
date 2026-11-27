@@ -35,7 +35,7 @@ class PhoneRoomTest {
     private val playing = DeckState("playing", 1, 42.0, 200.0, false, "disabled", 60, false, listOf(
         DeckItem(1, 7, "Blue Train", "John Coltrane", "Blue Train", "al-7", 643.0),
         DeckItem(2, 3, "Come Together", "The Beatles", "Abbey Road", null, 259.0),
-        DeckItem(null, -1, "One", "Me", "Home Tapes", null, 61.0, albumKey = "ab12"),
+        DeckItem(null, -1, "One", "Me", "Home Tapes", null, 61.0, albumKey = "ab12", albumTrack = 2),
     ), 9, format = "lossless", dsp = true)
     private val deck = FakeDeck(playing)
     private val answers = PhoneAnswers({ PhoneInfo("1.0.17", "owner", true) }, { shelf }, PhoneRoom("PHONE_1", deck) { shelf }, { shelf.all() },
@@ -67,6 +67,8 @@ class PhoneRoomTest {
         assertEquals("Abbey Road", client.getJson("/api/album/now-playing").getJSONObject("album").getString("title"))
         deck.st = playing.copy(index = 2)
         assertEquals("phone:ab12", client.getJson("/api/album/now-playing").getJSONObject("album").getString("offset"))
+        // One of the phone's own: its place on its album, as the album page numbers its tracks (-1, -2, …), so it is marked playing (item 541).
+        assertEquals(-3L, client.zoneState("PHONE_1").zone!!.nowPlaying?.trackId)
         deck.st = null
         assertTrue(client.getJson("/api/album/now-playing").isNull("album"))
     }

@@ -14,6 +14,9 @@ data class CardFields(val releaseRaw: String, val reviewText: String, val review
     /** What decides whether the card must be drawn again once the full answer comes. */
     val signature: String get() = listOf(releaseRaw, reviewText, reviewSource, score?.let(::num).orEmpty(), bestNew.toString()).joinToString("|")
 
+    /** With [raw] as its date where the answer had none: the phone's own album's from its tags, the server off or not knowing it (item 541). */
+    fun orRelease(raw: String?): CardFields = if (releaseRaw.isEmpty() && !raw.isNullOrEmpty()) copy(releaseRaw = raw) else this
+
     companion object {
         val NONE = CardFields("", "", "", null, false)
 

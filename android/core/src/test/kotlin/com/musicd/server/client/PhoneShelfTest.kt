@@ -90,6 +90,16 @@ class PhoneShelfTest {
         assertEquals(listOf("Me"), v.artists)
     }
 
+    @Test fun `an album's date offline, the phone's own from its tags, a download's year (item 541)`() {
+        val dated = PhoneShelf(listOf(ShelfAlbum(3, "Abbey Road", "The Beatles", 1969, null, 100, emptyList())),
+            PhoneMusic(listOf(PhoneAlbum("f1", "Metals", "Feist", 2011, true, emptyList(), "2011-09-30"))))
+        val lib = LibraryClient(ServerClient(ServerAddress("phone", 0), transport = LocalTransport { _, path, q, _ -> dated.get(path, q) ?: Answer.error(404, "not here") }))
+        assertEquals("30 September 2011", lib.albumExtras("Metals", "Feist").date(java.util.Locale.UK))
+        assertEquals("2011-09-30", lib.shareCard("metals", "feist", true).releaseRaw)
+        assertEquals("1969", lib.albumExtras("Abbey Road", "The Beatles").date(java.util.Locale.UK))
+        assertEquals("", lib.shareCard("Unknown", "Nobody", false).releaseRaw)
+    }
+
     @Test fun `every path it answers is listed, and only those`() {
         for (p in PhoneShelf.PATHS) assertTrue(p, shelf.get(p, mapOf("offset" to "7", "q" to "x", "artist" to "x")) != null)
         assertEquals(null, shelf.get("/api/zone-state", emptyMap()))

@@ -82,10 +82,11 @@ private const val COPY = "Copy image"
  * under it went with item 336.
  */
 @Composable
-internal fun ShareSheet(title: String, artist: String, imageKey: String?, reserve: Dp, client: () -> ServerClient?, onClose: () -> Unit) {
+internal fun ShareSheet(title: String, artist: String, imageKey: String?, reserve: Dp, client: () -> ServerClient?,
+                         release: String? = null, onClose: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val s = remember(title, artist) { ShareState(title, artist, imageKey, client, scope, context) }
+    val s = remember(title, artist) { ShareState(title, artist, imageKey, client, scope, context, release) }
     LaunchedEffect(title, artist) { s.load() }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         val window = (LocalView.current.parent as? DialogWindowProvider)?.window
@@ -161,7 +162,9 @@ private fun ShareButton(words: String, icon: Int, primary: Boolean, modifier: Mo
  * what each says for a moment after, what went wrong.
  */
 internal class ShareState(private val title: String, private val artist: String, private val imageKey: String?, private val client: () -> ServerClient?,
-                          private val scope: CoroutineScope, private val context: Context) {
+                          private val scope: CoroutineScope, private val context: Context,
+                          /** Its date where the answer has none: one of the phone's own albums', from its tags (item 541). */
+                          private val release: String? = null) {
     var card by mutableStateOf<Bitmap?>(null)
     var failed by mutableStateOf(false)
     var saved by mutableStateOf("Download")
@@ -182,9 +185,9 @@ internal class ShareState(private val title: String, private val artist: String,
                 val cover = async { imageKey?.let { k -> if (ShareCard.phoneCover(k)) LocalMusic.load(context).let { Covers.phone(context, k, 800)?.asAndroidBitmap() }
                     else runCatching { c.bytes(c.imageUrl(k, 800)).let { BitmapFactory.decodeByteArray(it, 0, it.size) } }.getOrNull() } }
                 val logo = async { runCatching { c.bytes(c.address.baseUrl + "/icons/duck-tile.png").let { BitmapFactory.decodeByteArray(it, 0, it.size) } }.getOrNull() }
-                val first = runCatching { lib.shareCard(title, artist, true) }.getOrNull() ?: CardFields.NONE
+                val first = (runCatching { lib.shareCard(title, artist, true) }.getOrNull() ?: CardFields.NONE).orRelease(release)
                 paint(painter, first, cover.await(), logo.await())
-                val later = full.await() ?: return@withContext
+                val later = full.await()?.orRelease(release) ?: return@withContext
                 if (later.signature != first.signature) paint(painter, later, cover.await(), logo.await())
             }
         } catch (e: Exception) {

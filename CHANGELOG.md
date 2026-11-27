@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed - The phone's own music, the server off: the playing track is marked on its album page, and the album's release date, read from its files' tags, is on the page and the share card
+
 ## v1.3.8
 
 An even album page with a + to add Qobuz and Tidal albums, one Random albums set, and the page fixed on older iPads.

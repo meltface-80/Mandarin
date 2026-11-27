@@ -76,7 +76,7 @@ internal class PhoneDeck(private val c: Context) : Deck {
     override fun command(c: Phone.Command) { PhonePlayerService.current?.offlineCommand(c) }
     override fun state(): DeckState? = PhonePlayerService.current?.offlineState()?.let { s ->
         DeckState(s.state, s.index, s.position, s.duration, s.shuffle, s.loop, s.volume, s.muted,
-            s.items.map { DeckItem(it.trackId, it.albumId, it.title, it.artist, it.album, it.imageKey, it.duration, it.albumKey) },
+            s.items.map { DeckItem(it.trackId, it.albumId, it.title, it.artist, it.album, it.imageKey, it.duration, it.albumKey, it.albumTrack) },
             s.revision, s.format, s.dsp, s.usb)
     }
 }

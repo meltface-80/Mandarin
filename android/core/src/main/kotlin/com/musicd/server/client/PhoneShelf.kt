@@ -20,8 +20,9 @@ data class ShelfAlbum(
 /** One of its tracks: the server's id, its title and length in seconds. */
 data class ShelfTrack(val id: Long, val title: String, val duration: Double)
 
-/** An album of the phone's own music (its key, its [hasArt] cover), and its tracks. */
-data class PhoneAlbum(val key: String, val title: String, val artist: String, val year: Int?, val hasArt: Boolean, val tracks: List<PhoneTrack>)
+/** An album of the phone's own music (its key, its [hasArt] cover), its tracks, and its release [date] as its tags give it ([TagDate], item 541). */
+data class PhoneAlbum(val key: String, val title: String, val artist: String, val year: Int?, val hasArt: Boolean, val tracks: List<PhoneTrack>,
+                      val date: String = "")
 
 /** One of its tracks: what its tags say, its length, its file's type, rate and depth. */
 data class PhoneTrack(val title: String, val artist: String, val duration: Double, val ext: String, val rate: Int, val bits: Int)
@@ -75,7 +76,7 @@ class PhoneShelf(private val downloads: List<ShelfAlbum>, private val music: Pho
             Answer.ok(JSONObject().put("artist", q["artist"] ?: "").put("primary", albums(downloads.filter { it.artist.lowercase().contains(name) })).put("featured", JSONArray()))
         }
         "/api/album" -> album(q["offset"] ?: "")
-        "/api/album/extras" -> Answer.ok(JSONObject())
+        "/api/album/extras" -> Answer.ok(extras(q["title"].orEmpty(), q["artist"].orEmpty()))
         else -> null
     }
 
@@ -108,6 +109,18 @@ class PhoneShelf(private val downloads: List<ShelfAlbum>, private val music: Pho
         }
         val a = download(offset.toIntOrNull() ?: -1) ?: return Answer.error(409, "That album isn't on this phone")
         return Answer.ok(page(a))
+    }
+
+    /**
+     * An album's extras: no review or score without the server, but its release date where the phone knows it — one of
+     * its own albums by its tags, a download by its year (item 541) — for the album page's date and the share card.
+     */
+    private fun extras(title: String, artist: String): JSONObject {
+        val same = { t: String, a: String -> t.equals(title, true) && a.equals(artist, true) }
+        val date = music.albums.firstOrNull { same(it.title, it.artist) }?.let { it.date.ifEmpty { it.year?.toString().orEmpty() } }
+            ?: downloads.firstOrNull { same(it.title, it.artist) }?.year?.toString().orEmpty()
+        if (date.isEmpty()) return JSONObject()
+        return JSONObject().put("year", date).apply { if (date.length > 4) put("release_date", date) }
     }
 
     private fun albums(list: List<ShelfAlbum>) = JSONArray().apply { list.forEach { put(json(it)) } }
@@ -148,7 +161,7 @@ class PhoneShelf(private val downloads: List<ShelfAlbum>, private val music: Pho
         fun phoneJson(a: PhoneAlbum): JSONObject = JSONObject()
             .put("key", a.key).put("offset", "phone:${a.key}").put("title", a.title).put("subtitle", a.artist)
             .put("image_key", if (a.hasArt) "phone-${a.key}" else JSONObject.NULL).put("source", "local")
-            .put("tracks", a.tracks.size).put("year", a.year ?: JSONObject.NULL)
+            .put("tracks", a.tracks.size).put("year", a.year ?: JSONObject.NULL).put("release_date", a.date.ifEmpty { null } ?: JSONObject.NULL)
             .put("quality", quality(a) ?: JSONObject.NULL).put("hires", hires(a))
 
         /** Its page, as the server shapes one. */
