@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed - A multichannel DSD file (a 5.1 SACD's DSF) plays on a Bridge or other DSD device, as stereo PCM, where it failed; its signal path says so
 - Fixed - The app's share card has the Mandarin logo with the server off
 - Fixed - The phone's own music, the server off: the playing track is marked on its album page, and the album's release date, read from its files' tags, is on the page and the share card
 
