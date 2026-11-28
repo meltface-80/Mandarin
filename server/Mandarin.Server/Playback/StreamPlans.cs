@@ -205,8 +205,8 @@ internal static partial class StreamPlans
         var modeSetting = Jv.Get(target, "mode");
         var mode = Jv.OneOf(modeSetting, "x2", "x4", "max") ? (string)modeSetting! : "original";
         var dsd = IsDsd(t);
-        // Native DSD (Stage 9.3): a DSF or DFF as it is, at a multiple of 44.1 kHz the device takes as DSD.
-        if (dsd && DsdFile(PathText(t)) && rate > 0 && DsdIncludes(Jv.Or(Jv.Get(target, "dsd"), new List<object?>()), Js.Round(rate / 44100)))
+        // Native DSD (Stage 9.3): a DSF or DFF as it is, at a multiple of 44.1 kHz the device takes as DSD; stereo only (item 543).
+        if (dsd && channels <= 2 && DsdFile(PathText(t)) && rate > 0 && DsdIncludes(Jv.Or(Jv.Get(target, "dsd"), new List<object?>()), Js.Round(rate / 44100)))
         {
             var ext = OwnExt(t);
             var mimes = Jv.Get(target, "dsdMimes");
@@ -248,7 +248,7 @@ internal static partial class StreamPlans
         {
             // Until native DSD: PCM at the top of the 44.1 ladder, up to 176.4 kHz.
             outRate = Top(rates.Where(r => Family(r) == 44100 && r <= 176400).ToList()) is { } d && d != 0 ? d : Top(rates)!.Value;
-            reason = $"DSD, played as PCM for {who}";
+            reason = channels > 2 ? $"{Js.Num(channels)}-channel DSD, played as stereo PCM for {who}" : $"DSD, played as PCM for {who}";
         }
         else if (rate == 0)
         {
